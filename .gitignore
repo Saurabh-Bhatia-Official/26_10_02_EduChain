@@ -12,10 +12,20 @@ venv/
 .venv/
 env/
 
+# Database 
+/backend/data/
+/backend/*.db
+*.mv.db
+*.trace.db
+
 # Maven & Java Build Outputs
 **/target/
 *.class
 *.jar
+.classpath
+.settings/
+.project
+.mvn/
 *.war
 *.ear
 *.nar
