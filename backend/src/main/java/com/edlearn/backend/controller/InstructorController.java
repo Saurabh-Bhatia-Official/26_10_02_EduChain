@@ -82,15 +82,57 @@ public class InstructorController {
         if (instructor.getUserId() == null || instructor.getUserId().isBlank()) {
             instructor.setUserId("ins_" + System.currentTimeMillis());
         }
+
+        // Validate and safeguard Name
+        String name = instructor.getName();
+        if (name == null || name.isBlank()) {
+            name = instructor.getFullName();
+        }
+        if (name == null || name.isBlank()) {
+            name = "Faculty Member";
+        }
+        instructor.setName(name.trim());
+
         if (instructor.getPassword() == null || instructor.getPassword().isBlank()) {
             instructor.setPassword("password123");
         }
         if (instructor.getInstituteCode() == null || instructor.getInstituteCode().isBlank()) {
             instructor.setInstituteCode("INST-2025");
         }
+        if (instructor.getInstituteName() == null || instructor.getInstituteName().isBlank()) {
+            instructor.setInstituteName("Apex Institute of Technology");
+        }
         if (instructor.getStatus() == null || instructor.getStatus().isBlank()) {
             instructor.setStatus("Active");
         }
+        if (instructor.getDepartment() == null || instructor.getDepartment().isBlank()) {
+            instructor.setDepartment("Computer Science");
+        }
+        if (instructor.getInstructorId() == null || instructor.getInstructorId().isBlank()) {
+            instructor.setInstructorId("INS-" + (1000 + new java.util.Random().nextInt(9000)));
+        }
+        if (instructor.getDesignation() == null || instructor.getDesignation().isBlank()) {
+            instructor.setDesignation("Assistant Professor");
+        }
+        if (instructor.getQualification() == null || instructor.getQualification().isBlank()) {
+            instructor.setQualification("Master's Degree");
+        }
+        if (instructor.getExperience() == null || instructor.getExperience().isBlank()) {
+            instructor.setExperience("3+ Years");
+        }
+        if (instructor.getPhone() == null || instructor.getPhone().isBlank()) {
+            instructor.setPhone("+91 98765 00000");
+        }
+        if (instructor.getAddress() == null || instructor.getAddress().isBlank()) {
+            instructor.setAddress("Campus Faculty Quarters");
+        }
+        if (instructor.getJoiningDate() == null || instructor.getJoiningDate().isBlank()) {
+            instructor.setJoiningDate("2024-01-15");
+        }
+        if (instructor.getAbout() == null || instructor.getAbout().isBlank()) {
+            instructor.setAbout("Passionate faculty member in " + instructor.getDepartment());
+        }
+
         return userRepository.save(instructor);
     }
 
@@ -98,18 +140,22 @@ public class InstructorController {
     public UserEntity updateInstructor(@PathVariable String id, @RequestBody UserEntity updated) {
         UserEntity instructor = findInstructor(id);
 
-        if (updated.getName() != null) instructor.setName(updated.getName());
-        if (updated.getEmail() != null) instructor.setEmail(updated.getEmail());
-        if (updated.getInstructorId() != null) instructor.setInstructorId(updated.getInstructorId());
-        if (updated.getDepartment() != null) instructor.setDepartment(updated.getDepartment());
-        if (updated.getDesignation() != null) instructor.setDesignation(updated.getDesignation());
-        if (updated.getQualification() != null) instructor.setQualification(updated.getQualification());
-        if (updated.getExperience() != null) instructor.setExperience(updated.getExperience());
-        if (updated.getPhone() != null) instructor.setPhone(updated.getPhone());
-        if (updated.getAddress() != null) instructor.setAddress(updated.getAddress());
-        if (updated.getJoiningDate() != null) instructor.setJoiningDate(updated.getJoiningDate());
-        if (updated.getAbout() != null) instructor.setAbout(updated.getAbout());
-        if (updated.getStatus() != null) instructor.setStatus(updated.getStatus());
+        if (updated.getName() != null && !updated.getName().isBlank()) {
+            instructor.setName(updated.getName().trim());
+        } else if (updated.getFullName() != null && !updated.getFullName().isBlank()) {
+            instructor.setName(updated.getFullName().trim());
+        }
+        if (updated.getEmail() != null && !updated.getEmail().isBlank()) instructor.setEmail(updated.getEmail().trim());
+        if (updated.getInstructorId() != null && !updated.getInstructorId().isBlank()) instructor.setInstructorId(updated.getInstructorId().trim());
+        if (updated.getDepartment() != null && !updated.getDepartment().isBlank()) instructor.setDepartment(updated.getDepartment().trim());
+        if (updated.getDesignation() != null && !updated.getDesignation().isBlank()) instructor.setDesignation(updated.getDesignation().trim());
+        if (updated.getQualification() != null && !updated.getQualification().isBlank()) instructor.setQualification(updated.getQualification().trim());
+        if (updated.getExperience() != null && !updated.getExperience().isBlank()) instructor.setExperience(updated.getExperience().trim());
+        if (updated.getPhone() != null && !updated.getPhone().isBlank()) instructor.setPhone(updated.getPhone().trim());
+        if (updated.getAddress() != null && !updated.getAddress().isBlank()) instructor.setAddress(updated.getAddress().trim());
+        if (updated.getJoiningDate() != null && !updated.getJoiningDate().isBlank()) instructor.setJoiningDate(updated.getJoiningDate().trim());
+        if (updated.getAbout() != null && !updated.getAbout().isBlank()) instructor.setAbout(updated.getAbout().trim());
+        if (updated.getStatus() != null && !updated.getStatus().isBlank()) instructor.setStatus(updated.getStatus().trim());
 
         return userRepository.save(instructor);
     }
