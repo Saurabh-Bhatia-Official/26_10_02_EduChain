@@ -300,20 +300,24 @@ public class AuthService {
         String generatedCode = "INST-" + (1000 + new Random().nextInt(9000));
         InstituteEntity institute = new InstituteEntity();
         institute.setInstituteCode(generatedCode);
-        institute.setInstituteName(req.getInstituteName() != null ? req.getInstituteName() : "Apex Institute of Technology");
-        institute.setInstituteType(req.getInstituteType() != null ? req.getInstituteType() : "College");
-        institute.setAdminName(req.getAdminName() != null ? req.getAdminName() : "Institute Administrator");
+        institute.setInstituteName(req.getInstituteName() != null && !req.getInstituteName().isBlank() ? req.getInstituteName().trim() : "Apex Institute of Technology");
+        institute.setInstituteType(req.getInstituteType() != null && !req.getInstituteType().isBlank() ? req.getInstituteType().trim() : "College");
+        institute.setAdminName(req.getAdminName() != null && !req.getAdminName().isBlank() ? req.getAdminName().trim() : "Institute Administrator");
         institute.setEmail(emailToStore);
         institute.setInstitutePassword(encodedInstitutePassword);
         institute.setAdminPassword(encodedAdminPassword);
         institute.setPassword(encodedInstitutePassword);
-        institute.setPhone(req.getPhone());
-        institute.setAddress(req.getAddress());
-        institute.setCampusLocation((req.getCity() != null ? req.getCity() : "Main") + " Campus");
+        institute.setPhone(req.getPhone() != null && !req.getPhone().isBlank() ? req.getPhone().trim() : "+91 98765 43210");
+        String address = req.getAddress() != null && !req.getAddress().isBlank() ? req.getAddress().trim() : (req.getCity() != null ? req.getCity() + ", Campus" : "Central Academic Campus");
+        institute.setAddress(address);
+        institute.setCampusLocation((req.getCity() != null && !req.getCity().isBlank() ? req.getCity().trim() : "Central") + " Campus");
+        institute.setAccreditation(req.getAccreditation() != null && !req.getAccreditation().isBlank() ? req.getAccreditation().trim() : "AICTE & UGC Recognized • Grade A+ NAAC Accredited");
         institute.setVerificationId("VRF-" + generatedCode.replace("-", "") + "-2025");
-        institute.setEstablishedYear(req.getEstablishedYear() != null ? req.getEstablishedYear() : "2024");
+        institute.setVerificationDate("Academic Session 2025–2026");
+        institute.setEstablishedYear(req.getEstablishedYear() != null && !req.getEstablishedYear().isBlank() ? req.getEstablishedYear().trim() : "2024");
         institute.setVerified(true);
         institute.setVerificationStatus("Officially Verified");
+        institute.setActiveSemester("Academic Year 2025–2026");
         institute.setStudentCount(0);
         institute.setFacultyCount(0);
         institute.setDepartmentCount(1);
@@ -336,7 +340,8 @@ public class AuthService {
             adminUser.setName(req.getAdminName() != null && !req.getAdminName().isBlank() ? req.getAdminName().trim() : "System Administrator");
             adminUser.setInstituteCode(institute.getInstituteCode());
             adminUser.setInstituteName(institute.getInstituteName());
-            adminUser.setPhone(req.getPhone());
+            adminUser.setPhone(institute.getPhone());
+            adminUser.setAddress(institute.getAddress());
             adminUser.setTitle("System Administrator");
             adminUser.setDesignation("Master Administrator");
             adminUser.setStatus("Active");
@@ -378,14 +383,82 @@ public class AuthService {
         String rawPass = req.getPassword() != null && !req.getPassword().isBlank() ? req.getPassword() : "password123";
         UserEntity student = new UserEntity();
         student.setUserId("std_" + System.currentTimeMillis());
-        student.setName(req.getFullName());
+
+        String studentName = req.getFullName() != null && !req.getFullName().isBlank() ? req.getFullName().trim() : "Student";
+        student.setName(studentName);
         student.setEmail(email);
         student.setPassword(passwordEncoder.encode(rawPass));
         student.setRole("student");
-        student.setRollNumber(req.getRollNumber());
-        student.setCourse(req.getCourse());
-        student.setInstituteCode(req.getInstituteCode() != null ? req.getInstituteCode().toUpperCase() : "INST-2025");
-        student.setPhone(req.getPhone());
+
+        String instCode = req.getInstituteCode() != null && !req.getInstituteCode().isBlank() 
+                ? req.getInstituteCode().trim().toUpperCase() 
+                : "INST-2025";
+        student.setInstituteCode(instCode);
+        String instName = instituteRepository.findByInstituteCodeIgnoreCase(instCode)
+                .map(InstituteEntity::getInstituteName)
+                .orElse("Apex Institute of Technology");
+        student.setInstituteName(instName);
+
+        String roll = req.getRollNumber() != null && !req.getRollNumber().isBlank() 
+                ? req.getRollNumber().trim() 
+                : "STD-" + (1000 + new Random().nextInt(9000));
+        student.setRollNumber(roll);
+
+        String course = req.getCourse() != null && !req.getCourse().isBlank() 
+                ? req.getCourse().trim() 
+                : "Computer Science & Engineering";
+        student.setCourse(course);
+
+        String className = req.getClassName() != null && !req.getClassName().isBlank() 
+                ? req.getClassName().trim() 
+                : course;
+        student.setClassName(className);
+
+        String semester = req.getSemester() != null && !req.getSemester().isBlank() 
+                ? req.getSemester().trim() 
+                : "Semester 1";
+        student.setSemester(semester);
+
+        String phone = req.getPhone() != null && !req.getPhone().isBlank() 
+                ? req.getPhone().trim() 
+                : "+91 98765 00000";
+        student.setPhone(phone);
+
+        String gender = req.getGender() != null && !req.getGender().isBlank() 
+                ? req.getGender().trim() 
+                : "Not Specified";
+        student.setGender(gender);
+
+        String dob = req.getDob() != null && !req.getDob().isBlank() 
+                ? req.getDob().trim() 
+                : "2005-01-01";
+        student.setDob(dob);
+
+        String address = req.getAddress() != null && !req.getAddress().isBlank() 
+                ? req.getAddress().trim() 
+                : "Campus Residential";
+        student.setAddress(address);
+
+        String fatherName = req.getFatherName() != null && !req.getFatherName().isBlank() 
+                ? req.getFatherName().trim() 
+                : "Guardian of " + studentName;
+        student.setFatherName(fatherName);
+
+        String fatherPhone = req.getFatherPhone() != null && !req.getFatherPhone().isBlank() 
+                ? req.getFatherPhone().trim() 
+                : phone;
+        student.setFatherPhone(fatherPhone);
+        student.setFatherEmail(email.contains("@") ? email.replace("@", ".parent@") : "parent@example.com");
+
+        String motherName = req.getMotherName() != null && !req.getMotherName().isBlank() 
+                ? req.getMotherName().trim() 
+                : "Guardian";
+        student.setMotherName(motherName);
+        student.setMotherPhone(phone);
+        student.setMotherEmail(email.contains("@") ? email.replace("@", ".mother@") : "mother@example.com");
+
+        student.setStatus("Active");
+        student.setDepartment(course);
 
         try {
             student = userRepository.save(student);
@@ -410,14 +483,61 @@ public class AuthService {
         String rawPass = req.getPassword() != null && !req.getPassword().isBlank() ? req.getPassword() : "password123";
         UserEntity teacher = new UserEntity();
         teacher.setUserId("tch_" + System.currentTimeMillis());
-        teacher.setName(req.getFullName());
+
+        String teacherName = req.getFullName() != null && !req.getFullName().isBlank() ? req.getFullName().trim() : "Faculty Member";
+        teacher.setName(teacherName);
         teacher.setEmail(email);
         teacher.setPassword(passwordEncoder.encode(rawPass));
         teacher.setRole("teacher");
-        teacher.setInstructorId(req.getEmployeeId());
-        teacher.setDepartment(req.getDepartment());
-        teacher.setInstituteCode(req.getInstituteCode() != null ? req.getInstituteCode().toUpperCase() : "INST-2025");
-        teacher.setPhone(req.getPhone());
+
+        String instCode = req.getInstituteCode() != null && !req.getInstituteCode().isBlank() 
+                ? req.getInstituteCode().trim().toUpperCase() 
+                : "INST-2025";
+        teacher.setInstituteCode(instCode);
+        String instName = instituteRepository.findByInstituteCodeIgnoreCase(instCode)
+                .map(InstituteEntity::getInstituteName)
+                .orElse("Apex Institute of Technology");
+        teacher.setInstituteName(instName);
+
+        String empId = req.getEmployeeId() != null && !req.getEmployeeId().isBlank() 
+                ? req.getEmployeeId().trim() 
+                : "EMP-" + (1000 + new Random().nextInt(9000));
+        teacher.setInstructorId(empId);
+
+        String dept = req.getDepartment() != null && !req.getDepartment().isBlank() 
+                ? req.getDepartment().trim() 
+                : "Computer Science";
+        teacher.setDepartment(dept);
+
+        String phone = req.getPhone() != null && !req.getPhone().isBlank() 
+                ? req.getPhone().trim() 
+                : "+91 98765 00000";
+        teacher.setPhone(phone);
+
+        String desig = req.getDesignation() != null && !req.getDesignation().isBlank() 
+                ? req.getDesignation().trim() 
+                : "Assistant Professor";
+        teacher.setDesignation(desig);
+
+        String qual = req.getQualification() != null && !req.getQualification().isBlank() 
+                ? req.getQualification().trim() 
+                : "Master's Degree";
+        teacher.setQualification(qual);
+
+        String exp = req.getExperience() != null && !req.getExperience().isBlank() 
+                ? req.getExperience().trim() 
+                : "3+ Years";
+        teacher.setExperience(exp);
+
+        teacher.setJoiningDate("2024-01-15");
+        teacher.setAbout("Passionate faculty educator in " + dept + ".");
+
+        String addr = req.getAddress() != null && !req.getAddress().isBlank() 
+                ? req.getAddress().trim() 
+                : "Campus Faculty Quarters";
+        teacher.setAddress(addr);
+
+        teacher.setStatus("Active");
 
         try {
             teacher = userRepository.save(teacher);

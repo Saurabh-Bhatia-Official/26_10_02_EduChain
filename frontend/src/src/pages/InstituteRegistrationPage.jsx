@@ -33,11 +33,13 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
     address: '',
     adminName: '',
     adminEmail: '',
-    password: '',
+    institutePassword: '',
+    adminPassword: '',
   });
 
   const [agreeTerms, setAgreeTerms] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showInstitutePassword, setShowInstitutePassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successData, setSuccessData] = useState(null);
@@ -57,7 +59,8 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
     return { score: 4, label: 'Strong', color: '#10b981' };
   };
 
-  const strength = calculatePasswordStrength(formData.password);
+  const instStrength = calculatePasswordStrength(formData.institutePassword);
+  const adminStrength = calculatePasswordStrength(formData.adminPassword);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -73,7 +76,8 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
       address: '420 University Avenue, Cambridge Campus',
       adminName: 'Dr. Robert Vance (Dean)',
       adminEmail: 'admin@stxavier.edu',
-      password: 'Password@2025',
+      institutePassword: 'InstPassword@2025',
+      adminPassword: 'AdminPassword@2025',
     });
     setAgreeTerms(true);
     setAutoFilled(true);
@@ -113,8 +117,16 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
       setErrorMessage('Please enter a valid administrator email.');
       return;
     }
-    if (!formData.password || formData.password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long.');
+    if (!formData.institutePassword || formData.institutePassword.length < 6) {
+      setErrorMessage('Institute Password is required and must be at least 6 characters long.');
+      return;
+    }
+    if (!formData.adminPassword || formData.adminPassword.length < 6) {
+      setErrorMessage('Admin Password is required and must be at least 6 characters long.');
+      return;
+    }
+    if (formData.institutePassword === formData.adminPassword) {
+      setErrorMessage('Institute and Admin passwords must be different.');
       return;
     }
     if (!agreeTerms) {
@@ -124,13 +136,16 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
 
     try {
       setLoading(true);
-      const res = await api.registerInstitute(formData);
-      const user = res.user;
-      setSuccessData(user);
-
-      if (onRegisterSuccess) {
-        onRegisterSuccess(user);
+      const payload = {
+        ...formData,
+        password: formData.institutePassword,
+      };
+      const res = await api.registerInstitute(payload);
+      const user = res?.user;
+      if (!user) {
+        throw new Error(res?.message || 'Institute registration failed.');
       }
+      setSuccessData(user);
     } catch (err) {
       setErrorMessage(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -325,7 +340,10 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
                   <button
                     type="button"
                     className="btn-primary btn-success-login"
-                    onClick={() => onNavigate('institute-home')}
+                    onClick={() => {
+                      if (onRegisterSuccess) onRegisterSuccess(successData);
+                      else onNavigate('institute-home');
+                    }}
                   >
                     <span>Open Institute Home Dashboard</span>
                     <ArrowRight size={16} />
@@ -465,6 +483,59 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
                         />
                       </div>
                     </div>
+
+                    {/* Field: Institute Password (for Institute Login) */}
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                      <div className="form-label-row">
+                        <label className="form-label" htmlFor="reg-inst-pass">
+                          Institute Password (for Institute Login) <span className="req">*</span>
+                        </label>
+                        {formData.institutePassword && (
+                          <span
+                            className="strength-tag"
+                            style={{ color: instStrength.color }}
+                          >
+                            Strength: {instStrength.label}
+                          </span>
+                        )}
+                      </div>
+                      <div className="input-with-icon">
+                        <Lock className="input-icon" size={17} />
+                        <input
+                          id="reg-inst-pass"
+                          name="institutePassword"
+                          type={showInstitutePassword ? 'text' : 'password'}
+                          placeholder="Create Institute login password (min 6 chars)"
+                          value={formData.institutePassword}
+                          onChange={(e) => handleChange('institutePassword', e.target.value)}
+                          className="form-input"
+                          minLength={6}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="input-action-btn"
+                          onClick={() => setShowInstitutePassword(!showInstitutePassword)}
+                          aria-label="Toggle institute password view"
+                        >
+                          {showInstitutePassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      {formData.institutePassword && (
+                        <div className="password-meter-track">
+                          <div
+                            className="password-meter-fill"
+                            style={{
+                              width: `${(instStrength.score / 4) * 100}%`,
+                              backgroundColor: instStrength.color,
+                            }}
+                          />
+                        </div>
+                      )}
+                      <span className="form-field-hint" style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+                        Used exclusively for official Institute Portal Login
+                      </span>
+                    </div>
                   </div>
 
                   {/* Section 2: Administrator Profile */}
@@ -515,17 +586,18 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
                       </div>
                     </div>
 
+                    {/* Field: Admin Password (for Admin Login) */}
                     <div className="form-group">
                       <div className="form-label-row">
                         <label className="form-label" htmlFor="reg-admin-pass">
-                          Master Password <span className="req">*</span>
+                          Admin Password (for Admin Login) <span className="req">*</span>
                         </label>
-                        {formData.password && (
+                        {formData.adminPassword && (
                           <span
                             className="strength-tag"
-                            style={{ color: strength.color }}
+                            style={{ color: adminStrength.color }}
                           >
-                            Strength: {strength.label}
+                            Strength: {adminStrength.label}
                           </span>
                         )}
                       </div>
@@ -533,10 +605,11 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
                         <Lock className="input-icon" size={17} />
                         <input
                           id="reg-admin-pass"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Create a strong master password (min 6 chars)"
-                          value={formData.password}
-                          onChange={(e) => handleChange('password', e.target.value)}
+                          name="adminPassword"
+                          type={showAdminPassword ? 'text' : 'password'}
+                          placeholder="Create Admin login password (min 6 chars, different from Institute password)"
+                          value={formData.adminPassword}
+                          onChange={(e) => handleChange('adminPassword', e.target.value)}
                           className="form-input"
                           minLength={6}
                           required
@@ -544,24 +617,27 @@ export default function InstituteRegistrationPage({ onNavigate, onRegisterSucces
                         <button
                           type="button"
                           className="input-action-btn"
-                          onClick={() => setShowPassword(!showPassword)}
-                          aria-label="Toggle password view"
+                          onClick={() => setShowAdminPassword(!showAdminPassword)}
+                          aria-label="Toggle admin password view"
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showAdminPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
 
-                      {formData.password && (
+                      {formData.adminPassword && (
                         <div className="password-meter-track">
                           <div
                             className="password-meter-fill"
                             style={{
-                              width: `${(strength.score / 4) * 100}%`,
-                              backgroundColor: strength.color,
+                              width: `${(adminStrength.score / 4) * 100}%`,
+                              backgroundColor: adminStrength.color,
                             }}
                           />
                         </div>
                       )}
+                      <span className="form-field-hint" style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+                        Used exclusively for Administrator Module Login (must be different from Institute password)
+                      </span>
                     </div>
                   </div>
 
