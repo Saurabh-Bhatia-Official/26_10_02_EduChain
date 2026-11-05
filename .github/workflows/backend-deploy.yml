@@ -105,8 +105,13 @@ jobs:
           set -e
           echo "Initiating automated deployment to Render..."
 
+          # Sanitize secret variables (strip newlines/carriage returns)
+          CLEAN_API_KEY=$(echo -n "$RENDER_API_KEY" | tr -d '\r\n[:space:]')
+          CLEAN_SERVICE_ID=$(echo -n "$RENDER_SERVICE_ID" | tr -d '\r\n[:space:]')
+          CLEAN_DEPLOY_HOOK=$(echo -n "$RENDER_DEPLOY_HOOK_URL" | tr -d '\r\n[:space:]')
+
           # Strategy A: Render Authenticated REST API (provides live deployment tracking)
-          if [ -n "$RENDER_API_KEY" ] && [ -n "$RENDER_SERVICE_ID" ]; then
+          if [ -n "$CLEAN_API_KEY" ] && [ -n "$CLEAN_SERVICE_ID" ]; then
             echo "Using Render REST API deployment method..."
             CACHE_PARAM="do_not_clear"
             if [ "$CLEAR_CACHE" = "true" ]; then
@@ -114,8 +119,8 @@ jobs:
             fi
 
             RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-              "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" \
-              -H "Authorization: Bearer ${RENDER_API_KEY}" \
+              "https://api.render.com/v1/services/${CLEAN_SERVICE_ID}/deploys" \
+              -H "Authorization: Bearer ${CLEAN_API_KEY}" \
               -H "Accept: application/json" \
               -H "Content-Type: application/json" \
               -d "{\"clearCache\": \"${CACHE_PARAM}\"}")
@@ -135,8 +140,8 @@ jobs:
                 MAX_ATTEMPTS=40
                 ATTEMPT=1
                 while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-                  POLL_RESP=$(curl -s -H "Authorization: Bearer ${RENDER_API_KEY}" \
-                    "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys/${DEPLOY_ID}")
+                  POLL_RESP=$(curl -s -H "Authorization: Bearer ${CLEAN_API_KEY}" \
+                    "https://api.render.com/v1/services/${CLEAN_SERVICE_ID}/deploys/${DEPLOY_ID}")
                   STATUS=$(echo "$POLL_RESP" | jq -r '.status // empty')
                   echo "[$(date +'%H:%M:%S')] Render deploy status: ${STATUS} (attempt ${ATTEMPT}/${MAX_ATTEMPTS})"
 
@@ -164,9 +169,9 @@ jobs:
             fi
 
           # Strategy B: Render Deploy Hook Webhook
-          elif [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
+          elif [ -n "$CLEAN_DEPLOY_HOOK" ]; then
             echo "Using Render Deploy Hook URL method..."
-            HOOK_URL="$RENDER_DEPLOY_HOOK_URL"
+            HOOK_URL="$CLEAN_DEPLOY_HOOK"
             if [ "$CLEAR_CACHE" = "true" ]; then
               HOOK_URL="${HOOK_URL}&clearCache=clear"
             fi
