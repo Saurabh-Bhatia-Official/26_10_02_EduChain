@@ -83,8 +83,7 @@ jobs:
         id: version_step
         shell: bash
         run: |
-          RAW_VERSION=$(grep '^version:' frontend/pubspec.yaml | sed 's/version: //; s/+//')
-          BASE_VERSION=$(echo "$RAW_VERSION" | cut -d'+' -f1 | tr -d '[:space:]')
+          BASE_VERSION=$(grep '^version:' frontend/pubspec.yaml | cut -d':' -f2 | cut -d'+' -f1 | tr -d '[:space:]')
           BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
           TAG="v${BASE_VERSION}+${BUILD_NUMBER}"
           
