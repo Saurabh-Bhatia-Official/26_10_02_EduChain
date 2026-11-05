@@ -28,7 +28,7 @@ The frontend workflow automatically tests and builds the Flutter application acr
 | 🍎 **iOS** | `ios-<tag>.ipa` / `Runner.app` | `macos-latest` | Xcode, CocoaPods, Apple Provisioning Profile |
 | 🖥️ **macOS** | `macos-<tag>.zip` (`.app` bundle) | `macos-latest` | Flutter macOS desktop, Apple codesign |
 | 🐧 **Linux** | `linux-<tag>.tar.gz`, `linux-<tag>.deb` | `ubuntu-latest` | `clang`, `cmake`, `ninja-build`, `libgtk-3-dev`, `dpkg-deb` |
-| 🪟 **Windows** | `windows-<tag>.zip` (Win32 x64 runner) | `windows-latest` | Visual Studio C++ toolchain, PowerShell |
+| 🪟 **Windows** | `EduChain-Setup-<tag>.exe` (Installer), `EduChain-windows-<tag>.exe` (Binary), `windows-<tag>.zip` (Portable) | `windows-latest` | Visual Studio C++ toolchain, Inno Setup, PowerShell |
 
 ### ⚡ Workflow Stages & Quality Gates
 1. **Quality Check Gate**:

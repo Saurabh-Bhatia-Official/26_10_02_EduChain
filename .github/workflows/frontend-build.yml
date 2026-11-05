@@ -470,6 +470,41 @@ jobs:
             --build-name "${{ needs.version.outputs.version }}" `
             --build-number "${{ needs.version.outputs.build_number }}"
 
+      - name: Extract Windows Standalone Executable
+        shell: pwsh
+        run: |
+          $ExePath = "build\windows\x64\runner\Release\flutter_frontend.exe"
+          $TargetExe = "EduChain-windows-${{ needs.version.outputs.tag }}.exe"
+          if (Test-Path $ExePath) {
+            Copy-Item -Path $ExePath -Destination $TargetExe
+            Write-Host "Standalone executable extracted: $TargetExe"
+          } else {
+            Write-Error "Executable not found at $ExePath"
+          }
+
+      - name: Build Windows Setup Installer (.exe)
+        shell: pwsh
+        run: |
+          Write-Host "Installing Inno Setup compiler..."
+          choco install innosetup --no-progress -y
+
+          $Iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $Iscc)) {
+            $IsccCmd = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+            if ($IsccCmd) { $Iscc = $IsccCmd.Source }
+          }
+
+          if (Test-Path $Iscc) {
+            Write-Host "Compiling Windows installer with $Iscc..."
+            & $Iscc /DMyAppVersion="${{ needs.version.outputs.version }}" `
+                    /DMyAppOutputDir="." `
+                    /DMyAppOutputBase="EduChain-Setup-${{ needs.version.outputs.tag }}" `
+                    windows/installer.iss
+            Write-Host "Installer generated successfully."
+          } else {
+            Write-Warning "ISCC.exe compiler not found. Installer generation skipped."
+          }
+
       - name: Package Windows Release ZIP
         shell: pwsh
         run: |
@@ -477,11 +512,13 @@ jobs:
           $Destination = "windows-${{ needs.version.outputs.tag }}.zip"
           Compress-Archive -Path $Source -DestinationPath $Destination -CompressionLevel Optimal
 
-      - name: Upload Windows Artifact
+      - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-windows
-          path: frontend/windows-${{ needs.version.outputs.tag }}.zip
+          path: |
+            frontend/windows-${{ needs.version.outputs.tag }}.zip
+            frontend/EduChain-*.exe
           if-no-files-found: error
           retention-days: 14
 
@@ -535,7 +572,7 @@ jobs:
           | 🍎 **iOS** | \`ios-${TAG}*.ipa\` |
           | 🖥️ **macOS** | \`macos-${TAG}.zip\` |
           | 🐧 **Linux** | \`linux-${TAG}.tar.gz\`, \`linux-${TAG}.deb\` |
-          | 🪟 **Windows** | \`windows-${TAG}.zip\` |
+          | 🪟 **Windows** | \`EduChain-Setup-${TAG}.exe\` (Installer), \`EduChain-windows-${TAG}.exe\` (Standalone), \`windows-${TAG}.zip\` (Portable) |
 
           *Built with Flutter (${{ env.FLUTTER_CHANNEL }} channel) on GitHub Actions.*"
 
