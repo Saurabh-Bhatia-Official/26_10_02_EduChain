@@ -1,4 +1,4 @@
-# 🎓 Institute Portal - Flutter Multiplatform Frontend (`flutter-frontend`)
+# 🎓 Institute Portal - Flutter Multiplatform Frontend (`frontend`)
 
 A production-ready Flutter frontend replicating the full functionality, UI/UX design, workflows, and Spring Boot backend API integrations of the React.js frontend.
 
@@ -29,7 +29,7 @@ A production-ready Flutter frontend replicating the full functionality, UI/UX de
 ## 🛠️ Architecture
 
 ```
-flutter-frontend/
+frontend/
 ├── lib/
 │   ├── config/
 │   │   └── api_config.dart          # Base URL, timeouts, offline fallback toggle
@@ -94,7 +94,7 @@ flutter-frontend/
 
 ### 1. Fetch Dependencies
 ```bash
-cd flutter-frontend
+cd frontend
 flutter pub get
 ```
 
@@ -122,7 +122,7 @@ flutter run -d ios
 ## 🧪 Testing & Code Quality
 
 ```bash
-cd flutter-frontend
+cd frontend
 
 # Run Dart code analysis (0 errors, 0 warnings)
 flutter analyze

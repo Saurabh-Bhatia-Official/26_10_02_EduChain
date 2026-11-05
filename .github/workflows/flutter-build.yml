@@ -77,6 +77,9 @@ jobs:
     name: Build Web
     needs: version
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -105,6 +108,9 @@ jobs:
     name: Build Android APK and AAB
     needs: version
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -176,6 +182,9 @@ jobs:
     name: Build iOS IPA
     needs: version
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -234,6 +243,9 @@ jobs:
     name: Build macOS package
     needs: version
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -286,6 +298,9 @@ jobs:
     name: Build Linux packages
     needs: version
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -344,6 +359,9 @@ jobs:
     name: Build Windows package
     needs: version
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Check out source
         uses: actions/checkout@v4
