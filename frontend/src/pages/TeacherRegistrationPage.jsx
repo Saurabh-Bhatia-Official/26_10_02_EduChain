@@ -74,7 +74,19 @@ export default function TeacherRegistrationPage({ onNavigate, onRegisterSuccess 
 
     try {
       setLoading(true);
-      const res = await api.registerTeacher(formData);
+      const payload = {
+        name: formData.fullName.trim(),
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        instituteCode: formData.instituteCode.trim().toUpperCase(),
+        employeeId: formData.employeeId.trim(),
+        instructorId: formData.employeeId.trim(),
+        department: formData.department,
+        phoneNumber: formData.phoneNumber.trim(),
+        phone: formData.phoneNumber.trim(),
+        password: formData.password,
+      };
+      const res = await api.registerTeacher(payload);
       const user = res?.user;
       if (!user) {
         throw new Error(res?.message || 'Teacher registration failed.');
