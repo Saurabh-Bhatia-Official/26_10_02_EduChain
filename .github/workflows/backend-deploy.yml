@@ -8,6 +8,8 @@ on:
     paths:
       - 'backend/**'
       - 'render.yaml'
+      - 'Dockerfile'
+      - '.dockerignore'
       - '.github/workflows/backend-deploy.yml'
   pull_request:
     branches:
@@ -16,6 +18,8 @@ on:
     paths:
       - 'backend/**'
       - 'render.yaml'
+      - 'Dockerfile'
+      - '.dockerignore'
       - '.github/workflows/backend-deploy.yml'
   workflow_dispatch:
     inputs:
