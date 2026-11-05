@@ -1,5 +1,7 @@
 package com.edlearn.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -24,6 +26,7 @@ public class UserEntity {
     @Column(nullable = false)
     private String role; // student, teacher, admin, institute
 
+    @JsonAlias({"fullName", "full_name", "userName", "studentName", "adminName", "teacherName"})
     @Column(nullable = false)
     private String name;
 
@@ -33,6 +36,7 @@ public class UserEntity {
     @Column(name = "institute_name")
     private String instituteName;
 
+    @JsonAlias({"phoneNumber", "phone_number", "contactNumber", "mobile"})
     private String phone;
 
     @Column(name = "avatar_url")
@@ -41,9 +45,11 @@ public class UserEntity {
     private String status = "Active";
 
     // Student fields
+    @JsonAlias({"roll_number", "rollNo", "roll"})
     @Column(name = "roll_number")
     private String rollNumber;
 
+    @JsonAlias({"class_name", "studentClass", "class"})
     @Column(name = "class_name")
     private String className;
 
@@ -52,9 +58,11 @@ public class UserEntity {
     private String gender;
     private String dob;
 
+    @JsonAlias({"parentName", "parent_name", "guardianName"})
     @Column(name = "father_name")
     private String fatherName;
 
+    @JsonAlias({"parentPhone", "parent_phone", "guardianPhone"})
     @Column(name = "father_phone")
     private String fatherPhone;
 
@@ -73,6 +81,7 @@ public class UserEntity {
     private String address;
 
     // Teacher fields
+    @JsonAlias({"employeeId", "employee_id", "empId", "teacherId"})
     @Column(name = "instructor_id")
     private String instructorId;
 
@@ -144,6 +153,23 @@ public class UserEntity {
         this.name = name;
     }
 
+    // Full name alias methods
+    public String getFullName() {
+        return name;
+    }
+
+    public void setFullName(String fullName) {
+        if (fullName != null && !fullName.isBlank()) {
+            this.name = fullName.trim();
+        }
+    }
+
+    public void setUserName(String userName) {
+        if (userName != null && !userName.isBlank()) {
+            this.name = userName.trim();
+        }
+    }
+
     public String getInstituteCode() {
         return instituteCode;
     }
@@ -168,6 +194,12 @@ public class UserEntity {
         this.phone = phone;
     }
 
+    public void setPhoneNumber(String phoneNumber) {
+        if (phoneNumber != null && !phoneNumber.isBlank()) {
+            this.phone = phoneNumber.trim();
+        }
+    }
+
     public String getAvatarUrl() {
         return avatarUrl;
     }
@@ -177,7 +209,7 @@ public class UserEntity {
     }
 
     public String getStatus() {
-        return status;
+        return status != null && !status.isBlank() ? status : "Active";
     }
 
     public void setStatus(String status) {
@@ -198,6 +230,12 @@ public class UserEntity {
 
     public void setClassName(String className) {
         this.className = className;
+    }
+
+    public void setStudentClass(String studentClass) {
+        if (studentClass != null && !studentClass.isBlank()) {
+            this.className = studentClass.trim();
+        }
     }
 
     public String getCourse() {
@@ -240,12 +278,24 @@ public class UserEntity {
         this.fatherName = fatherName;
     }
 
+    public void setParentName(String parentName) {
+        if (parentName != null && !parentName.isBlank()) {
+            this.fatherName = parentName.trim();
+        }
+    }
+
     public String getFatherPhone() {
         return fatherPhone;
     }
 
     public void setFatherPhone(String fatherPhone) {
         this.fatherPhone = fatherPhone;
+    }
+
+    public void setParentPhone(String parentPhone) {
+        if (parentPhone != null && !parentPhone.isBlank()) {
+            this.fatherPhone = parentPhone.trim();
+        }
     }
 
     public String getFatherEmail() {
@@ -294,6 +344,12 @@ public class UserEntity {
 
     public void setInstructorId(String instructorId) {
         this.instructorId = instructorId;
+    }
+
+    public void setEmployeeId(String employeeId) {
+        if (employeeId != null && !employeeId.isBlank()) {
+            this.instructorId = employeeId.trim();
+        }
     }
 
     public String getDesignation() {

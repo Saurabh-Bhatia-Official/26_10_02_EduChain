@@ -68,7 +68,17 @@ export default function StudentRegistrationPage({ onNavigate, onRegisterSuccess 
 
     try {
       setLoading(true);
-      const res = await api.registerStudent(formData);
+      const payload = {
+        name: formData.fullName.trim(),
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        instituteCode: formData.instituteCode.trim().toUpperCase(),
+        rollNumber: formData.rollNumber.trim(),
+        course: formData.course,
+        className: formData.course,
+        password: formData.password,
+      };
+      const res = await api.registerStudent(payload);
       setSuccessMessage('Student registration submitted! Your institute admin will verify your enrollment.');
 
       if (onRegisterSuccess) {

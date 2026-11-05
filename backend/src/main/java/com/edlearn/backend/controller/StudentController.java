@@ -83,15 +83,72 @@ public class StudentController {
         if (student.getUserId() == null || student.getUserId().isBlank()) {
             student.setUserId("std_" + System.currentTimeMillis());
         }
+
+        // Validate and safeguard Name
+        String name = student.getName();
+        if (name == null || name.isBlank()) {
+            name = student.getFullName();
+        }
+        if (name == null || name.isBlank()) {
+            name = "Student";
+        }
+        student.setName(name.trim());
+
         if (student.getPassword() == null || student.getPassword().isBlank()) {
             student.setPassword("password123");
         }
         if (student.getInstituteCode() == null || student.getInstituteCode().isBlank()) {
             student.setInstituteCode("INST-2025");
         }
+        if (student.getInstituteName() == null || student.getInstituteName().isBlank()) {
+            student.setInstituteName("Apex Institute of Technology");
+        }
         if (student.getStatus() == null || student.getStatus().isBlank()) {
             student.setStatus("Active");
         }
+        if (student.getCourse() == null || student.getCourse().isBlank()) {
+            student.setCourse(student.getClassName() != null && !student.getClassName().isBlank() ? student.getClassName() : "Computer Science & Engineering");
+        }
+        if (student.getClassName() == null || student.getClassName().isBlank()) {
+            student.setClassName(student.getCourse());
+        }
+        if (student.getDepartment() == null || student.getDepartment().isBlank()) {
+            student.setDepartment(student.getCourse());
+        }
+        if (student.getSemester() == null || student.getSemester().isBlank()) {
+            student.setSemester("Semester 1");
+        }
+        if (student.getPhone() == null || student.getPhone().isBlank()) {
+            student.setPhone("+91 98765 00000");
+        }
+        if (student.getGender() == null || student.getGender().isBlank()) {
+            student.setGender("Not Specified");
+        }
+        if (student.getDob() == null || student.getDob().isBlank()) {
+            student.setDob("2005-01-01");
+        }
+        if (student.getAddress() == null || student.getAddress().isBlank()) {
+            student.setAddress("Campus Residential");
+        }
+        if (student.getFatherName() == null || student.getFatherName().isBlank()) {
+            student.setFatherName("Guardian of " + student.getName());
+        }
+        if (student.getFatherPhone() == null || student.getFatherPhone().isBlank()) {
+            student.setFatherPhone(student.getPhone());
+        }
+        if (student.getFatherEmail() == null || student.getFatherEmail().isBlank()) {
+            student.setFatherEmail(student.getEmail() != null && student.getEmail().contains("@") ? student.getEmail().replace("@", ".parent@") : "parent@example.com");
+        }
+        if (student.getMotherName() == null || student.getMotherName().isBlank()) {
+            student.setMotherName("Guardian");
+        }
+        if (student.getMotherPhone() == null || student.getMotherPhone().isBlank()) {
+            student.setMotherPhone(student.getPhone());
+        }
+        if (student.getMotherEmail() == null || student.getMotherEmail().isBlank()) {
+            student.setMotherEmail(student.getEmail() != null && student.getEmail().contains("@") ? student.getEmail().replace("@", ".mother@") : "mother@example.com");
+        }
+
         return userRepository.save(student);
     }
 
@@ -99,23 +156,27 @@ public class StudentController {
     public UserEntity updateStudent(@PathVariable String id, @RequestBody UserEntity updated) {
         UserEntity student = findStudent(id);
 
-        if (updated.getName() != null) student.setName(updated.getName());
-        if (updated.getEmail() != null) student.setEmail(updated.getEmail());
-        if (updated.getRollNumber() != null) student.setRollNumber(updated.getRollNumber());
-        if (updated.getClassName() != null) student.setClassName(updated.getClassName());
-        if (updated.getCourse() != null) student.setCourse(updated.getCourse());
-        if (updated.getSemester() != null) student.setSemester(updated.getSemester());
-        if (updated.getPhone() != null) student.setPhone(updated.getPhone());
-        if (updated.getAddress() != null) student.setAddress(updated.getAddress());
-        if (updated.getFatherName() != null) student.setFatherName(updated.getFatherName());
-        if (updated.getFatherPhone() != null) student.setFatherPhone(updated.getFatherPhone());
-        if (updated.getFatherEmail() != null) student.setFatherEmail(updated.getFatherEmail());
-        if (updated.getMotherName() != null) student.setMotherName(updated.getMotherName());
-        if (updated.getMotherPhone() != null) student.setMotherPhone(updated.getMotherPhone());
-        if (updated.getMotherEmail() != null) student.setMotherEmail(updated.getMotherEmail());
-        if (updated.getGender() != null) student.setGender(updated.getGender());
-        if (updated.getDob() != null) student.setDob(updated.getDob());
-        if (updated.getStatus() != null) student.setStatus(updated.getStatus());
+        if (updated.getName() != null && !updated.getName().isBlank()) {
+            student.setName(updated.getName().trim());
+        } else if (updated.getFullName() != null && !updated.getFullName().isBlank()) {
+            student.setName(updated.getFullName().trim());
+        }
+        if (updated.getEmail() != null && !updated.getEmail().isBlank()) student.setEmail(updated.getEmail().trim());
+        if (updated.getRollNumber() != null && !updated.getRollNumber().isBlank()) student.setRollNumber(updated.getRollNumber().trim());
+        if (updated.getClassName() != null && !updated.getClassName().isBlank()) student.setClassName(updated.getClassName().trim());
+        if (updated.getCourse() != null && !updated.getCourse().isBlank()) student.setCourse(updated.getCourse().trim());
+        if (updated.getSemester() != null && !updated.getSemester().isBlank()) student.setSemester(updated.getSemester().trim());
+        if (updated.getPhone() != null && !updated.getPhone().isBlank()) student.setPhone(updated.getPhone().trim());
+        if (updated.getAddress() != null && !updated.getAddress().isBlank()) student.setAddress(updated.getAddress().trim());
+        if (updated.getFatherName() != null && !updated.getFatherName().isBlank()) student.setFatherName(updated.getFatherName().trim());
+        if (updated.getFatherPhone() != null && !updated.getFatherPhone().isBlank()) student.setFatherPhone(updated.getFatherPhone().trim());
+        if (updated.getFatherEmail() != null && !updated.getFatherEmail().isBlank()) student.setFatherEmail(updated.getFatherEmail().trim());
+        if (updated.getMotherName() != null && !updated.getMotherName().isBlank()) student.setMotherName(updated.getMotherName().trim());
+        if (updated.getMotherPhone() != null && !updated.getMotherPhone().isBlank()) student.setMotherPhone(updated.getMotherPhone().trim());
+        if (updated.getMotherEmail() != null && !updated.getMotherEmail().isBlank()) student.setMotherEmail(updated.getMotherEmail().trim());
+        if (updated.getGender() != null && !updated.getGender().isBlank()) student.setGender(updated.getGender().trim());
+        if (updated.getDob() != null && !updated.getDob().isBlank()) student.setDob(updated.getDob().trim());
+        if (updated.getStatus() != null && !updated.getStatus().isBlank()) student.setStatus(updated.getStatus().trim());
 
         return userRepository.save(student);
     }
