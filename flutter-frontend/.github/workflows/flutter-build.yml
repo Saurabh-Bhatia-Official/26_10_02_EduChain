@@ -1,0 +1,408 @@
+name: Flutter Multi-Platform Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: flutter-release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_CHANNEL: stable
+
+jobs:
+  version:
+    name: Create or reuse release tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select an idempotent semantic version tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+
+          valid_tags() {
+            git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V || true
+          }
+
+          # A rerun of a completed or failed workflow reuses the tag reserved
+          # for this commit instead of creating a second release version.
+          tag_for_commit="$(git tag --points-at "$GITHUB_SHA" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
+          if [[ -z "$tag_for_commit" ]]; then
+            latest_tag="$(valid_tags | tail -n 1)"
+            if [[ -z "$latest_tag" ]]; then
+              next_tag="v0.0.1"
+            else
+              latest_version="${latest_tag#v}"
+              IFS=. read -r major minor patch <<< "$latest_version"
+              next_tag="v${major}.${minor}.$((patch + 1))"
+            fi
+
+            # Do not overwrite a manually-created tag. Move to the next patch
+            # version until an unused tag is found.
+            while git show-ref --verify --quiet "refs/tags/$next_tag"; do
+              next_version="${next_tag#v}"
+              IFS=. read -r major minor patch <<< "$next_version"
+              next_tag="v${major}.${minor}.$((patch + 1))"
+            done
+
+            git tag -a "$next_tag" "$GITHUB_SHA" -m "$next_tag"
+            git push origin "$next_tag"
+            tag_for_commit="$next_tag"
+          fi
+
+          version="${tag_for_commit#v}"
+          build_number="${GITHUB_RUN_NUMBER}"
+          echo "tag=$tag_for_commit" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build_number=$build_number" >> "$GITHUB_OUTPUT"
+          echo "Using $tag_for_commit (build number $build_number)"
+
+  web:
+    name: Build Web
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - name: Validate Flutter and dependencies
+        working-directory: .
+        run: |
+          flutter doctor -v
+          flutter pub get
+      - name: Build web release
+        run: flutter build web --release --build-name "${{ needs.version.outputs.version }}" --build-number "${{ needs.version.outputs.build_number }}"
+      - name: Package web
+        run: zip -r "web-${{ needs.version.outputs.tag }}.zip" build/web
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-web
+          path: web-${{ needs.version.outputs.tag }}.zip
+          if-no-files-found: error
+
+  android:
+    name: Build Android APK and AAB
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/gradle-wrapper.properties', 'android/**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-
+      - name: Validate Android signing secrets
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE" || { echo "ANDROID_KEYSTORE_BASE64 is required for a release build." >&2; exit 1; }
+          test -n "$KEY_ALIAS" || { echo "ANDROID_KEY_ALIAS is required for a release build." >&2; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo "ANDROID_KEY_PASSWORD is required for a release build." >&2; exit 1; }
+          test -n "$STORE_PASSWORD" || { echo "ANDROID_STORE_PASSWORD is required for a release build." >&2; exit 1; }
+      - name: Configure Android signing
+        working-directory: android
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          printf '%s' "$KEYSTORE" | base64 --decode > release-key.jks
+          cat > key.properties <<EOF
+          storeFile=release-key.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+      - name: Validate Flutter and dependencies
+        run: |
+          flutter doctor -v
+          flutter pub get
+      - name: Build release APK and AAB
+        run: |
+          flutter build apk --release --build-name "${{ needs.version.outputs.version }}" --build-number "${{ needs.version.outputs.build_number }}"
+          flutter build appbundle --release --build-name "${{ needs.version.outputs.version }}" --build-number "${{ needs.version.outputs.build_number }}"
+      - name: Rename Android artifacts
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk "android-${{ needs.version.outputs.tag }}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "android-${{ needs.version.outputs.tag }}.aab"
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: |
+            android-${{ needs.version.outputs.tag }}.apk
+            android-${{ needs.version.outputs.tag }}.aab
+          if-no-files-found: error
+      - name: Remove signing material
+        if: always()
+        working-directory: android
+        run: rm -f release-key.jks key.properties
+
+  ios:
+    name: Build iOS IPA
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - name: Validate iOS signing secrets
+        env:
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_SIGNING_KEYCHAIN_PASSWORD }}
+        run: |
+          test -n "$CERTIFICATE" || { echo "IPA packaging unavailable: APPLE_CERTIFICATE_BASE64 is not configured." >&2; exit 1; }
+          test -n "$CERTIFICATE_PASSWORD" || { echo "IPA packaging unavailable: APPLE_CERTIFICATE_PASSWORD is not configured." >&2; exit 1; }
+          test -n "$PROFILE" || { echo "IPA packaging unavailable: APPLE_PROVISIONING_PROFILE_BASE64 is not configured." >&2; exit 1; }
+          test -n "$KEYCHAIN_PASSWORD" || { echo "IPA packaging unavailable: APPLE_SIGNING_KEYCHAIN_PASSWORD is not configured." >&2; exit 1; }
+      - name: Install Apple signing assets
+        env:
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_SIGNING_KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+          printf '%s' "$CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+          printf '%s' "$PROFILE" | base64 --decode > "$PROFILE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$(basename "$PROFILE_PATH")"
+      - name: Validate Flutter and dependencies
+        run: |
+          flutter doctor -v
+          flutter pub get
+      - name: Build signed IPA
+        run: flutter build ipa --release --build-name "${{ needs.version.outputs.version }}" --build-number "${{ needs.version.outputs.build_number }}"
+      - name: Rename iOS artifact
+        run: cp build/ios/ipa/*.ipa "ios-${{ needs.version.outputs.tag }}.ipa"
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ios
+          path: ios-${{ needs.version.outputs.tag }}.ipa
+          if-no-files-found: error
+
+  macos:
+    name: Build macOS package
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - name: Validate Flutter and dependencies
+        run: |
+          flutter doctor -v
+          flutter pub get
+      - name: Build macOS release
+        run: flutter build macos --release --build-name "${{ needs.version.outputs.version }}" --build-number "${{ needs.version.outputs.build_number }}"
+      - name: Install macOS signing certificate
+        if: env.MACOS_SIGNING_IDENTITY != '' && env.APPLE_CERTIFICATE_BASE64 != '' && env.APPLE_CERTIFICATE_PASSWORD != '' && env.APPLE_SIGNING_KEYCHAIN_PASSWORD != ''
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_KEYCHAIN_PASSWORD: ${{ secrets.APPLE_SIGNING_KEYCHAIN_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH="$RUNNER_TEMP/macos-certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/macos-build.keychain-db"
+          printf '%s' "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$APPLE_SIGNING_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$APPLE_SIGNING_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          codesign --deep --force --options runtime --sign "$MACOS_SIGNING_IDENTITY" build/macos/Build/Products/Release/*.app
+      - name: Package macOS ZIP
+        run: ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/*.app "macos-${{ needs.version.outputs.tag }}.zip"
+      - name: Optionally notarize macOS ZIP
+        if: env.NOTARIZATION_APPLE_ID != '' && env.NOTARIZATION_PASSWORD != '' && env.TEAM_ID != ''
+        env:
+          NOTARIZATION_APPLE_ID: ${{ secrets.APPLE_NOTARIZATION_APPLE_ID }}
+          NOTARIZATION_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: xcrun notarytool submit "macos-${{ needs.version.outputs.tag }}.zip" --apple-id "$NOTARIZATION_APPLE_ID" --password "$NOTARIZATION_PASSWORD" --team-id "$TEAM_ID" --wait
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: macos-${{ needs.version.outputs.tag }}.zip
+          if-no-files-found: error
+
+  linux:
+    name: Build Linux packages
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - name: Validate Flutter and dependencies
+        run: |
+          flutter doctor -v
+          flutter pub get
+      - name: Build Linux release
+        run: flutter build linux --release --build-name "${{ needs.version.outputs.version }}" --build-number "${{ needs.version.outputs.build_number }}"
+      - name: Package DEB and ZIP
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          APP_DIR="build/linux/x64/release/bundle"
+          mkdir -p "deb-root/DEBIAN" "deb-root/usr/lib/flutter-frontend" "deb-root/usr/share/applications"
+          cp -a "$APP_DIR/." deb-root/usr/lib/flutter-frontend/
+          cat > deb-root/DEBIAN/control <<EOF
+          Package: flutter-frontend
+          Version: $VERSION
+          Section: misc
+          Priority: optional
+          Architecture: amd64
+          Maintainer: EduChain
+          Description: EduChain Flutter frontend
+          EOF
+          dpkg-deb --build deb-root "linux-$TAG.deb"
+          zip -r "linux-$TAG.zip" "$APP_DIR"
+      - name: Optionally package AppImage
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          if command -v appimagetool >/dev/null 2>&1; then
+            mkdir -p AppDir/usr/bin
+            cp -a build/linux/x64/release/bundle/. AppDir/usr/bin/
+            appimagetool AppDir "linux-$TAG.AppImage"
+          else
+            echo "AppImage not generated: appimagetool is not configured on this runner."
+          fi
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: |
+            linux-${{ needs.version.outputs.tag }}.deb
+            linux-${{ needs.version.outputs.tag }}.zip
+            linux-${{ needs.version.outputs.tag }}.AppImage
+          if-no-files-found: warn
+
+  windows:
+    name: Build Windows package
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - name: Validate Flutter and dependencies
+        run: |
+          flutter doctor -v
+          flutter pub get
+      - name: Build Windows release
+        run: flutter build windows --release --build-name "${{ needs.version.outputs.version }}" --build-number "${{ needs.version.outputs.build_number }}"
+      - name: Package Windows application directory
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "windows-${{ needs.version.outputs.tag }}.zip" -CompressionLevel Optimal
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: windows-${{ needs.version.outputs.tag }}.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [version, web, android, ios, macos, linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: Validate required assets
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          required=(
+            "web-$TAG.zip"
+            "android-$TAG.apk"
+            "android-$TAG.aab"
+            "ios-$TAG.ipa"
+            "macos-$TAG.zip"
+            "linux-$TAG.deb"
+            "linux-$TAG.zip"
+            "windows-$TAG.zip"
+          )
+          for asset in "${required[@]}"; do
+            test -f "release-assets/$asset" || { echo "Required release asset is missing: $asset" >&2; exit 1; }
+          done
+      - name: Create empty-body GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mapfile -t assets < <(find release-assets -maxdepth 1 -type f -print | sort)
+          gh release create "$TAG" --title "$TAG" --notes "" --verify-tag "${assets[@]}"
+          echo "Published $TAG with an explicitly empty release description."
