@@ -124,16 +124,13 @@ jobs:
             --build-number "${{ needs.version.outputs.build_number }}"
 
       - name: Package Web Release
-        run: |
-          cd build/web
-          zip -r "../../web-${{ needs.version.outputs.tag }}.zip" .
-          cd ../..
+        run: zip -r "web-${{ needs.version.outputs.tag }}.zip" build/web
 
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-web
-          path: web-${{ needs.version.outputs.tag }}.zip
+          path: frontend/web-${{ needs.version.outputs.tag }}.zip
           if-no-files-found: error
           retention-days: 14
 
@@ -495,9 +492,13 @@ jobs:
           }
 
           if (Test-Path $Iscc) {
+            $ReleaseDir = Join-Path (Get-Location).Path "build\windows\x64\runner\Release"
+            $OutputDir = (Get-Location).Path
             Write-Host "Compiling Windows installer with $Iscc..."
+            Write-Host "Source directory: $ReleaseDir"
             & $Iscc /DMyAppVersion="${{ needs.version.outputs.version }}" `
-                    /DMyAppOutputDir="." `
+                    /DMyAppSourceDir="$ReleaseDir" `
+                    /DMyAppOutputDir="$OutputDir" `
                     /DMyAppOutputBase="EduChain-Setup-${{ needs.version.outputs.tag }}" `
                     windows/installer.iss
             Write-Host "Installer generated successfully."
