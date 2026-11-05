@@ -1,0 +1,573 @@
+name: Frontend Multi-Platform Build & Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-build.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-build.yml'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish GitHub Release with build assets (if pushed on main)'
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: frontend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_CHANNEL: 'stable'
+
+jobs:
+  # =========================================================================
+  # 1. Code Quality & Test Verification (Fails fast before multi-OS runners)
+  # =========================================================================
+  quality-check:
+    name: Code Quality & Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Verify Flutter Installation
+        run: flutter doctor -v
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Dart Code Analysis
+        run: flutter analyze
+
+      - name: Run Automated Flutter Tests
+        run: flutter test
+
+  # =========================================================================
+  # 2. Version Resolution
+  # =========================================================================
+  version:
+    name: Determine Build Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version_step.outputs.version }}
+      build_number: ${{ steps.version_step.outputs.build_number }}
+      tag: ${{ steps.version_step.outputs.tag }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Extract Version from pubspec.yaml
+        id: version_step
+        shell: bash
+        run: |
+          RAW_VERSION=$(grep '^version:' frontend/pubspec.yaml | sed 's/version: //; s/+//')
+          BASE_VERSION=$(echo "$RAW_VERSION" | cut -d'+' -f1 | tr -d '[:space:]')
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          TAG="v${BASE_VERSION}+${BUILD_NUMBER}"
+          
+          echo "version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Determined Version: ${BASE_VERSION} (Build Number: ${BUILD_NUMBER}, Tag: ${TAG})"
+
+  # =========================================================================
+  # 3. Web Build
+  # =========================================================================
+  build-web:
+    name: Build Web (HTML5 / WASM / CanvasKit)
+    needs: [quality-check, version]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Web Release Bundle
+        run: |
+          flutter build web --release \
+            --base-href "/" \
+            --build-name "${{ needs.version.outputs.version }}" \
+            --build-number "${{ needs.version.outputs.build_number }}"
+
+      - name: Package Web Release
+        run: |
+          cd build/web
+          zip -r "../../web-${{ needs.version.outputs.tag }}.zip" .
+          cd ../..
+
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-web
+          path: web-${{ needs.version.outputs.tag }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  # =========================================================================
+  # 4. Android Build (APK & AAB)
+  # =========================================================================
+  build-android:
+    name: Build Android (APK & App Bundle)
+    needs: [quality-check, version]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('frontend/android/**/gradle-wrapper.properties', 'frontend/android/**/*.gradle*') }}
+          restore-keys: ${{ runner.os }}-gradle-
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Configure Keystore Signing (if secret provided)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEY_ALIAS" ]; then
+            echo "Configuring release signing keystore..."
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release-key.jks
+            cat <<EOF > android/key.properties
+          storeFile=release-key.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+            echo "Signing keys configured successfully."
+          else
+            echo "Signing secrets not present: Generating release binaries with standard/unsigned configuration."
+          fi
+
+      - name: Build Android APK
+        run: |
+          flutter build apk --release \
+            --build-name "${{ needs.version.outputs.version }}" \
+            --build-number "${{ needs.version.outputs.build_number }}"
+
+      - name: Build Android App Bundle (AAB)
+        run: |
+          flutter build appbundle --release \
+            --build-name "${{ needs.version.outputs.version }}" \
+            --build-number "${{ needs.version.outputs.build_number }}"
+
+      - name: Prepare Android Artifacts
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk "android-${{ needs.version.outputs.tag }}.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "android-${{ needs.version.outputs.tag }}.aab"
+
+      - name: Clean Keystore Credentials
+        if: always()
+        run: |
+          rm -f android/app/release-key.jks android/key.properties
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-android
+          path: |
+            frontend/android-${{ needs.version.outputs.tag }}.apk
+            frontend/android-${{ needs.version.outputs.tag }}.aab
+          if-no-files-found: error
+          retention-days: 14
+
+  # =========================================================================
+  # 5. iOS Build (IPA / Xcode Bundle)
+  # =========================================================================
+  build-ios:
+    name: Build iOS (IPA / App Bundle)
+    needs: [quality-check, version]
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Configure iOS Signing Certificates (if provided)
+        id: ios_signing
+        env:
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+          KEYCHAIN_PWD: ${{ secrets.APPLE_SIGNING_KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -n "$CERTIFICATE" ] && [ -n "$CERT_PASSWORD" ] && [ -n "$PROFILE" ] && [ -n "$KEYCHAIN_PWD" ]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+            CERTIFICATE_PATH="$RUNNER_TEMP/certificate.p12"
+            PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+            KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+            printf '%s' "$CERTIFICATE" | base64 --decode > "$CERTIFICATE_PATH"
+            printf '%s' "$PROFILE" | base64 --decode > "$PROFILE_PATH"
+            security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+            security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+            security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_PATH"
+            security import "$CERTIFICATE_PATH" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+            security list-keychains -d user -s "$KEYCHAIN_PATH"
+            security default-keychain -s "$KEYCHAIN_PATH"
+            mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+            cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$(basename "$PROFILE_PATH")"
+            echo "Apple signing assets installed successfully."
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "iOS signing credentials not found. Building unsigned release bundle for simulator/adhoc validation."
+          fi
+
+      - name: Build Signed IPA
+        if: steps.ios_signing.outputs.signed == 'true'
+        run: |
+          flutter build ipa --release \
+            --build-name "${{ needs.version.outputs.version }}" \
+            --build-number "${{ needs.version.outputs.build_number }}"
+          cp build/ios/ipa/*.ipa "ios-${{ needs.version.outputs.tag }}.ipa"
+
+      - name: Build Unsigned iOS Bundle
+        if: steps.ios_signing.outputs.signed != 'true'
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name "${{ needs.version.outputs.version }}" \
+            --build-number "${{ needs.version.outputs.build_number }}"
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r "../../../ios-${{ needs.version.outputs.tag }}-unsigned.ipa" Payload
+          cd ../../..
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-ios
+          path: |
+            frontend/ios-${{ needs.version.outputs.tag }}*.ipa
+          if-no-files-found: error
+          retention-days: 14
+
+  # =========================================================================
+  # 6. macOS Desktop Build
+  # =========================================================================
+  build-macos:
+    name: Build macOS Desktop Application
+    needs: [quality-check, version]
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Enable macOS Desktop Support
+        run: flutter config --enable-macos-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build macOS Release
+        run: |
+          flutter build macos --release \
+            --build-name "${{ needs.version.outputs.version }}" \
+            --build-number "${{ needs.version.outputs.build_number }}"
+
+      - name: Package macOS App Bundle
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/macos/Build/Products/Release/*.app "macos-${{ needs.version.outputs.tag }}.zip"
+
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-macos
+          path: frontend/macos-${{ needs.version.outputs.tag }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  # =========================================================================
+  # 7. Linux Desktop Build
+  # =========================================================================
+  build-linux:
+    name: Build Linux Desktop (DEB & Tarball)
+    needs: [quality-check, version]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libgtk-3-dev \
+            liblzma-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Enable Linux Desktop Support
+        run: flutter config --enable-linux-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Linux Desktop Release
+        run: |
+          flutter build linux --release \
+            --build-name "${{ needs.version.outputs.version }}" \
+            --build-number "${{ needs.version.outputs.build_number }}"
+
+      - name: Package Linux Binary (Tarball & DEB)
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          APP_DIR="build/linux/x64/release/bundle"
+          tar -czvf "linux-${TAG}.tar.gz" -C "$APP_DIR" .
+          
+          # Create Debian packaging tree
+          mkdir -p "deb-pkg/DEBIAN" "deb-pkg/usr/lib/edlearn-frontend" "deb-pkg/usr/bin"
+          cp -a "$APP_DIR/." deb-pkg/usr/lib/edlearn-frontend/
+          
+          # Launcher script
+          cat << 'EOF' > deb-pkg/usr/bin/edlearn-frontend
+          #!/bin/sh
+          exec /usr/lib/edlearn-frontend/flutter_frontend "$@"
+          EOF
+          chmod +x deb-pkg/usr/bin/edlearn-frontend
+          
+          cat << EOF > deb-pkg/DEBIAN/control
+          Package: edlearn-frontend
+          Version: ${VERSION}
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Maintainer: EduChain Team <admin@edlearn.com>
+          Description: EduChain Multi-Platform LMS Application
+          EOF
+          
+          dpkg-deb --build deb-pkg "linux-${TAG}.deb"
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-linux
+          path: |
+            frontend/linux-${{ needs.version.outputs.tag }}.tar.gz
+            frontend/linux-${{ needs.version.outputs.tag }}.deb
+          if-no-files-found: error
+          retention-days: 14
+
+  # =========================================================================
+  # 8. Windows Desktop Build
+  # =========================================================================
+  build-windows:
+    name: Build Windows Desktop Application
+    needs: [quality-check, version]
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Enable Windows Desktop Support
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Desktop Release
+        run: |
+          flutter build windows --release `
+            --build-name "${{ needs.version.outputs.version }}" `
+            --build-number "${{ needs.version.outputs.build_number }}"
+
+      - name: Package Windows Release ZIP
+        shell: pwsh
+        run: |
+          $Source = "build\windows\x64\runner\Release\*"
+          $Destination = "windows-${{ needs.version.outputs.tag }}.zip"
+          Compress-Archive -Path $Source -DestinationPath $Destination -CompressionLevel Optimal
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-windows
+          path: frontend/windows-${{ needs.version.outputs.tag }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  # =========================================================================
+  # 9. Release & Artifact Consolidation (Runs on push to main)
+  # =========================================================================
+  publish-release:
+    name: Publish Multi-Platform Release Assets
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name != 'pull_request'
+    needs:
+      - version
+      - build-web
+      - build-android
+      - build-ios
+      - build-macos
+      - build-linux
+      - build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Download All Platform Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: frontend-*
+          path: release-dist
+          merge-multiple: true
+
+      - name: List Release Files
+        run: |
+          echo "Discovered build artifacts for release:"
+          ls -lh release-dist/
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            release-dist/* \
+            --title "EduChain Frontend Release ${TAG}" \
+            --notes "### 🚀 Automated Multi-Platform Release (${TAG})
+
+          Automated build artifacts for EduChain LMS frontend across all 6 supported platforms:
+
+          | Platform | Artifact |
+          | :--- | :--- |
+          | 🌐 **Web** | \`web-${TAG}.zip\` |
+          | 🤖 **Android** | \`android-${TAG}.apk\`, \`android-${TAG}.aab\` |
+          | 🍎 **iOS** | \`ios-${TAG}*.ipa\` |
+          | 🖥️ **macOS** | \`macos-${TAG}.zip\` |
+          | 🐧 **Linux** | \`linux-${TAG}.tar.gz\`, \`linux-${TAG}.deb\` |
+          | 🪟 **Windows** | \`windows-${TAG}.zip\` |
+
+          *Built with Flutter (${{ env.FLUTTER_CHANNEL }} channel) on GitHub Actions.*"
+
+  # =========================================================================
+  # 10. Pull Request & Workflow Summary
+  # =========================================================================
+  summary:
+    name: Build Summary
+    if: always()
+    needs:
+      - version
+      - quality-check
+      - build-web
+      - build-android
+      - build-ios
+      - build-macos
+      - build-linux
+      - build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary Report
+        run: |
+          echo "## 🚀 Frontend Multi-Platform Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Platform / Step | Runner | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Code Quality & Tests | \`ubuntu-latest\` | ${{ needs.quality-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 Web Release | \`ubuntu-latest\` | ${{ needs.build-web.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🤖 Android (APK & AAB) | \`ubuntu-latest\` | ${{ needs.build-android.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🍎 iOS (IPA) | \`macos-latest\` | ${{ needs.build-ios.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🖥️ macOS App | \`macos-latest\` | ${{ needs.build-macos.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐧 Linux (Tarball & DEB) | \`ubuntu-latest\` | ${{ needs.build-linux.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🪟 Windows Application | \`windows-latest\` | ${{ needs.build-windows.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Version:** \`${{ needs.version.outputs.tag || 'N/A' }}\`" >> $GITHUB_STEP_SUMMARY
