@@ -16,7 +16,7 @@ public class HomeController {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>EdLearn Backend API</title>
+                <title>EduChain Backend API</title>
                 <style>
                     body {
                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -105,9 +105,10 @@ public class HomeController {
             <body>
                 <div class="card">
                     <div class="badge">&#9679; Spring Boot API & Neon PostgreSQL Online</div>
-                    <h1>EdLearn Backend API</h1>
+                    <h1>EduChain Backend API</h1>
+                    <p style="font-weight: 600; color: #38bdf8; margin-bottom: 8px;">One Platform, Endless Possibilities</p>
                     <p>
-                        The backend REST API server is actively connected to your <strong>Neon PostgreSQL Cloud Console</strong> and <strong>Cloudinary Media Cloud</strong>.
+                        The EduChain backend REST API server is actively connected to your <strong>Neon PostgreSQL Cloud Database</strong> and <strong>Cloudinary Media Cloud</strong>.
                     </p>
                     <a href="http://localhost:5173" class="frontend-btn">
                         Open React Frontend App (Port 5173) &rarr;

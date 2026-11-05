@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = flutter_frontend
+PRODUCT_NAME = EduChain
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.edlearn.flutterFrontend
+PRODUCT_BUNDLE_IDENTIFIER = com.educhain.app
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.edlearn. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 EduChain. All rights reserved.

@@ -39,34 +39,38 @@ class PortalHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: Row(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.account_balance,
-                    color: Colors.white,
-                    size: 20,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/educhain_icon.png',
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.contain,
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Institute Portal',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textMain,
-                    letterSpacing: -0.3,
+                const SizedBox(width: 10),
+                RichText(
+                  text: const TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'Edu',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF00337F),
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      TextSpan(
+                        text: 'Chain',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF00A88F),
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

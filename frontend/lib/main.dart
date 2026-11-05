@@ -43,7 +43,7 @@ class EduChainApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => InstructorProvider()),
       ],
       child: MaterialApp(
-        title: 'Institute Portal - Multiplatform Frontend',
+        title: 'EduChain - One Platform, Endless Possibilities',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const AppRootView(),

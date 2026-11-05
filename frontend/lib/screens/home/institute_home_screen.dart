@@ -68,13 +68,14 @@ class _InstituteHomeScreenState extends State<InstituteHomeScreen> {
         titleSpacing: 24,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/educhain_icon.png',
+                width: 36,
+                height: 36,
+                fit: BoxFit.contain,
               ),
-              child: const Icon(Icons.account_balance, color: AppColors.primary, size: 22),
             ),
             const SizedBox(width: 12),
             Column(

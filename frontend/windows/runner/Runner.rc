@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.edlearn" "\0"
-            VALUE "FileDescription", "flutter_frontend" "\0"
+            VALUE "CompanyName", "EduChain" "\0"
+            VALUE "FileDescription", "EduChain - One Platform, Endless Possibilities" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "flutter_frontend" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.edlearn. All rights reserved." "\0"
-            VALUE "OriginalFilename", "flutter_frontend.exe" "\0"
-            VALUE "ProductName", "flutter_frontend" "\0"
+            VALUE "InternalName", "EduChain" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 EduChain. All rights reserved." "\0"
+            VALUE "OriginalFilename", "EduChain.exe" "\0"
+            VALUE "ProductName", "EduChain" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

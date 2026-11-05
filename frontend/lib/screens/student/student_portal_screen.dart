@@ -144,21 +144,21 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.studentPrimary,
-                    borderRadius: BorderRadius.circular(10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/educhain_icon.png',
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
                   ),
-                  child: const Icon(Icons.school, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Student Portal', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textMain)),
-                    Text('Academic Desk', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
+                    Text('EduChain', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF00337F))),
+                    Text('Student Academic Desk', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
                   ],
                 ),
               ],

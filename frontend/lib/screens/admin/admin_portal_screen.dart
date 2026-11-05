@@ -176,21 +176,21 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.adminPrimary,
-                    borderRadius: BorderRadius.circular(10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/educhain_icon.png',
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
                   ),
-                  child: const Icon(Icons.shield, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Admin Portal', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textMain)),
-                    Text('Control Center', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
+                    Text('EduChain', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF00337F))),
+                    Text('Admin Control Center', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
                   ],
                 ),
               ],

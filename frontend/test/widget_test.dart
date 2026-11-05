@@ -12,7 +12,8 @@ void main() {
     await tester.pumpWidget(const EduChainApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Institute Portal'), findsWidgets);
+    expect(find.text('One Platform, Endless Possibilities'), findsWidgets);
+    expect(find.text('Why Choose EduChain?'), findsOneWidget);
     expect(find.text('INSTITUTE Login'), findsWidgets);
     expect(find.text('INSTITUTE Register'), findsWidgets);
     expect(find.text('Everything You Need in One Portal'), findsOneWidget);

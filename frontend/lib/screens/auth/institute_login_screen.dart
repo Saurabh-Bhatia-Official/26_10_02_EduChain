@@ -57,7 +57,7 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Institute verified! Opening Institute Portal...'),
+          content: Text('Institute verified! Opening EduChain...'),
           backgroundColor: AppColors.success,
         ),
       );

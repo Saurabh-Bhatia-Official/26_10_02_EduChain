@@ -163,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   children: [
                     const Text(
-                      'Why Choose Institute Portal?',
+                      'Why Choose EduChain?',
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Institute Portal is designed to bring essential academic activities together in one organized platform. It helps institutes manage administration and supports teachers and students with a centralized digital experience.',
+                      'EduChain is designed to bring essential academic activities together in one organized platform. It helps institutes manage administration and supports teachers and students with a centralized digital experience.',
                       style: TextStyle(fontSize: 15, color: AppColors.textMuted, height: 1.6),
                     ),
                     const SizedBox(height: 12),
@@ -276,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Get Started with Institute Portal',
+                                    'Get Started with EduChain',
                                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
                                   ),
                                   SizedBox(height: 8),
@@ -316,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Get Started with Institute Portal',
+                              'Get Started with EduChain',
                               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
                             ),
                             const SizedBox(height: 8),
@@ -363,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildSectionHeader(
                       label: 'CONTACT US',
                       title: 'Get in Touch with Our Team',
-                      subtitle: 'Have questions about Institute Portal or need assistance setting up your campus? Contact our support team.',
+                      subtitle: 'Have questions about EduChain or need assistance setting up your campus? Contact our support team.',
                     ),
                     const SizedBox(height: 48),
                     _buildContactGrid(isDesktop),
@@ -416,20 +416,34 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               TextSpan(text: 'Welcome to \n'),
               TextSpan(
-                text: 'Institute Portal',
-                style: TextStyle(color: AppColors.primary),
+                text: 'Edu',
+                style: TextStyle(color: Color(0xFF00337F)),
+              ),
+              TextSpan(
+                text: 'Chain',
+                style: TextStyle(color: Color(0xFF00A88F)),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         const Text(
-          'Manage your institute, teachers and students from one platform.',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textMain),
+          'One Platform, Endless Possibilities',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF00337F),
+            letterSpacing: -0.3,
+          ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         const Text(
-          'A smart and simple solution for academic management, designed to make education more efficient and organized.',
+          'Manage your institute, teachers and students seamlessly from one unified platform.',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textMain),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'A smart and modern solution for academic management, designed to make education more efficient and organized.',
           style: TextStyle(fontSize: 15, color: AppColors.textMuted, height: 1.5),
         ),
         const SizedBox(height: 32),
@@ -728,7 +742,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       {
         'title': 'Our Campus Office',
-        'desc': 'Institute Portal Support Office',
+        'desc': 'EduChain Support Office',
         'detail': 'Tech City Campus, Innovation Tower, Suite 400',
         'icon': Icons.location_on_outlined,
         'action': null,

@@ -42,30 +42,61 @@ class Footer extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(8),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.asset(
+                                      'assets/images/educhain_icon.png',
+                                      width: 36,
+                                      height: 36,
+                                      fit: BoxFit.contain,
                                     ),
-                                    child: const Icon(Icons.account_balance, color: Colors.white, size: 18),
                                   ),
                                   const SizedBox(width: 10),
-                                  const Text(
-                                    'Institute Portal',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textMain,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      RichText(
+                                        text: const TextSpan(
+                                          children: [
+                                            TextSpan(
+                                              text: 'Edu',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF00337F),
+                                                letterSpacing: -0.4,
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text: 'Chain',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w800,
+                                                color: Color(0xFF00A88F),
+                                                letterSpacing: -0.4,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Text(
+                                        'One Platform, Endless Possibilities',
+                                        style: TextStyle(
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF00337F),
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(height: 12),
                             const Text(
-                              'A smart and simple solution for academic management, designed to make education more efficient and organized.',
+                              'One Platform, Endless Possibilities. A smart and modern solution for academic management, connecting institutes, educators, and students.',
                               style: TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.5),
                             ),
                           ],
@@ -149,14 +180,47 @@ class Footer extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Institute Portal',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textMain),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.asset(
+                              'assets/images/educhain_icon.png',
+                              width: 30,
+                              height: 30,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          RichText(
+                            text: const TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Edu',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF00337F),
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Chain',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF00A88F),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'A smart and simple solution for academic management.',
-                        style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                        'One Platform, Endless Possibilities.',
+                        style: TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 16),
                       Wrap(
@@ -183,7 +247,7 @@ class Footer extends StatelessWidget {
                   runSpacing: 10,
                   children: [
                     const Text(
-                      '© 2025 Institute Portal. All rights reserved.',
+                      '© 2026 EduChain. All rights reserved.',
                       style: TextStyle(fontSize: 12, color: AppColors.textLight),
                     ),
                     Row(
