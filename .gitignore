@@ -39,6 +39,7 @@ replay_pid*
 **/node_modules/
 **/dist/
 **/build/
+**/.flutter-sdk/
 **/.dart_tool/
 **/.flutter-plugins
 **/.flutter-plugins-dependencies
