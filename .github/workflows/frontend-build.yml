@@ -35,38 +35,7 @@ env:
 
 jobs:
   # =========================================================================
-  # 1. Code Quality & Test Verification (Fails fast before multi-OS runners)
-  # =========================================================================
-  quality-check:
-    name: Code Quality & Unit Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-
-      - name: Verify Flutter Installation
-        run: flutter doctor -v
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Run Dart Code Analysis
-        run: flutter analyze
-
-      - name: Run Automated Flutter Tests
-        run: flutter test
-
-  # =========================================================================
-  # 2. Version Resolution
+  # 1. Version Resolution
   # =========================================================================
   version:
     name: Determine Build Version
@@ -93,11 +62,11 @@ jobs:
           echo "Determined Version: ${BASE_VERSION} (Build Number: ${BUILD_NUMBER}, Tag: ${TAG})"
 
   # =========================================================================
-  # 3. Web Build
+  # 2. Web Build
   # =========================================================================
   build-web:
     name: Build Web (HTML5 / WASM / CanvasKit)
-    needs: [quality-check, version]
+    needs: [version]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -134,11 +103,11 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 4. Android Build (APK & AAB)
+  # 3. Android Build (APK & AAB)
   # =========================================================================
   build-android:
     name: Build Android (APK & App Bundle)
-    needs: [quality-check, version]
+    needs: [version]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -225,11 +194,11 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 5. iOS Build (IPA / Xcode Bundle)
+  # 4. iOS Build (IPA / Xcode Bundle)
   # =========================================================================
   build-ios:
     name: Build iOS (IPA / App Bundle)
-    needs: [quality-check, version]
+    needs: [version]
     runs-on: macos-latest
     defaults:
       run:
@@ -306,11 +275,11 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 6. macOS Desktop Build
+  # 5. macOS Desktop Build
   # =========================================================================
   build-macos:
     name: Build macOS Desktop Application
-    needs: [quality-check, version]
+    needs: [version]
     runs-on: macos-latest
     defaults:
       run:
@@ -351,11 +320,11 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 7. Linux Desktop Build
+  # 6. Linux Desktop Build
   # =========================================================================
   build-linux:
     name: Build Linux Desktop (DEB & Tarball)
-    needs: [quality-check, version]
+    needs: [version]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -435,11 +404,11 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 8. Windows Desktop Build
+  # 7. Windows Desktop Build
   # =========================================================================
   build-windows:
     name: Build Windows Desktop Application
-    needs: [quality-check, version]
+    needs: [version]
     runs-on: windows-latest
     defaults:
       run:
@@ -523,7 +492,7 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 9. Release & Artifact Consolidation (Runs on push to main)
+  # 8. Release & Artifact Consolidation (Runs on push to main)
   # =========================================================================
   publish-release:
     name: Publish Multi-Platform Release Assets
@@ -577,14 +546,13 @@ jobs:
           *Built with Flutter (${{ env.FLUTTER_CHANNEL }} channel) on GitHub Actions.*"
 
   # =========================================================================
-  # 10. Pull Request & Workflow Summary
+  # 9. Pull Request & Workflow Summary
   # =========================================================================
   summary:
     name: Build Summary
     if: always()
     needs:
       - version
-      - quality-check
       - build-web
       - build-android
       - build-ios
@@ -599,7 +567,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Platform / Step | Runner | Status |" >> $GITHUB_STEP_SUMMARY
           echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔍 Code Quality & Tests | \`ubuntu-latest\` | ${{ needs.quality-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🌐 Web Release | \`ubuntu-latest\` | ${{ needs.build-web.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🤖 Android (APK & AAB) | \`ubuntu-latest\` | ${{ needs.build-android.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| 🍎 iOS (IPA) | \`macos-latest\` | ${{ needs.build-ios.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY

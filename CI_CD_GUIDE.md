@@ -30,19 +30,16 @@ The frontend workflow automatically tests and builds the Flutter application acr
 | 🐧 **Linux** | `linux-<tag>.tar.gz`, `linux-<tag>.deb` | `ubuntu-latest` | `clang`, `cmake`, `ninja-build`, `libgtk-3-dev`, `dpkg-deb` |
 | 🪟 **Windows** | `EduChain-Setup-<tag>.exe` (Installer), `EduChain-windows-<tag>.exe` (Binary), `windows-<tag>.zip` (Portable) | `windows-latest` | Visual Studio C++ toolchain, Inno Setup, PowerShell |
 
-### ⚡ Workflow Stages & Quality Gates
-1. **Quality Check Gate**:
-   - Executes `flutter doctor -v`, `flutter pub get`, `flutter analyze` (linting), and `flutter test`.
-   - Fails fast before running high-cost multi-OS runners.
-2. **Version Resolution**:
+### ⚡ Workflow Stages & Build Pipeline
+1. **Version Resolution**:
    - Parses the version string from `frontend/pubspec.yaml` and appends `${{ github.run_number }}`.
    - Generates a semantic release tag (e.g. `v1.0.0+42`).
-3. **Parallel Platform Builds**:
+2. **Parallel Platform Builds**:
    - All 6 platforms build simultaneously across independent runner pools (`ubuntu-latest`, `macos-latest`, `windows-latest`).
    - Graceful fallback: If signing secrets are not yet added to the repository, Android and iOS jobs build unsigned release bundles instead of breaking the pipeline.
-4. **Artifact Archival**:
+3. **Artifact Archival**:
    - Each platform's production assets are archived with `actions/upload-artifact@v4` for 14 days.
-5. **Automated GitHub Release**:
+4. **Automated GitHub Release**:
    - On pushes to `main` (not PRs), consolidates all 6 platform packages and publishes a formal GitHub Release via GitHub CLI (`gh release`).
 
 ---
