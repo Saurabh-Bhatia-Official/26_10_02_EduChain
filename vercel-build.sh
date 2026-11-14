@@ -67,3 +67,4 @@ if [ "$FLUTTER_APP_DIR" != "$WORKSPACE_DIR" ]; then
   echo " - $WORKSPACE_DIR/build/web"
 fi
 echo "=========================================="
+
