@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   FLUTTER_CHANNEL: 'stable'
@@ -488,11 +488,11 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 8. Pull Request & Workflow Summary
+  # 8. Release Application
   # =========================================================================
-  summary:
-    name: Build Summary
-    if: always()
+  release:
+    name: Release Application
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name != 'pull_request'
     needs:
       - version
       - build-web
@@ -503,17 +503,35 @@ jobs:
       - build-windows
     runs-on: ubuntu-latest
     steps:
-      - name: Generate Summary Report
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Download All Platform Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: frontend-*
+          path: release-dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
-          echo "## 🚀 Frontend Multi-Platform Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Platform / Step | Runner | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌐 Web Release | \`ubuntu-latest\` | ${{ needs.build-web.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🤖 Android (APK & AAB) | \`ubuntu-latest\` | ${{ needs.build-android.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🍎 iOS (IPA) | \`macos-latest\` | ${{ needs.build-ios.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🖥️ macOS App | \`macos-latest\` | ${{ needs.build-macos.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐧 Linux (Tarball & DEB) | \`ubuntu-latest\` | ${{ needs.build-linux.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🪟 Windows Application | \`windows-latest\` | ${{ needs.build-windows.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Build Version:** \`${{ needs.version.outputs.tag || 'N/A' }}\`" >> $GITHUB_STEP_SUMMARY
+          gh release create "$TAG" \
+            release-dist/* \
+            --title "EduChain Frontend Release ${TAG}" \
+            --notes "### 🚀 Automated Release (${TAG})
+
+          Release artifacts for EduChain LMS across supported platforms:
+
+          | Platform | Artifact |
+          | :--- | :--- |
+          | 🌐 **Web** | \`web-${TAG}.zip\` |
+          | 🤖 **Android** | \`android-${TAG}.apk\`, \`android-${TAG}.aab\` |
+          | 🍎 **iOS** | \`ios-${TAG}*.ipa\` |
+          | 🖥️ **macOS** | \`macos-${TAG}.zip\` |
+          | 🐧 **Linux** | \`linux-${TAG}.tar.gz\`, \`linux-${TAG}.deb\` |
+          | 🪟 **Windows** | \`EduChain-Setup-${TAG}.exe\`, \`EduChain-windows-${TAG}.exe\`, \`windows-${TAG}.zip\` |
+
+          *Built with Flutter (${{ env.FLUTTER_CHANNEL }} channel) on GitHub Actions.*"
