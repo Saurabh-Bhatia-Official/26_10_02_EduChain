@@ -39,8 +39,6 @@ The frontend workflow automatically tests and builds the Flutter application acr
    - Graceful fallback: If signing secrets are not yet added to the repository, Android and iOS jobs build unsigned release bundles instead of breaking the pipeline.
 3. **Artifact Archival**:
    - Each platform's production assets are archived with `actions/upload-artifact@v4` for 14 days.
-4. **Automated GitHub Release**:
-   - On pushes to `main` (not PRs), consolidates all 6 platform packages and publishes a formal GitHub Release via GitHub CLI (`gh release`).
 
 ---
 

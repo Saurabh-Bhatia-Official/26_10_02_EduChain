@@ -16,19 +16,13 @@ on:
       - 'frontend/**'
       - '.github/workflows/frontend-build.yml'
   workflow_dispatch:
-    inputs:
-      create_release:
-        description: 'Publish GitHub Release with build assets (if pushed on main)'
-        required: false
-        type: boolean
-        default: true
 
 concurrency:
   group: frontend-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   FLUTTER_CHANNEL: 'stable'
@@ -494,61 +488,7 @@ jobs:
           retention-days: 14
 
   # =========================================================================
-  # 8. Release & Artifact Consolidation (Runs on push to main)
-  # =========================================================================
-  publish-release:
-    name: Publish Multi-Platform Release Assets
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name != 'pull_request'
-    needs:
-      - version
-      - build-web
-      - build-android
-      - build-ios
-      - build-macos
-      - build-linux
-      - build-windows
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Download All Platform Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: frontend-*
-          path: release-dist
-          merge-multiple: true
-
-      - name: List Release Files
-        run: |
-          echo "Discovered build artifacts for release:"
-          ls -lh release-dist/
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          gh release create "$TAG" \
-            release-dist/* \
-            --title "EduChain Frontend Release ${TAG}" \
-            --notes "### 🚀 Automated Multi-Platform Release (${TAG})
-
-          Automated build artifacts for EduChain LMS frontend across all 6 supported platforms:
-
-          | Platform | Artifact |
-          | :--- | :--- |
-          | 🌐 **Web** | \`web-${TAG}.zip\` |
-          | 🤖 **Android** | \`android-${TAG}.apk\`, \`android-${TAG}.aab\` |
-          | 🍎 **iOS** | \`ios-${TAG}*.ipa\` |
-          | 🖥️ **macOS** | \`macos-${TAG}.zip\` |
-          | 🐧 **Linux** | \`linux-${TAG}.tar.gz\`, \`linux-${TAG}.deb\` |
-          | 🪟 **Windows** | \`EduChain-Setup-${TAG}.exe\` (Installer), \`EduChain-windows-${TAG}.exe\` (Standalone), \`windows-${TAG}.zip\` (Portable) |
-
-          *Built with Flutter (${{ env.FLUTTER_CHANNEL }} channel) on GitHub Actions.*"
-
-  # =========================================================================
-  # 9. Pull Request & Workflow Summary
+  # 8. Pull Request & Workflow Summary
   # =========================================================================
   summary:
     name: Build Summary
