@@ -12,6 +12,13 @@ import '../../providers/instructor_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/metric_card.dart';
+import 'modules/faculty_workload_screen.dart';
+import 'modules/class_batch_management_screen.dart';
+import 'modules/academic_planning_screen.dart';
+import 'modules/global_explorer_screen.dart';
+import 'modules/analytics_reports_screen.dart';
+import 'modules/settings_system_screen.dart';
+import 'modules/lecture_schedule_screen.dart';
 
 class AdminPortalScreen extends StatefulWidget {
   final String initialTab;
@@ -25,6 +32,16 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
   late String _activeScreen;
   AdminDashboardStatsModel? _dashboardStats;
   StudentModel? _selectedStudent;
+  String? _lectureScheduleClassFilter;
+
+  void _handleSubNavigate(String screenName, {String? param}) {
+    setState(() {
+      if (param != null && screenName == 'lecture-schedule') {
+        _lectureScheduleClassFilter = param;
+      }
+      _activeScreen = screenName;
+    });
+  }
 
   // Form Controllers for Student
   final _studentNameController = TextEditingController();
@@ -409,25 +426,28 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
       case 'instructor-records':
         return _buildInstructorRecordsScreen();
       case 'instructor-tracking':
-        return _buildInstructorTrackingScreen();
+        return FacultyWorkloadScreen(onNavigate: _handleSubNavigate);
       case 'add-instructor':
         return _buildAddInstructorScreen();
       case 'class-management':
-        return _buildClassManagementScreen();
+        return ClassBatchManagementScreen(onNavigate: _handleSubNavigate);
       case 'academic-planning':
-        return _buildAcademicPlanningScreen();
+        return AcademicPlanningScreen(onNavigate: _handleSubNavigate);
       case 'lecture-schedule':
-        return _buildLectureScheduleScreen();
+        return LectureScheduleScreen(
+          initialClassFilter: _lectureScheduleClassFilter,
+          onNavigate: _handleSubNavigate,
+        );
       case 'exam-timetable':
         return _buildExamTimetableScreen();
       case 'create-exam':
         return _buildCreateExamScreen();
       case 'cross-module':
-        return _buildCrossModuleScreen();
+        return GlobalExplorerScreen(onNavigate: _handleSubNavigate);
       case 'reports':
-        return _buildReportsScreen();
+        return AnalyticsReportsScreen(onNavigate: _handleSubNavigate);
       case 'settings':
-        return _buildSettingsScreen(user);
+        return SettingsSystemScreen(user: user, onNavigate: _handleSubNavigate);
       default:
         return _buildDashboardScreen();
     }
@@ -863,28 +883,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     );
   }
 
-  // 6. Instructor Tracking
-  Widget _buildInstructorTrackingScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Faculty Workload & Performance Tracking', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 6),
-          Text('Monitor weekly teaching hours, assigned batches, and student evaluations.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          SizedBox(height: 20),
-          Text('• Dr. Amit Sharma: 18 Lecture Hours/week • 4 Assigned Courses • 4.8 Rating'),
-          SizedBox(height: 10),
-          Text('• Prof. Sunita Rao: 16 Lecture Hours/week • 3 Assigned Courses • 4.9 Rating'),
-          SizedBox(height: 10),
-          Text('• Prof. Rajesh Gupta: 20 Lecture Hours/week • 4 Assigned Courses • 4.7 Rating'),
-        ],
-      ),
-    );
-  }
-
   // 7. Add Instructor Form
   Widget _buildAddInstructorScreen() {
     final instructorProv = Provider.of<InstructorProvider>(context);
@@ -952,76 +950,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
             child: const Text('Save Instructor to Database'),
           ),
-        ],
-      ),
-    );
-  }
-
-  // 8. Class Management
-  Widget _buildClassManagementScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Academic Class Batches & Section Roster', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 8),
-          Text('Manage classroom section allocations, maximum capacities, and batch coordinators.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          SizedBox(height: 20),
-          Text('• BCA Semester 3 (Section A): Capacity 60 • Enrolled: 48 • Coordinator: Dr. Amit Sharma'),
-          SizedBox(height: 10),
-          Text('• BCA Semester 3 (Section B): Capacity 60 • Enrolled: 52 • Coordinator: Prof. Rajesh Gupta'),
-          SizedBox(height: 10),
-          Text('• MCA Semester 1: Capacity 50 • Enrolled: 42 • Coordinator: Prof. Sunita Rao'),
-        ],
-      ),
-    );
-  }
-
-  // 9. Academic Planning
-  Widget _buildAcademicPlanningScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Academic Calendar & Planning Session', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 8),
-          Text('Academic Year 2025–2026 Semester Timeline', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          SizedBox(height: 20),
-          Text('• Semester Start Date: January 15, 2025'),
-          SizedBox(height: 8),
-          Text('• Mid-Term Examination Window: May 05 - May 16, 2025'),
-          SizedBox(height: 8),
-          Text('• Final Semester Exam Window: June 20 - July 05, 2025'),
-          SizedBox(height: 8),
-          Text('• Academic Grade Cards Publication: July 15, 2025'),
-        ],
-      ),
-    );
-  }
-
-  // 10. Lecture Schedule
-  Widget _buildLectureScheduleScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Institute Master Lecture Timetable', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 8),
-          Text('All classrooms and laboratory sessions active across campus.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          SizedBox(height: 20),
-          Text('• Hall 101: MCA Semester 1 (Advanced Software Engineering) - 09:00 AM'),
-          SizedBox(height: 8),
-          Text('• Hall 302: BCA Semester 3 (Database Systems) - 10:00 AM'),
-          SizedBox(height: 8),
-          Text('• Computer Lab 1: Data Structures Lab Session - 11:00 AM'),
-          SizedBox(height: 8),
-          Text('• Computer Lab 2: Database Normalization Practicals - 01:00 PM'),
         ],
       ),
     );
@@ -1114,90 +1042,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
             child: const Text('Add Exam to Timetable'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 13. Cross Module
-  Widget _buildCrossModuleScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Global Cross-Module Record Explorer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 8),
-          Text('Unified live cross-reference between Student Admissions, Faculty Allocations, and Examination Papers.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          SizedBox(height: 20),
-          Text('• Relational Integrity Check: 100% Passed'),
-          SizedBox(height: 8),
-          Text('• Database Schema: PostgreSQL 16 standard relational tables'),
-          SizedBox(height: 8),
-          Text('• Cloudinary File Uploads: Integrated & Ready'),
-        ],
-      ),
-    );
-  }
-
-  // 14. Reports
-  Widget _buildReportsScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Institute Analytics & Compliance Reports', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Comprehensive report exported as CSV!')));
-                },
-                icon: const Icon(Icons.file_download, size: 16),
-                label: const Text('Export CSV Report'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Text('• Attendance Compliance: 92.4% campus average (98.2% minimum standard met)'),
-          const SizedBox(height: 8),
-          const Text('• Semester Pass Rate: 94.6% students passed in regular examination session'),
-          const SizedBox(height: 8),
-          const Text('• Faculty-to-Student Ratio: 1:21 (Compliant with UGC guidelines)'),
-        ],
-      ),
-    );
-  }
-
-  // 15. Settings
-  Widget _buildSettingsScreen(UserModel? user) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('System Administration Settings', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 20),
-          _buildInfoRow('Campus Code', user?.instituteCode ?? 'INST-2025'),
-          _buildInfoRow('Institute Name', user?.instituteName ?? 'Apex Institute of Technology'),
-          _buildInfoRow('Admin Account', user?.email ?? 'amit.kumar@institute.com'),
-          _buildInfoRow('Database Engine', 'PostgreSQL 16 (Spring Boot JPA Hibernate)'),
-          _buildInfoRow('Storage Integration', 'Cloudinary Media Cloud & S3 Bucket'),
-          _buildInfoRow('Session Validity', '24 Hours (JWT Signing Active)'),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('System configuration verified & healthy!'), backgroundColor: AppColors.success));
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
-            child: const Text('Verify Database Health'),
           ),
         ],
       ),

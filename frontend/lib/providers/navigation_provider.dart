@@ -4,10 +4,35 @@ class NavigationProvider with ChangeNotifier {
   String _currentPage = 'home';
   String? _currentTab;
   Map<String, dynamic> _pageParams = {};
+  String _activeSection = 'home';
+  String? _targetSection;
 
   String get currentPage => _currentPage;
   String? get currentTab => _currentTab;
   Map<String, dynamic> get pageParams => _pageParams;
+  String get activeSection => _activeSection;
+  String? get targetSection => _targetSection;
+
+  void scrollToSection(String sectionId) {
+    _activeSection = sectionId;
+    _targetSection = sectionId;
+    if (_currentPage != 'home') {
+      _currentPage = 'home';
+      _currentTab = null;
+    }
+    notifyListeners();
+  }
+
+  void setActiveSection(String sectionId) {
+    if (_activeSection != sectionId) {
+      _activeSection = sectionId;
+      notifyListeners();
+    }
+  }
+
+  void clearTargetSection() {
+    _targetSection = null;
+  }
 
   void navigateTo(String page, [Map<String, dynamic>? params]) {
     String targetPage = page;
@@ -65,4 +90,3 @@ class NavigationProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-

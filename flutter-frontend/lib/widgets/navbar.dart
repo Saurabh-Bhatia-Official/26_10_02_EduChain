@@ -42,31 +42,54 @@ class Navbar extends StatelessWidget {
             },
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.35),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/images/educhain_icon.png',
+                    width: 38,
+                    height: 38,
+                    fit: BoxFit.contain,
                   ),
-                  child: const Icon(Icons.account_balance, color: Colors.white, size: 22),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'Institute Portal',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textMain,
-                    letterSpacing: -0.3,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Edu',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF00337F),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'Chain',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF00A88F),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Text(
+                      'One Platform, Endless Possibilities',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF00337F),
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -78,7 +101,8 @@ class Navbar extends StatelessWidget {
               children: [
                 _NavLink(
                   title: 'Home',
-                  isActive: nav.currentPage == 'home' && nav.activeSection == 'home',
+                  isActive: nav.currentPage == 'home' &&
+                      (nav.activeSection == 'home' || nav.activeSection.isEmpty),
                   onTap: () {
                     nav.scrollToSection('home');
                     onScrollToSection?.call('home');
@@ -111,10 +135,10 @@ class Navbar extends StatelessWidget {
               ],
             ),
 
-          // Mobile Navigation Menu Toggle
+          // Mobile Navigation Menu Dropdown
           if (!isDesktop)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.menu, color: AppColors.textMain, size: 24),
+              icon: const Icon(Icons.menu_rounded, color: AppColors.textMain, size: 24),
               tooltip: 'Navigation Menu',
               onSelected: (sectionId) {
                 nav.scrollToSection(sectionId);
@@ -135,7 +159,7 @@ class Navbar extends StatelessWidget {
                   value: 'about',
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18, color: AppColors.primary),
+                      Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
                       SizedBox(width: 10),
                       Text('About', style: TextStyle(fontWeight: FontWeight.w600)),
                     ],
@@ -145,7 +169,7 @@ class Navbar extends StatelessWidget {
                   value: 'features',
                   child: Row(
                     children: [
-                      Icon(Icons.auto_awesome, size: 18, color: AppColors.primary),
+                      Icon(Icons.auto_awesome_rounded, size: 18, color: AppColors.primary),
                       SizedBox(width: 10),
                       Text('Features', style: TextStyle(fontWeight: FontWeight.w600)),
                     ],
@@ -155,7 +179,7 @@ class Navbar extends StatelessWidget {
                   value: 'contact',
                   child: Row(
                     children: [
-                      Icon(Icons.mail_outline, size: 18, color: AppColors.primary),
+                      Icon(Icons.mail_outline_rounded, size: 18, color: AppColors.primary),
                       SizedBox(width: 10),
                       Text('Contact', style: TextStyle(fontWeight: FontWeight.w600)),
                     ],
@@ -172,119 +196,131 @@ class Navbar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (auth.isAuthenticated) ...[
-                if (auth.isTeacher) ...[
-                  OutlinedButton.icon(
-                    onPressed: () => nav.navigateTo('teacher-dashboard'),
-                    icon: const Icon(Icons.school, size: 16, color: AppColors.teacherPrimary),
-                    label: Text(
-                      '${auth.currentUser?.name ?? "Instructor"} (Instructor)',
-                      style: const TextStyle(color: AppColors.teacherPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                    if (auth.isTeacher) ...[
+                      OutlinedButton.icon(
+                        onPressed: () => nav.navigateTo('teacher-dashboard'),
+                        icon: const Icon(Icons.school, size: 16, color: AppColors.teacherPrimary),
+                        label: Text(
+                          '${auth.currentUser?.name ?? "Instructor"} (Instructor)',
+                          style: const TextStyle(
+                            color: AppColors.teacherPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE0F2FE),
+                          side: const BorderSide(color: Color(0xFFBAE6FD)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => nav.navigateTo('teacher-dashboard'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary),
+                        child: const Text('Instructor Portal'),
+                      ),
+                    ] else if (auth.isStudent) ...[
+                      OutlinedButton.icon(
+                        onPressed: () => nav.navigateTo('student-dashboard'),
+                        icon: const Icon(Icons.person, size: 16, color: AppColors.studentPrimary),
+                        label: Text(
+                          '${auth.currentUser?.name ?? "Student"} (Student)',
+                          style: const TextStyle(
+                            color: AppColors.studentPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF3E8FF),
+                          side: const BorderSide(color: Color(0xFFD8B4FE)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => nav.navigateTo('student-dashboard'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                        child: const Text('Student Portal'),
+                      ),
+                    ] else if (auth.isAdmin) ...[
+                      ElevatedButton.icon(
+                        onPressed: () => nav.navigateTo('admin-dashboard'),
+                        icon: const Icon(Icons.admin_panel_settings, size: 16),
+                        label: const Text('Admin Portal'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+                      ),
+                    ] else ...[
+                      // Institute
+                      OutlinedButton.icon(
+                        onPressed: () => nav.navigateTo('institute-home'),
+                        icon: const Icon(Icons.verified, size: 16, color: AppColors.institutePrimary),
+                        label: Text(
+                          auth.currentUser?.instituteName ?? 'Verified Campus',
+                          style: const TextStyle(
+                            color: AppColors.institutePrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE0F2FE),
+                          side: const BorderSide(color: Color(0xFFBAE6FD)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => nav.navigateTo('institute-home'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.institutePrimary),
+                        child: const Text('Institute Home'),
+                      ),
+                    ],
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () async {
+                        final role = auth.currentUser?.role;
+                        await auth.logout();
+                        if (role == 'student') {
+                          nav.navigateTo('student-login');
+                        } else if (role == 'teacher') {
+                          nav.navigateTo('teacher-login');
+                        } else if (role == 'admin') {
+                          nav.navigateTo('admin-login');
+                        } else if (role == 'institute') {
+                          nav.navigateTo('institute-login');
+                        } else {
+                          nav.navigateTo('select-role');
+                        }
+                      },
+                      icon: const Icon(Icons.logout, size: 20, color: AppColors.textMuted),
+                      tooltip: 'Logout',
                     ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE0F2FE),
-                      side: const BorderSide(color: Color(0xFFBAE6FD)),
+                  ] else ...[
+                    OutlinedButton(
+                      onPressed: () => nav.navigateTo('institute-login'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary, width: 1.5),
+                        backgroundColor: AppColors.primaryLight,
+                      ),
+                      child: const Text('INSTITUTE Login'),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () => nav.navigateTo('teacher-dashboard'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary),
-                    child: const Text('Instructor Portal'),
-                  ),
-                ] else if (auth.isStudent) ...[
-                  OutlinedButton.icon(
-                    onPressed: () => nav.navigateTo('student-dashboard'),
-                    icon: const Icon(Icons.person, size: 16, color: AppColors.studentPrimary),
-                    label: Text(
-                      '${auth.currentUser?.name ?? "Student"} (Student)',
-                      style: const TextStyle(color: AppColors.studentPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: () => nav.navigateTo('institute-register'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                      ),
+                      child: const Text('INSTITUTE Register'),
                     ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF3E8FF),
-                      side: const BorderSide(color: Color(0xFFD8B4FE)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () => nav.navigateTo('student-dashboard'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
-                    child: const Text('Student Portal'),
-                  ),
-                ] else if (auth.isAdmin) ...[
-                  ElevatedButton.icon(
-                    onPressed: () => nav.navigateTo('admin-dashboard'),
-                    icon: const Icon(Icons.admin_panel_settings, size: 16),
-                    label: const Text('Admin Portal'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
-                  ),
-                ] else ...[
-                  // Institute
-                  OutlinedButton.icon(
-                    onPressed: () => nav.navigateTo('institute-home'),
-                    icon: const Icon(Icons.verified, size: 16, color: AppColors.institutePrimary),
-                    label: Text(
-                      auth.currentUser?.instituteName ?? 'Verified Campus',
-                      style: const TextStyle(color: AppColors.institutePrimary, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE0F2FE),
-                      side: const BorderSide(color: Color(0xFFBAE6FD)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () => nav.navigateTo('institute-home'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.institutePrimary),
-                    child: const Text('Institute Home'),
-                  ),
+                  ],
                 ],
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: () async {
-                    final role = auth.currentUser?.role;
-                    await auth.logout();
-                    if (role == 'student') {
-                      nav.navigateTo('student-login');
-                    } else if (role == 'teacher') {
-                      nav.navigateTo('teacher-login');
-                    } else if (role == 'admin') {
-                      nav.navigateTo('admin-login');
-                    } else if (role == 'institute') {
-                      nav.navigateTo('institute-login');
-                    } else {
-                      nav.navigateTo('select-role');
-                    }
-                  },
-                  icon: const Icon(Icons.logout, size: 20, color: AppColors.textMuted),
-                  tooltip: 'Logout',
-                ),
-              ] else ...[
-                OutlinedButton(
-                  onPressed: () => nav.navigateTo('institute-login'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary, width: 1.5),
-                    backgroundColor: AppColors.primaryLight,
-                  ),
-                  child: const Text('INSTITUTE Login'),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () => nav.navigateTo('institute-register'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                  ),
-                  child: const Text('INSTITUTE Register'),
-                ),
-              ],
-            ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
-    ],
-  ),
-);
-}
+    );
+  }
 }
 
 class _NavLink extends StatelessWidget {
