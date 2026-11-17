@@ -14414,3 +14414,300 @@
     display: none;
   }
 }
+
+/* Shared responsive safeguards for portal screens and dense management views. */
+@media (max-width: 1100px) {
+  .student-metric-cards-grid,
+  .admin-kpi-grid,
+  .reports-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-content-container,
+  .teacher-content-container,
+  .student-content-container {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+}
+
+@media (max-width: 760px) {
+  .navbar-inner {
+    min-height: 64px;
+    padding: 0 16px;
+  }
+
+  .navbar-nav-links,
+  .navbar-actions > .navbar-logged-institute-group,
+  .navbar-actions > .btn-navbar-inst-login,
+  .navbar-actions > .btn-navbar-inst-register {
+    display: none;
+  }
+
+  .navbar-actions {
+    margin-left: auto;
+  }
+
+  .mobile-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mobile-drawer {
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+  }
+
+  .main-content-area,
+  .app-root {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .student-portal-root {
+    display: block;
+  }
+
+  .student-mobile-bar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 120;
+    min-height: 58px;
+  }
+
+  .student-sidebar {
+    position: fixed;
+    inset: 58px auto 0 0;
+    width: min(290px, 86vw);
+    min-height: 0;
+    height: calc(100dvh - 58px);
+    overflow-y: auto;
+    transform: translateX(-105%);
+    z-index: 110;
+  }
+
+  .student-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 12px 0 32px rgba(15, 23, 42, 0.24);
+  }
+
+  .student-main-content {
+    width: 100%;
+  }
+
+  .student-topbar,
+  .teacher-topbar,
+  .admin-topbar {
+    height: auto;
+    min-height: 60px;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .student-content-container,
+  .teacher-content-container,
+  .admin-content-container {
+    padding: 18px 16px 28px;
+  }
+
+  .student-page-body {
+    padding: 18px 16px 32px;
+  }
+
+  .student-metric-cards-grid,
+  .teacher-stats-row,
+  .teacher-stats-row.four-col,
+  .admin-kpi-grid,
+  .reports-metrics-grid,
+  .analytics-visuals-grid,
+  .dashboard-launchpad-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .view-header h2,
+  .screen-page-title,
+  .screen-title {
+    font-size: clamp(1.35rem, 6vw, 1.8rem);
+  }
+
+  .student-portal-root .card,
+  .teacher-portal-root .teacher-card,
+  .admin-portal-root .admin-card {
+    min-width: 0;
+  }
+
+  .student-portal-root table,
+  .teacher-portal-root table,
+  .admin-portal-root table {
+    min-width: 620px;
+  }
+
+  .student-portal-root .portal-table-responsive,
+  .teacher-portal-root .teacher-table-card,
+  .admin-portal-root .admin-table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .teacher-portal-layout,
+  .admin-portal-layout {
+    flex-direction: column;
+  }
+
+  .teacher-sidebar,
+  .admin-sidebar {
+    position: static;
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .teacher-sidebar-brand,
+  .admin-sidebar-brand,
+  .teacher-sidebar-footer,
+  .admin-sidebar-footer {
+    display: none;
+  }
+
+  .teacher-nav-menu,
+  .admin-nav-menu {
+    flex-direction: row;
+    width: max-content;
+    min-width: 100%;
+    padding: 8px;
+    overflow: visible;
+  }
+
+  .teacher-nav-item,
+  .admin-nav-item {
+    width: auto;
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 10px 12px;
+  }
+
+  .teacher-nav-item span,
+  .admin-nav-item span {
+    display: inline;
+  }
+
+  .admin-portal-root .admin-flow-banner,
+  .teacher-portal-root .teacher-flow-banner {
+    position: static;
+  }
+
+  .admin-portal-root .admin-flow-pills-row,
+  .teacher-portal-root .teacher-flow-pills-row {
+    max-width: 100vw;
+  }
+
+  .auth-layout,
+  .auth-card,
+  .reg-modern-card,
+  .creative-inst-reg-card,
+  .form-page-card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .admin-modal-overlay,
+  .teacher-modal-backdrop {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .admin-modal-card,
+  .teacher-modal-card {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-content-container,
+  .teacher-content-container,
+  .admin-content-container {
+    padding: 14px 12px 24px;
+  }
+
+  .student-page-body {
+    padding: 14px 12px 24px;
+  }
+
+  .student-metric-cards-grid,
+  .teacher-stats-row,
+  .teacher-stats-row.four-col,
+  .admin-kpi-grid,
+  .reports-metrics-grid,
+  .analytics-visuals-grid,
+  .dashboard-launchpad-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .student-topbar,
+  .teacher-topbar,
+  .admin-topbar {
+    align-items: stretch;
+  }
+
+  .student-search-box,
+  .teacher-topbar-search,
+  .admin-topbar-search {
+    width: 100%;
+    max-width: none;
+  }
+
+  .student-topbar-right,
+  .student-topbar-actions,
+  .teacher-topbar-actions,
+  .admin-topbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .mobile-drawer,
+  .student-sidebar {
+    width: min(320px, 90vw);
+  }
+
+  .admin-modal-overlay,
+  .teacher-modal-backdrop {
+    padding: 8px;
+  }
+
+  .modal-header,
+  .modal-body-fields,
+  .modal-footer-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .admin-portal-toast,
+  .teacher-portal-toast {
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

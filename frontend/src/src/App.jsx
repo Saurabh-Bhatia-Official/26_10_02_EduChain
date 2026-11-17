@@ -137,6 +137,7 @@ export default function App() {
         'forgot-password',
         // Student Portal
         'student-dashboard',
+        'student-leave',
         'student-profile',
         'student-attendance',
         'student-grades',
