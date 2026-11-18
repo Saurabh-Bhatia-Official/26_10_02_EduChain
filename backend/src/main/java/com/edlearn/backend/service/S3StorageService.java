@@ -3,6 +3,7 @@ package com.edlearn.backend.service;
 import com.edlearn.backend.model.StoredFileEntity;
 import com.edlearn.backend.repository.StoredFileRepository;
 import jakarta.annotation.PostConstruct;
+import org.springframework.lang.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +32,7 @@ public class S3StorageService {
     @Value("${aws.s3.endpoint:https://br-restless-shape-b3qhppdx.storage.c-4.ap-southeast-1.aws.neon.tech}")
     private String s3Endpoint;
 
-    public S3StorageService(S3Client s3Client, StoredFileRepository storedFileRepository) {
+    public S3StorageService(@Nullable S3Client s3Client, StoredFileRepository storedFileRepository) {
         this.s3Client = s3Client;
         this.storedFileRepository = storedFileRepository;
     }

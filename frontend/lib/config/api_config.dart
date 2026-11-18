@@ -14,7 +14,6 @@ class ApiConfig {
   /// Timeout for HTTP requests
   static const Duration timeoutDuration = Duration(seconds: 8);
 
-  /// Enable graceful offline mock fallback if backend server is unreachable
   static bool isOfflineFallbackEnabled = true;
 }
 

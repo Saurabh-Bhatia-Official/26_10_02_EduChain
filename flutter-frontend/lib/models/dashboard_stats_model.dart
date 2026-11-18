@@ -40,9 +40,9 @@ class AdminDashboardStatsModel {
     return AdminDashboardStatsModel(
       totalStudents: (json['totalStudents'] as num?)?.toInt() ?? 0,
       totalInstructors: (json['totalInstructors'] as num?)?.toInt() ?? 0,
-      totalInstitutes: (json['totalInstitutes'] as num?)?.toInt() ?? 1,
-      activeClasses: (json['activeClasses'] as num?)?.toInt() ?? 18,
-      attendanceRate: (json['attendanceRate'] as num?)?.toDouble() ?? 92.4,
+      totalInstitutes: (json['totalInstitutes'] as num?)?.toInt() ?? 0,
+      activeClasses: (json['activeClasses'] as num?)?.toInt() ?? 0,
+      attendanceRate: (json['attendanceRate'] as num?)?.toDouble() ?? 0,
       systemStatus: json['systemStatus']?.toString() ?? 'Healthy & Connected',
       recentStudents: students,
       recentInstructors: instructors,
@@ -76,11 +76,11 @@ class InstructorDashboardStatsModel {
     }
 
     return InstructorDashboardStatsModel(
-      assignedCourses: (json['assignedCourses'] as num?)?.toInt() ?? 4,
+      assignedCourses: (json['assignedCourses'] as num?)?.toInt() ?? 0,
       totalStudents: (json['totalStudents'] as num?)?.toInt() ?? 0,
-      upcomingLectures: (json['upcomingLectures'] as num?)?.toInt() ?? 3,
-      pendingAssignments: (json['pendingAssignments'] as num?)?.toInt() ?? 12,
-      averageClassRating: (json['averageClassRating'] as num?)?.toDouble() ?? 4.8,
+      upcomingLectures: (json['upcomingLectures'] as num?)?.toInt() ?? 0,
+      pendingAssignments: (json['pendingAssignments'] as num?)?.toInt() ?? 0,
+      averageClassRating: (json['averageClassRating'] as num?)?.toDouble() ?? 0,
       enrolledStudents: students,
     );
   }

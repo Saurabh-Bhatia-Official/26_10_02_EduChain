@@ -23,11 +23,6 @@ export default function StudentLoginPage({ onNavigate, onLoginSuccess }) {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleDemoFill = () => {
-    setEmail('rahul@institute.com');
-    setPassword('password123');
-    setErrorMessage('');
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -137,28 +132,6 @@ export default function StudentLoginPage({ onNavigate, onLoginSuccess }) {
                 <span>{successMessage}</span>
               </div>
             )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-              <button
-                type="button"
-                onClick={handleDemoFill}
-                style={{
-                  background: '#f3e8ff',
-                  color: '#7c3aed',
-                  border: '1px solid #d8b4fe',
-                  borderRadius: '6px',
-                  padding: '4px 10px',
-                  fontSize: '0.78rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <span>Demo Fill: Rahul Sharma (BCA - Sem 3)</span>
-              </button>
-            </div>
 
             <form onSubmit={handleSubmit} className="auth-form-fields">
               {/* Email Address */}

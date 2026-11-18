@@ -12,7 +12,7 @@ class AnalyticsReportsScreen extends StatefulWidget {
 }
 
 class _AnalyticsReportsScreenState extends State<AnalyticsReportsScreen> {
-  String _dateRange = 'Jan – Jun 2025 (Spring Term)';
+  final String _dateRange = 'Jan – Jun 2025 (Spring Term)';
 
   final List<Map<String, dynamic>> _enrollmentTrend = [
     {'month': 'Jan', 'val': 55, 'count': '660 students'},
@@ -304,7 +304,7 @@ class _AnalyticsReportsScreenState extends State<AnalyticsReportsScreen> {
                           child: ListView.separated(
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: _topPerformers.length,
-                            separatorBuilder: (_, __) => const Divider(height: 8, color: AppColors.borderLight),
+                            separatorBuilder: (_, _) => const Divider(height: 8, color: AppColors.borderLight),
                             itemBuilder: (context, index) {
                               final p = _topPerformers[index];
                               return Row(

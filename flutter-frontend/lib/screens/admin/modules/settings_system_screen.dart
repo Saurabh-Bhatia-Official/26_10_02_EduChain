@@ -341,7 +341,7 @@ class _SettingsSystemScreenState extends State<SettingsSystemScreen> {
                           subtitle: const Text('Receive daily summaries of student registrations and admissions.', style: TextStyle(fontSize: 12)),
                           value: _emailAlerts,
                           contentPadding: EdgeInsets.zero,
-                          activeColor: AppColors.adminPrimary,
+                          activeThumbColor: AppColors.adminPrimary,
                           onChanged: (v) => setState(() => _emailAlerts = v),
                         ),
                         SwitchListTile(
@@ -349,7 +349,7 @@ class _SettingsSystemScreenState extends State<SettingsSystemScreen> {
                           subtitle: const Text('Trigger notification when student attendance falls below 75%.', style: TextStyle(fontSize: 12)),
                           value: _attendanceAnomalyAlerts,
                           contentPadding: EdgeInsets.zero,
-                          activeColor: AppColors.adminPrimary,
+                          activeThumbColor: AppColors.adminPrimary,
                           onChanged: (v) => setState(() => _attendanceAnomalyAlerts = v),
                         ),
                         SwitchListTile(
@@ -357,7 +357,7 @@ class _SettingsSystemScreenState extends State<SettingsSystemScreen> {
                           subtitle: const Text('Log sensitive DB operations and schema migrations.', style: TextStyle(fontSize: 12)),
                           value: _maintenanceAlerts,
                           contentPadding: EdgeInsets.zero,
-                          activeColor: AppColors.adminPrimary,
+                          activeThumbColor: AppColors.adminPrimary,
                           onChanged: (v) => setState(() => _maintenanceAlerts = v),
                         ),
                       ],

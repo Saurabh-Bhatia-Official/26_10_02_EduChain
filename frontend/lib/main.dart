@@ -6,6 +6,8 @@ import 'providers/auth_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/student_provider.dart';
 import 'providers/instructor_provider.dart';
+import 'providers/leave_provider.dart';
+import 'features/classroom/providers/classroom_provider.dart';
 
 import 'widgets/navbar.dart';
 
@@ -41,9 +43,11 @@ class EduChainApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => StudentProvider()),
         ChangeNotifierProvider(create: (_) => InstructorProvider()),
+        ChangeNotifierProvider(create: (_) => LeaveProvider()),
+        ChangeNotifierProvider(create: (_) => ClassroomProvider()),
       ],
       child: MaterialApp(
-        title: 'EduChain - One Platform, Endless Possibilities',
+        title: 'Institute Portal - Multiplatform Frontend',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         home: const AppRootView(),
@@ -107,11 +111,15 @@ class AppRootView extends StatelessWidget {
     }
 
     // Default: Public Home Page with Navbar and Footer
-    return const Scaffold(
+    return Scaffold(
       body: Column(
         children: [
-          Navbar(),
-          Expanded(child: HomeScreen()),
+          Navbar(
+            onScrollToSection: (sectionId) {
+              nav.scrollToSection(sectionId);
+            },
+          ),
+          const Expanded(child: HomeScreen()),
         ],
       ),
     );

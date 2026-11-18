@@ -42,7 +42,8 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
         id: 'ms_1',
         title: 'Semester Commencement & Registration',
         dateRange: 'Jan 15, 2025',
-        description: 'Student course registrations, section enrollment, and faculty orientation.',
+        description:
+            'Student course registrations, section enrollment, and faculty orientation.',
         status: 'completed',
         icon: Icons.flag_outlined,
       ),
@@ -50,7 +51,8 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
         id: 'ms_2',
         title: 'Mid-Term Examination Window',
         dateRange: 'May 05 – May 16, 2025',
-        description: 'Campus-wide mid-semester written assessments and continuous evaluation.',
+        description:
+            'Campus-wide mid-semester written assessments and continuous evaluation.',
         status: 'active',
         icon: Icons.edit_note,
       ),
@@ -58,7 +60,8 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
         id: 'ms_3',
         title: 'Lab & Practical Assessments',
         dateRange: 'June 01 – June 10, 2025',
-        description: 'Hands-on practical exams, viva-voce, and software laboratory submissions.',
+        description:
+            'Hands-on practical exams, viva-voce, and software laboratory submissions.',
         status: 'upcoming',
         icon: Icons.science_outlined,
       ),
@@ -66,7 +69,8 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
         id: 'ms_4',
         title: 'Final Semester Examinations',
         dateRange: 'June 20 – July 05, 2025',
-        description: 'End-term written university evaluations scheduled across main exam halls.',
+        description:
+            'End-term written university evaluations scheduled across main exam halls.',
         status: 'scheduled',
         icon: Icons.assignment_turned_in_outlined,
       ),
@@ -74,7 +78,8 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
         id: 'ms_5',
         title: 'Grade Cards Publication & Convocation Prep',
         dateRange: 'July 15, 2025',
-        description: 'Final grade point moderation, transcript publishing, and term close.',
+        description:
+            'Final grade point moderation, transcript publishing, and term close.',
         status: 'scheduled',
         icon: Icons.school_outlined,
       ),
@@ -91,8 +96,13 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Add Academic Milestone', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Add Academic Milestone',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+          ),
           content: SizedBox(
             width: 480,
             child: Column(
@@ -100,30 +110,52 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
               children: [
                 TextField(
                   controller: titleCtrl,
-                  decoration: const InputDecoration(labelText: 'Milestone Title *', hintText: 'e.g. Summer Internship Presentation'),
+                  decoration: const InputDecoration(
+                    labelText: 'Milestone Title *',
+                    hintText: 'e.g. Summer Internship Presentation',
+                  ),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: dateCtrl,
-                  decoration: const InputDecoration(labelText: 'Date Range *', hintText: 'e.g. July 25 – August 05, 2025'),
+                  decoration: const InputDecoration(
+                    labelText: 'Date Range *',
+                    hintText: 'e.g. July 25 – August 05, 2025',
+                  ),
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
-                  value: status,
+                  initialValue: status,
                   decoration: const InputDecoration(labelText: 'Status'),
                   items: const [
-                    DropdownMenuItem(value: 'scheduled', child: Text('Scheduled')),
-                    DropdownMenuItem(value: 'active', child: Text('Active / In Progress')),
-                    DropdownMenuItem(value: 'upcoming', child: Text('Upcoming')),
-                    DropdownMenuItem(value: 'completed', child: Text('Completed')),
+                    DropdownMenuItem(
+                      value: 'scheduled',
+                      child: Text('Scheduled'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'active',
+                      child: Text('Active / In Progress'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'upcoming',
+                      child: Text('Upcoming'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'completed',
+                      child: Text('Completed'),
+                    ),
                   ],
-                  onChanged: (v) => setDialogState(() => status = v ?? 'scheduled'),
+                  onChanged: (v) =>
+                      setDialogState(() => status = v ?? 'scheduled'),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: descCtrl,
                   maxLines: 2,
-                  decoration: const InputDecoration(labelText: 'Description', hintText: 'Short details about this milestone'),
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'Short details about this milestone',
+                  ),
                 ),
               ],
             ),
@@ -142,7 +174,9 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                       id: 'ms_${DateTime.now().millisecondsSinceEpoch}',
                       title: titleCtrl.text.trim(),
                       dateRange: dateCtrl.text.trim(),
-                      description: descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : 'Academic milestone event.',
+                      description: descCtrl.text.trim().isNotEmpty
+                          ? descCtrl.text.trim()
+                          : 'Academic milestone event.',
                       status: status,
                       icon: Icons.event_available,
                     ),
@@ -150,10 +184,15 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                 });
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Academic milestone saved!'), backgroundColor: AppColors.success),
+                  const SnackBar(
+                    content: Text('Academic milestone saved!'),
+                    backgroundColor: AppColors.success,
+                  ),
                 );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.adminPrimary,
+              ),
               child: const Text('Save Milestone'),
             ),
           ],
@@ -171,7 +210,10 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
           children: const [
             Icon(Icons.calendar_month, color: AppColors.primary),
             SizedBox(width: 10),
-            Text('Master Academic Calendar (2025)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+            Text(
+              'Master Academic Calendar (2025)',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+            ),
           ],
         ),
         content: SizedBox(
@@ -181,12 +223,42 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildCalendarEventItem('Jan 15', 'Semester Start', 'Regular teaching commences for all departments.', AppColors.success),
-                _buildCalendarEventItem('Mar 24 - 26', 'Holi Festival Break', 'Institutional holiday, campus closed.', AppColors.warning),
-                _buildCalendarEventItem('May 05 - 16', 'Mid-Term Examinations', 'No regular lectures during morning exam slot.', AppColors.primary),
-                _buildCalendarEventItem('Jun 01 - 10', 'Lab Practical Submissions', 'Computer and Physics laboratories.', AppColors.accentTeal),
-                _buildCalendarEventItem('Jun 20 - Jul 05', 'End-Term Theory Exams', 'Final university examinations.', AppColors.studentPrimary),
-                _buildCalendarEventItem('Jul 15', 'Grade Publishing', 'Official SGPA/CGPA cards published on student portal.', AppColors.accentGreen),
+                _buildCalendarEventItem(
+                  'Jan 15',
+                  'Semester Start',
+                  'Regular teaching commences for all departments.',
+                  AppColors.success,
+                ),
+                _buildCalendarEventItem(
+                  'Mar 24 - 26',
+                  'Holi Festival Break',
+                  'Institutional holiday, campus closed.',
+                  AppColors.warning,
+                ),
+                _buildCalendarEventItem(
+                  'May 05 - 16',
+                  'Mid-Term Examinations',
+                  'No regular lectures during morning exam slot.',
+                  AppColors.primary,
+                ),
+                _buildCalendarEventItem(
+                  'Jun 01 - 10',
+                  'Lab Practical Submissions',
+                  'Computer and Physics laboratories.',
+                  AppColors.accentTeal,
+                ),
+                _buildCalendarEventItem(
+                  'Jun 20 - Jul 05',
+                  'End-Term Theory Exams',
+                  'Final university examinations.',
+                  AppColors.studentPrimary,
+                ),
+                _buildCalendarEventItem(
+                  'Jul 15',
+                  'Grade Publishing',
+                  'Official SGPA/CGPA cards published on student portal.',
+                  AppColors.accentGreen,
+                ),
               ],
             ),
           ),
@@ -194,7 +266,9 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.adminPrimary,
+            ),
             child: const Text('Close Calendar'),
           ),
         ],
@@ -202,7 +276,12 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
     );
   }
 
-  Widget _buildCalendarEventItem(String date, String title, String sub, Color color) {
+  Widget _buildCalendarEventItem(
+    String date,
+    String title,
+    String sub,
+    Color color,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
@@ -217,17 +296,39 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-              child: Text(date, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                date,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    sub,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -239,8 +340,6 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -255,7 +354,11 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                 children: const [
                   Text(
                     'Academic Planning & Semester Management',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
                   ),
                   SizedBox(height: 4),
                   Text(
@@ -271,18 +374,30 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                   value: _selectedSession,
                   underline: const SizedBox(),
                   items: const [
-                    DropdownMenuItem(value: 'Spring 2025 (Jan – Jun)', child: Text('Spring 2025 (Jan – Jun)')),
-                    DropdownMenuItem(value: 'Fall 2025 (Jul – Dec)', child: Text('Fall 2025 (Jul – Dec)')),
-                    DropdownMenuItem(value: 'Annual 2025–2026', child: Text('Annual 2025–2026')),
+                    DropdownMenuItem(
+                      value: 'Spring 2025 (Jan – Jun)',
+                      child: Text('Spring 2025 (Jan – Jun)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Fall 2025 (Jul – Dec)',
+                      child: Text('Fall 2025 (Jul – Dec)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Annual 2025–2026',
+                      child: Text('Annual 2025–2026'),
+                    ),
                   ],
-                  onChanged: (v) => setState(() => _selectedSession = v ?? _selectedSession),
+                  onChanged: (v) =>
+                      setState(() => _selectedSession = v ?? _selectedSession),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _showAddMilestoneDialog,
                   icon: const Icon(Icons.add_task, size: 16),
                   label: const Text('Add Milestone'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.adminPrimary,
+                  ),
                 ),
               ],
             ),
@@ -302,7 +417,11 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.border),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Column(
@@ -316,16 +435,33 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                             color: AppColors.primary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.schedule, color: AppColors.primary, size: 26),
+                          child: const Icon(
+                            Icons.schedule,
+                            color: AppColors.primary,
+                            size: 26,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [
-                              Text('Lecture Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.textMain)),
+                              Text(
+                                'Lecture Schedule',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
                               SizedBox(height: 2),
-                              Text('Create, edit, and publish weekly lecture timetables.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                              Text(
+                                'Create, edit, and publish weekly lecture timetables.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -334,7 +470,11 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                     const SizedBox(height: 18),
                     const Text(
                       'Manage classroom allocations, conflict-free faculty schedules, and batch rosters campus-wide.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textMain, height: 1.4),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMain,
+                        height: 1.4,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -342,7 +482,9 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              if (widget.onNavigate != null) widget.onNavigate!('lecture-schedule');
+                              if (widget.onNavigate != null) {
+                                widget.onNavigate!('lecture-schedule');
+                              }
                             },
                             child: const Text('View Schedule'),
                           ),
@@ -351,9 +493,13 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
-                              if (widget.onNavigate != null) widget.onNavigate!('lecture-schedule');
+                              if (widget.onNavigate != null) {
+                                widget.onNavigate!('lecture-schedule');
+                              }
                             },
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                            ),
                             child: const Text('Manage'),
                           ),
                         ),
@@ -374,7 +520,11 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.border),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
                 child: Column(
@@ -385,19 +535,38 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.studentPrimary.withValues(alpha: 0.12),
+                            color: AppColors.studentPrimary.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.assignment_outlined, color: AppColors.studentPrimary, size: 26),
+                          child: const Icon(
+                            Icons.assignment_outlined,
+                            color: AppColors.studentPrimary,
+                            size: 26,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: const [
-                              Text('Exam Timetable', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.textMain)),
+                              Text(
+                                'Exam Timetable',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
                               SizedBox(height: 2),
-                              Text('Create, view, and publish exam schedules easily.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                              Text(
+                                'Create, view, and publish exam schedules easily.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -406,7 +575,11 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                     const SizedBox(height: 18),
                     const Text(
                       'Coordinate midterm and university final assessment halls, invigilators, and student seating charts.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textMain, height: 1.4),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMain,
+                        height: 1.4,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -414,7 +587,9 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              if (widget.onNavigate != null) widget.onNavigate!('exam-timetable');
+                              if (widget.onNavigate != null) {
+                                widget.onNavigate!('exam-timetable');
+                              }
                             },
                             child: const Text('View Timetable'),
                           ),
@@ -423,9 +598,13 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
-                              if (widget.onNavigate != null) widget.onNavigate!('create-exam');
+                              if (widget.onNavigate != null) {
+                                widget.onNavigate!('create-exam');
+                              }
                             },
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.studentPrimary,
+                            ),
                             child: const Text('Schedule Exam'),
                           ),
                         ),
@@ -456,9 +635,21 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Academic Roadmap & Key Milestones', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const Text(
+                        'Academic Roadmap & Key Milestones',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text('$_selectedSession Roadmap Progression', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      Text(
+                        '$_selectedSession Roadmap Progression',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                   OutlinedButton.icon(
@@ -475,12 +666,14 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _milestones.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final ms = _milestones[index];
                   Color stateColor = ms.status == 'completed'
                       ? AppColors.success
-                      : (ms.status == 'active' ? AppColors.primary : AppColors.textMuted);
+                      : (ms.status == 'active'
+                            ? AppColors.primary
+                            : AppColors.textMuted);
 
                   return Container(
                     padding: const EdgeInsets.all(16),
@@ -506,25 +699,50 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     ms.title,
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: AppColors.textMain,
+                                    ),
                                   ),
-                                  StatusBadge(label: ms.status.toUpperCase(), status: ms.status),
+                                  StatusBadge(
+                                    label: ms.status.toUpperCase(),
+                                    status: ms.status,
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.date_range, size: 13, color: AppColors.textLight),
+                                  const Icon(
+                                    Icons.date_range,
+                                    size: 13,
+                                    color: AppColors.textLight,
+                                  ),
                                   const SizedBox(width: 4),
-                                  Text(ms.dateRange, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                                  Text(
+                                    ms.dateRange,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              Text(ms.description, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                              Text(
+                                ms.description,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -555,14 +773,22 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Planning Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    const Text(
+                      'Planning Quick Actions',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     _buildQuickActionRow(
                       icon: Icons.schedule,
                       label: 'Create Lecture Schedule',
                       color: AppColors.primary,
                       onTap: () {
-                        if (widget.onNavigate != null) widget.onNavigate!('lecture-schedule');
+                        if (widget.onNavigate != null) {
+                          widget.onNavigate!('lecture-schedule');
+                        }
                       },
                     ),
                     const SizedBox(height: 10),
@@ -571,7 +797,9 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                       label: 'Create Exam Timetable',
                       color: AppColors.studentPrimary,
                       onTap: () {
-                        if (widget.onNavigate != null) widget.onNavigate!('create-exam');
+                        if (widget.onNavigate != null) {
+                          widget.onNavigate!('create-exam');
+                        }
                       },
                     ),
                     const SizedBox(height: 10),
@@ -580,7 +808,9 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                       label: 'Manage Classes & Batches',
                       color: AppColors.teacherPrimary,
                       onTap: () {
-                        if (widget.onNavigate != null) widget.onNavigate!('class-management');
+                        if (widget.onNavigate != null) {
+                          widget.onNavigate!('class-management');
+                        }
                       },
                     ),
                   ],
@@ -600,17 +830,28 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Icon(Icons.school, size: 48, color: AppColors.primary),
+                      const Icon(
+                        Icons.school,
+                        size: 48,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(height: 12),
                       const Text(
                         'Academic Session 2025–2026',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primary),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: AppColors.primary,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 4),
                       const Text(
                         'Accredited by AICTE & UGC • Grade A+ NAAC',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -644,8 +885,21 @@ class _AcademicPlanningScreenState extends State<AcademicPlanningScreen> {
           children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(width: 12),
-            Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMain))),
-            const Icon(Icons.arrow_forward_ios, size: 13, color: AppColors.textLight),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: AppColors.textMain,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 13,
+              color: AppColors.textLight,
+            ),
           ],
         ),
       ),

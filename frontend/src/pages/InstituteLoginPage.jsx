@@ -32,14 +32,6 @@ export default function InstituteLoginPage({ onNavigate, onLoginSuccess }) {
   const [successMessage, setSuccessMessage] = useState('');
   const [autoFilled, setAutoFilled] = useState(false);
 
-  const handleDemoFill = () => {
-    setInstituteCode('INST-2025');
-    setEmail('admin@apex.edu');
-    setPassword('password123');
-    setAutoFilled(true);
-    setErrorMessage('');
-    setTimeout(() => setAutoFilled(false), 2200);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -144,30 +136,6 @@ export default function InstituteLoginPage({ onNavigate, onLoginSuccess }) {
               </div>
             </div>
 
-            <div className="panel-demo-autofill-box">
-              <div className="autofill-text">
-                <Zap size={14} className="autofill-bolt" />
-                <span>Testing this portal?</span>
-              </div>
-              <button
-                type="button"
-                className="btn-autofill-chip"
-                onClick={handleDemoFill}
-                title="Populate test institute code & credentials"
-              >
-                {autoFilled ? (
-                  <>
-                    <Check size={13} className="check-icon-green" />
-                    <span>Credentials Filled!</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={13} />
-                    <span>1-Click Demo Fill (INST-2025)</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
 
           {/* RIGHT: Form + role unlock preview */}

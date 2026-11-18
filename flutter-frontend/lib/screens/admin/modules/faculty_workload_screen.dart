@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../constants/app_colors.dart';
-import '../../../models/instructor_model.dart';
-import '../../../providers/instructor_provider.dart';
 import '../../../widgets/status_badge.dart';
-import '../../../widgets/metric_card.dart';
 
 class FacultyWorkloadItem {
   final String id;
@@ -55,7 +51,6 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
   String _selectedDept = 'All';
   String _selectedLoadFilter = 'All';
   String _searchQuery = '';
-  DateTime _selectedDate = DateTime.now();
 
   late List<FacultyWorkloadItem> _workloadList;
 
@@ -77,7 +72,12 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
         phone: '+91 98765 43210',
         weeklyHours: 18,
         maxHours: 22,
-        assignedClasses: ['BCA-301 (DBMS)', 'BCA-302 (DSA)', 'MCA-101 (SE)', 'MCA-102 (OS)'],
+        assignedClasses: [
+          'BCA-301 (DBMS)',
+          'BCA-302 (DSA)',
+          'MCA-101 (SE)',
+          'MCA-102 (OS)',
+        ],
         rating: 4.8,
         totalReviews: 142,
         attendanceStatus: 'Present',
@@ -93,7 +93,11 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
         phone: '+91 98765 43218',
         weeklyHours: 16,
         maxHours: 20,
-        assignedClasses: ['MATH-201 (Discrete Math)', 'MATH-302 (Linear Algebra)', 'MCA-203 (Stats)'],
+        assignedClasses: [
+          'MATH-201 (Discrete Math)',
+          'MATH-302 (Linear Algebra)',
+          'MCA-203 (Stats)',
+        ],
         rating: 4.9,
         totalReviews: 128,
         attendanceStatus: 'Present',
@@ -109,7 +113,12 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
         phone: '+91 98765 43222',
         weeklyHours: 20,
         maxHours: 22,
-        assignedClasses: ['CS-204 (OOP in C++)', 'CS-305 (Web Tech)', 'MCA-104 (Cloud)', 'BCA-102 (C Prog)'],
+        assignedClasses: [
+          'CS-204 (OOP in C++)',
+          'CS-305 (Web Tech)',
+          'MCA-104 (Cloud)',
+          'BCA-102 (C Prog)',
+        ],
         rating: 4.7,
         totalReviews: 110,
         attendanceStatus: 'Present',
@@ -141,7 +150,11 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
         phone: '+91 98765 99881',
         weeklyHours: 17,
         maxHours: 20,
-        assignedClasses: ['PHY-101 (Mechanics)', 'PHY-202 (Electrodynamics)', 'PHY-301 (Quantum)'],
+        assignedClasses: [
+          'PHY-101 (Mechanics)',
+          'PHY-202 (Electrodynamics)',
+          'PHY-301 (Quantum)',
+        ],
         rating: 4.85,
         totalReviews: 95,
         attendanceStatus: 'Present',
@@ -174,7 +187,8 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
       if (_selectedLoadFilter == 'High' && faculty.weeklyHours < 18) {
         return false;
       }
-      if (_selectedLoadFilter == 'Optimal' && (faculty.weeklyHours < 15 || faculty.weeklyHours > 18)) {
+      if (_selectedLoadFilter == 'Optimal' &&
+          (faculty.weeklyHours < 15 || faculty.weeklyHours > 18)) {
         return false;
       }
       if (_selectedLoadFilter == 'Light' && faculty.weeklyHours >= 15) {
@@ -182,7 +196,8 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
       }
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
-        final match = faculty.name.toLowerCase().contains(query) ||
+        final match =
+            faculty.name.toLowerCase().contains(query) ||
             faculty.instructorId.toLowerCase().contains(query) ||
             faculty.department.toLowerCase().contains(query) ||
             faculty.designation.toLowerCase().contains(query);
@@ -195,20 +210,29 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
   void _showWorkloadAdjustmentDialog(FacultyWorkloadItem faculty) {
     int hours = faculty.weeklyHours;
     String status = faculty.attendanceStatus;
-    final classesController = TextEditingController(text: faculty.assignedClasses.join(', '));
+    final classesController = TextEditingController(
+      text: faculty.assignedClasses.join(', '),
+    );
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: [
               CircleAvatar(
-                backgroundColor: AppColors.teacherPrimary.withValues(alpha: 0.15),
+                backgroundColor: AppColors.teacherPrimary.withValues(
+                  alpha: 0.15,
+                ),
                 child: Text(
                   faculty.name.isNotEmpty ? faculty.name[0] : 'F',
-                  style: const TextStyle(color: AppColors.teacherPrimary, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: AppColors.teacherPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -216,8 +240,20 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Adjust Workload: ${faculty.name}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                    Text('${faculty.instructorId} • ${faculty.department}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    Text(
+                      'Adjust Workload: ${faculty.name}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${faculty.instructorId} • ${faculty.department}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -228,30 +264,56 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Weekly Teaching Hours Target', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const Text(
+                  'Weekly Teaching Hours Target',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, color: AppColors.primary),
-                      onPressed: hours > 2 ? () => setDialogState(() => hours--) : null,
+                      icon: const Icon(
+                        Icons.remove_circle_outline,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: hours > 2
+                          ? () => setDialogState(() => hours--)
+                          : null,
                     ),
-                    Text('$hours Hours / Week', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text(
+                      '$hours Hours / Week',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
-                      onPressed: hours < 30 ? () => setDialogState(() => hours++) : null,
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: hours < 30
+                          ? () => setDialogState(() => hours++)
+                          : null,
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: hours > 20 ? AppColors.warningBg : AppColors.successBg,
+                        color: hours > 20
+                            ? AppColors.warningBg
+                            : AppColors.successBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         hours > 20 ? 'High Load' : 'Balanced',
                         style: TextStyle(
-                          color: hours > 20 ? AppColors.warning : AppColors.success,
+                          color: hours > 20
+                              ? AppColors.warning
+                              : AppColors.success,
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
                         ),
@@ -260,22 +322,39 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text('Attendance Status Today', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const Text(
+                  'Attendance Status Today',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: status,
-                  decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+                  initialValue: status,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                  ),
                   items: const [
-                    DropdownMenuItem(value: 'Present', child: Text('Present (Active on campus)')),
+                    DropdownMenuItem(
+                      value: 'Present',
+                      child: Text('Present (Active on campus)'),
+                    ),
                     DropdownMenuItem(value: 'Absent', child: Text('Absent')),
-                    DropdownMenuItem(value: 'On Leave', child: Text('On Leave (Approved)')),
+                    DropdownMenuItem(
+                      value: 'On Leave',
+                      child: Text('On Leave (Approved)'),
+                    ),
                   ],
                   onChanged: (val) {
                     if (val != null) setDialogState(() => status = val);
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text('Assigned Classes & Batches (comma separated)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const Text(
+                  'Assigned Classes & Batches (comma separated)',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: classesController,
@@ -311,7 +390,9 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                   ),
                 );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.adminPrimary,
+              ),
               child: const Text('Save Changes'),
             ),
           ],
@@ -332,7 +413,11 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
               radius: 22,
               child: Text(
                 faculty.name.isNotEmpty ? faculty.name[0] : 'F',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ),
             const SizedBox(width: 14),
@@ -340,8 +425,20 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(faculty.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                  Text('${faculty.designation} • ${faculty.department}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    faculty.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                  Text(
+                    '${faculty.designation} • ${faculty.department}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -363,40 +460,101 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildMiniMetric('Weekly Load', '${faculty.weeklyHours} hrs', AppColors.primary),
-                    _buildMiniMetric('Rating', '${faculty.rating} ★', AppColors.accentOrange),
-                    _buildMiniMetric('Classes', '${faculty.assignedClasses.length}', AppColors.accentPurple),
-                    _buildMiniMetric('Projects', '${faculty.activeProjects}', AppColors.accentTeal),
+                    _buildMiniMetric(
+                      'Weekly Load',
+                      '${faculty.weeklyHours} hrs',
+                      AppColors.primary,
+                    ),
+                    _buildMiniMetric(
+                      'Rating',
+                      '${faculty.rating} ★',
+                      AppColors.accentOrange,
+                    ),
+                    _buildMiniMetric(
+                      'Classes',
+                      '${faculty.assignedClasses.length}',
+                      AppColors.accentPurple,
+                    ),
+                    _buildMiniMetric(
+                      'Projects',
+                      '${faculty.activeProjects}',
+                      AppColors.accentTeal,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 18),
-              const Text('Assigned Batches & Classes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const Text(
+                'Assigned Batches & Classes',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: faculty.assignedClasses.map((cls) => Chip(
-                  backgroundColor: AppColors.primaryLight,
-                  label: Text(cls, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
-                  avatar: const Icon(Icons.school_outlined, size: 16, color: AppColors.primary),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                )).toList(),
+                children: faculty.assignedClasses
+                    .map(
+                      (cls) => Chip(
+                        backgroundColor: AppColors.primaryLight,
+                        label: Text(
+                          cls,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        avatar: const Icon(
+                          Icons.school_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                    )
+                    .toList(),
               ),
               const SizedBox(height: 18),
-              const Text('Contact Information', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const Text(
+                'Contact Information',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
               const SizedBox(height: 6),
-              Row(children: [
-                const Icon(Icons.email_outlined, size: 16, color: AppColors.textMuted),
-                const SizedBox(width: 8),
-                Text(faculty.email, style: const TextStyle(fontSize: 13, color: AppColors.textMain)),
-              ]),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.email_outlined,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    faculty.email,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
-              Row(children: [
-                const Icon(Icons.phone_outlined, size: 16, color: AppColors.textMuted),
-                const SizedBox(width: 8),
-                Text(faculty.phone, style: const TextStyle(fontSize: 13, color: AppColors.textMain)),
-              ]),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.phone_outlined,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    faculty.phone,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -412,7 +570,9 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.adminPrimary,
+            ),
             child: const Text('Close'),
           ),
         ],
@@ -423,9 +583,19 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
   Widget _buildMiniMetric(String label, String val, Color color) {
     return Column(
       children: [
-        Text(val, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: color)),
+        Text(
+          val,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            color: color,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+        ),
       ],
     );
   }
@@ -433,11 +603,6 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 768;
-    final totalFaculty = _workloadList.length * 31; // Extrapolated benchmark or live
-    final presentCount = _workloadList.where((f) => f.attendanceStatus == 'Present').length * 28;
-    final onLeaveCount = _workloadList.where((f) => f.attendanceStatus == 'On Leave').length * 3;
-    final absentCount = 12;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -452,7 +617,11 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                 children: const [
                   Text(
                     'Faculty Workload & Performance Tracking',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
                   ),
                   SizedBox(height: 4),
                   Text(
@@ -468,7 +637,11 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                   OutlinedButton.icon(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Faculty workload summary exported to CSV!')),
+                        const SnackBar(
+                          content: Text(
+                            'Faculty workload summary exported to CSV!',
+                          ),
+                        ),
                       );
                     },
                     icon: const Icon(Icons.file_download_outlined, size: 16),
@@ -478,12 +651,16 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                   ElevatedButton.icon(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Full Faculty Daily Report generated.')),
+                        const SnackBar(
+                          content: Text('Full Faculty Daily Report generated.'),
+                        ),
                       );
                     },
                     icon: const Icon(Icons.assessment_outlined, size: 16),
                     label: const Text('Daily Report'),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.adminPrimary,
+                    ),
                   ),
                 ],
               ),
@@ -507,35 +684,96 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Total Instructors: ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-                  Text('186', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+                  const Text(
+                    'Total Instructors: ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  Text(
+                    '186',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle)),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.success,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  const Text('Present: ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-                  const Text('168', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+                  const Text(
+                    'Present: ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  const Text(
+                    '168',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle)),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  const Text('Absent: ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-                  const Text('12', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+                  const Text(
+                    'Absent: ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  const Text(
+                    '12',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle)),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.warning,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  const Text('On Leave: ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-                  const Text('6', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+                  const Text(
+                    'On Leave: ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  const Text(
+                    '6',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                 ],
               ),
               Row(
@@ -543,8 +781,18 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                 children: const [
                   Icon(Icons.av_timer, size: 16, color: AppColors.primary),
                   SizedBox(width: 6),
-                  Text('Avg Teaching Load: ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-                  Text('18.4 hrs/wk', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+                  Text(
+                    'Avg Teaching Load: ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  Text(
+                    '18.4 hrs/wk',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -573,7 +821,13 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Attendance Overview', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        const Text(
+                          'Attendance Overview',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         const SizedBox(height: 18),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -588,14 +842,30 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                                     value: 0.903,
                                     strokeWidth: 10,
                                     backgroundColor: AppColors.bgSurface,
-                                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          AppColors.success,
+                                        ),
                                   ),
                                 ),
                                 Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: const [
-                                    Text('90.3%', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textMain)),
-                                    Text('Present', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                                    Text(
+                                      '90.3%',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textMain,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Present',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -604,11 +874,23 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildLegendRow(AppColors.success, 'Present', '168 (90%)'),
+                                _buildLegendRow(
+                                  AppColors.success,
+                                  'Present',
+                                  '168 (90%)',
+                                ),
                                 const SizedBox(height: 8),
-                                _buildLegendRow(AppColors.error, 'Absent', '12 (6%)'),
+                                _buildLegendRow(
+                                  AppColors.error,
+                                  'Absent',
+                                  '12 (6%)',
+                                ),
                                 const SizedBox(height: 8),
-                                _buildLegendRow(AppColors.warning, 'On Leave', '6 (4%)'),
+                                _buildLegendRow(
+                                  AppColors.warning,
+                                  'On Leave',
+                                  '6 (4%)',
+                                ),
                               ],
                             ),
                           ],
@@ -635,16 +917,43 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: const [
-                            Text('Weekly Workload Distribution', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                            Text('Standard: 16–20 hrs', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                            Text(
+                              'Weekly Workload Distribution',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              'Standard: 16–20 hrs',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        _buildWorkloadBar('Optimal (16–20 hrs/week)', 0.76, '76% (141 Faculty)', AppColors.primary),
+                        _buildWorkloadBar(
+                          'Optimal (16–20 hrs/week)',
+                          0.76,
+                          '76% (141 Faculty)',
+                          AppColors.primary,
+                        ),
                         const SizedBox(height: 12),
-                        _buildWorkloadBar('Heavy Load (>20 hrs/week)', 0.12, '12% (22 Faculty)', AppColors.accentOrange),
+                        _buildWorkloadBar(
+                          'Heavy Load (>20 hrs/week)',
+                          0.12,
+                          '12% (22 Faculty)',
+                          AppColors.accentOrange,
+                        ),
                         const SizedBox(height: 12),
-                        _buildWorkloadBar('Underutilized (<16 hrs/week)', 0.12, '12% (23 Faculty)', AppColors.accentPurple),
+                        _buildWorkloadBar(
+                          'Underutilized (<16 hrs/week)',
+                          0.12,
+                          '12% (23 Faculty)',
+                          AppColors.accentPurple,
+                        ),
                       ],
                     ),
                   ),
@@ -677,7 +986,10 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                   decoration: const InputDecoration(
                     hintText: 'Search faculty name, ID...',
                     prefixIcon: Icon(Icons.search, size: 20),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                   ),
                 ),
               ),
@@ -692,24 +1004,53 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                     value: _selectedDept,
                     underline: const SizedBox(),
                     items: const [
-                      DropdownMenuItem(value: 'All', child: Text('All Departments')),
-                      DropdownMenuItem(value: 'Computer Science', child: Text('Computer Science')),
-                      DropdownMenuItem(value: 'Mathematics', child: Text('Mathematics')),
-                      DropdownMenuItem(value: 'Physics', child: Text('Physics')),
-                      DropdownMenuItem(value: 'Commerce', child: Text('Commerce')),
+                      DropdownMenuItem(
+                        value: 'All',
+                        child: Text('All Departments'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Computer Science',
+                        child: Text('Computer Science'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Mathematics',
+                        child: Text('Mathematics'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Physics',
+                        child: Text('Physics'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Commerce',
+                        child: Text('Commerce'),
+                      ),
                     ],
-                    onChanged: (v) => setState(() => _selectedDept = v ?? 'All'),
+                    onChanged: (v) =>
+                        setState(() => _selectedDept = v ?? 'All'),
                   ),
                   DropdownButton<String>(
                     value: _selectedLoadFilter,
                     underline: const SizedBox(),
                     items: const [
-                      DropdownMenuItem(value: 'All', child: Text('All Load Levels')),
-                      DropdownMenuItem(value: 'Optimal', child: Text('Optimal (15-18h)')),
-                      DropdownMenuItem(value: 'High', child: Text('High Load (>18h)')),
-                      DropdownMenuItem(value: 'Light', child: Text('Light Load (<15h)')),
+                      DropdownMenuItem(
+                        value: 'All',
+                        child: Text('All Load Levels'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Optimal',
+                        child: Text('Optimal (15-18h)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'High',
+                        child: Text('High Load (>18h)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Light',
+                        child: Text('Light Load (<15h)'),
+                      ),
                     ],
-                    onChanged: (v) => setState(() => _selectedLoadFilter = v ?? 'All'),
+                    onChanged: (v) =>
+                        setState(() => _selectedLoadFilter = v ?? 'All'),
                   ),
                 ],
               ),
@@ -729,17 +1070,26 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Faculty Roster (${_filteredFaculty.length} Instructors)',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     Text(
                       'Live Academic Tracking',
-                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -750,7 +1100,10 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                 const Padding(
                   padding: EdgeInsets.all(32),
                   child: Center(
-                    child: Text('No faculty instructors matched the criteria.', style: TextStyle(color: AppColors.textMuted)),
+                    child: Text(
+                      'No faculty instructors matched the criteria.',
+                      style: TextStyle(color: AppColors.textMuted),
+                    ),
                   ),
                 )
               else
@@ -758,20 +1111,28 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _filteredFaculty.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderLight),
+                  separatorBuilder: (_, _) =>
+                      const Divider(height: 1, color: AppColors.borderLight),
                   itemBuilder: (context, index) {
                     final faculty = _filteredFaculty[index];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       child: Row(
                         children: [
                           // Avatar
                           CircleAvatar(
                             radius: 20,
-                            backgroundColor: AppColors.teacherPrimary.withValues(alpha: 0.15),
+                            backgroundColor: AppColors.teacherPrimary
+                                .withValues(alpha: 0.15),
                             child: Text(
                               faculty.name.isNotEmpty ? faculty.name[0] : 'T',
-                              style: const TextStyle(color: AppColors.teacherPrimary, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                color: AppColors.teacherPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 14),
@@ -784,12 +1145,19 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                               children: [
                                 Text(
                                   faculty.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppColors.textMain,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   '${faculty.instructorId} • ${faculty.designation} • ${faculty.department}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                               ],
                             ),
@@ -805,12 +1173,19 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                                   children: [
                                     Text(
                                       '${faculty.weeklyHours} hrs/wk',
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        color: AppColors.textMain,
+                                      ),
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       '/ ${faculty.maxHours} max',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textLight),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textLight,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -837,11 +1212,18 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star, color: AppColors.accentOrange, size: 16),
+                              const Icon(
+                                Icons.star,
+                                color: AppColors.accentOrange,
+                                size: 16,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 faculty.rating.toStringAsFixed(1),
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
                               ),
                             ],
                           ),
@@ -852,18 +1234,29 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
                             label: faculty.attendanceStatus,
                             status: faculty.attendanceStatus == 'Present'
                                 ? 'active'
-                                : (faculty.attendanceStatus == 'On Leave' ? 'warning' : 'inactive'),
+                                : (faculty.attendanceStatus == 'On Leave'
+                                      ? 'warning'
+                                      : 'inactive'),
                           ),
                           const SizedBox(width: 14),
 
                           // Action Buttons
                           IconButton(
-                            icon: const Icon(Icons.edit_calendar_outlined, size: 18, color: AppColors.primary),
+                            icon: const Icon(
+                              Icons.edit_calendar_outlined,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
                             tooltip: 'Adjust Workload',
-                            onPressed: () => _showWorkloadAdjustmentDialog(faculty),
+                            onPressed: () =>
+                                _showWorkloadAdjustmentDialog(faculty),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.visibility_outlined, size: 18, color: AppColors.textMuted),
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              size: 18,
+                              color: AppColors.textMuted,
+                            ),
                             tooltip: 'View Profile & Batches',
                             onPressed: () => _showFacultyDetailDialog(faculty),
                           ),
@@ -883,23 +1276,56 @@ class _FacultyWorkloadScreenState extends State<FacultyWorkloadScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 8),
-        Text('$label: ', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-        Text(val, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMain)),
+        Text(
+          '$label: ',
+          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
+        Text(
+          val,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textMain,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildWorkloadBar(String title, double fraction, String label, Color color) {
+  Widget _buildWorkloadBar(
+    String title,
+    double fraction,
+    String label,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMain)),
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMain,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 6),

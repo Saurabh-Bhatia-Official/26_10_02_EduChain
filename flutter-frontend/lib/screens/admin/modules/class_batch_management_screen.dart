@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../constants/app_colors.dart';
 import '../../../models/class_batch_model.dart';
-import '../../../widgets/status_badge.dart';
 import '../../../widgets/metric_card.dart';
 
 class ClassBatchManagementScreen extends StatefulWidget {
@@ -225,7 +224,7 @@ class _ClassBatchManagementScreenState extends State<ClassBatchManagementScreen>
                       const SizedBox(width: 14),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: dept,
+                          initialValue: dept,
                           decoration: const InputDecoration(labelText: 'Department *'),
                           items: const [
                             DropdownMenuItem(value: 'Computer Science', child: Text('Computer Science')),
@@ -244,7 +243,7 @@ class _ClassBatchManagementScreenState extends State<ClassBatchManagementScreen>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: sem,
+                          initialValue: sem,
                           decoration: const InputDecoration(labelText: 'Semester *'),
                           items: const [
                             DropdownMenuItem(value: 'Semester 1', child: Text('Semester 1')),
@@ -260,7 +259,7 @@ class _ClassBatchManagementScreenState extends State<ClassBatchManagementScreen>
                       const SizedBox(width: 14),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: sec,
+                          initialValue: sec,
                           decoration: const InputDecoration(labelText: 'Section / Batch *'),
                           items: const [
                             DropdownMenuItem(value: 'Section A', child: Text('Section A')),
@@ -616,7 +615,7 @@ class _ClassBatchManagementScreenState extends State<ClassBatchManagementScreen>
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _filteredClasses.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderLight),
+                  separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.borderLight),
                   itemBuilder: (context, index) {
                     final cls = _filteredClasses[index];
                     return Padding(

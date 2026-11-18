@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/user_model.dart';
-import '../../models/leave_request_model.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/leave_provider.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/metric_card.dart';
+import '../../features/classroom/screens/classroom_hub_screen.dart';
 
 class StudentPortalScreen extends StatefulWidget {
   final String initialTab;
@@ -24,12 +24,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // Live Exam States
   int _currentQuestion = 1;
-  final Map<int, String> _selectedAnswers = {
-    1: 'B',
-    2: 'A',
-    3: 'C',
-    4: 'D',
-  };
+  final Map<int, String> _selectedAnswers = {1: 'B', 2: 'A', 3: 'C', 4: 'D'};
   final Set<int> _flaggedQuestions = {3};
   bool _instructionsAccepted = false;
   int _examTimeSeconds = 3600; // 60 mins
@@ -59,7 +54,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   void didUpdateWidget(StudentPortalScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTab.isNotEmpty && widget.initialTab != _activeTab) {
-      final tab = widget.initialTab == 'leave' ? 'leave-application' : widget.initialTab;
+      final tab = widget.initialTab == 'leave'
+          ? 'leave-application'
+          : widget.initialTab;
       setState(() => _activeTab = tab);
     }
   }
@@ -137,16 +134,57 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   Widget _buildSidebar(UserModel? user, NavigationProvider nav) {
     final menuItems = [
-      {'id': 'dashboard', 'title': 'Dashboard', 'icon': Icons.dashboard_outlined},
+      {
+        'id': 'dashboard',
+        'title': 'Dashboard',
+        'icon': Icons.dashboard_outlined,
+      },
       {'id': 'profile', 'title': 'My Profile', 'icon': Icons.person_outline},
-      {'id': 'attendance', 'title': 'Attendance', 'icon': Icons.fact_check_outlined},
-      {'id': 'leave-application', 'title': 'Apply for Leave', 'icon': Icons.event_note_outlined},
-      {'id': 'grades', 'title': 'Grades & Results', 'icon': Icons.emoji_events_outlined},
-      {'id': 'schedule', 'title': 'Class Schedule', 'icon': Icons.calendar_today_outlined},
-      {'id': 'materials', 'title': 'Study Materials', 'icon': Icons.menu_book_outlined},
-      {'id': 'timetable', 'title': 'Weekly Timetable', 'icon': Icons.grid_view_outlined},
-      {'id': 'parents', 'title': 'Parent Portal', 'icon': Icons.family_restroom_outlined},
-      {'id': 'exams', 'title': 'Online Exams', 'icon': Icons.assignment_outlined},
+      {
+        'id': 'attendance',
+        'title': 'Attendance',
+        'icon': Icons.fact_check_outlined,
+      },
+      {
+        'id': 'leave-application',
+        'title': 'Apply for Leave',
+        'icon': Icons.event_note_outlined,
+      },
+      {
+        'id': 'grades',
+        'title': 'Grades & Results',
+        'icon': Icons.emoji_events_outlined,
+      },
+      {
+        'id': 'schedule',
+        'title': 'Class Schedule',
+        'icon': Icons.calendar_today_outlined,
+      },
+      {
+        'id': 'materials',
+        'title': 'Study Materials',
+        'icon': Icons.menu_book_outlined,
+      },
+      {
+        'id': 'classrooms',
+        'title': 'Classroom',
+        'icon': Icons.cast_for_education_outlined,
+      },
+      {
+        'id': 'timetable',
+        'title': 'Weekly Timetable',
+        'icon': Icons.grid_view_outlined,
+      },
+      {
+        'id': 'parents',
+        'title': 'Parent Portal',
+        'icon': Icons.family_restroom_outlined,
+      },
+      {
+        'id': 'exams',
+        'title': 'Online Exams',
+        'icon': Icons.assignment_outlined,
+      },
     ];
 
     return Container(
@@ -169,14 +207,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     color: AppColors.studentPrimary,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.school, color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.school,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Student Portal', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.textMain)),
-                    Text('Academic Desk', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
+                    Text(
+                      'Student Portal',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                    Text(
+                      'Academic Desk',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -198,8 +253,13 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 CircleAvatar(
                   backgroundColor: AppColors.studentPrimary,
                   child: Text(
-                    user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'S',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    user?.name.isNotEmpty == true
+                        ? user!.name[0].toUpperCase()
+                        : 'S',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -209,13 +269,21 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     children: [
                       Text(
                         user?.name ?? 'Rahul Sharma',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: AppColors.textMain,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         'Roll: ${user?.rollNumber ?? "1023"}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.studentPrimary, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.studentPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -230,30 +298,45 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: menuItems.map((item) {
                 final id = item['id'] as String;
-                final isSelected = _activeTab == id || (_activeTab.startsWith('exam-') && id == 'exams');
+                final isSelected =
+                    _activeTab == id ||
+                    (_activeTab.startsWith('exam-') && id == 'exams');
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: ListTile(
-                    dense: true,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    tileColor: isSelected ? const Color(0xFFF3E8FF) : Colors.transparent,
-                    leading: Icon(
-                      item['icon'] as IconData,
-                      size: 20,
-                      color: isSelected ? AppColors.studentPrimary : AppColors.textMuted,
-                    ),
-                    title: Text(
-                      item['title'] as String,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? AppColors.studentPrimary : AppColors.textMain,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      dense: true,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      tileColor: isSelected
+                          ? const Color(0xFFF3E8FF)
+                          : Colors.transparent,
+                      leading: Icon(
+                        item['icon'] as IconData,
+                        size: 20,
+                        color: isSelected
+                            ? AppColors.studentPrimary
+                            : AppColors.textMuted,
+                      ),
+                      title: Text(
+                        item['title'] as String,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.studentPrimary
+                              : AppColors.textMain,
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() => _activeTab = id);
+                        nav.setPortalTab(id);
+                      },
                     ),
-                    onTap: () {
-                      setState(() => _activeTab = id);
-                      nav.setPortalTab(id);
-                    },
                   ),
                 );
               }).toList(),
@@ -278,7 +361,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     );
   }
 
-  Widget _buildTopBar(UserModel? user, NavigationProvider nav, AuthProvider auth, bool isDesktop) {
+  Widget _buildTopBar(
+    UserModel? user,
+    NavigationProvider nav,
+    AuthProvider auth,
+    bool isDesktop,
+  ) {
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -300,7 +388,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               ],
               Text(
                 _getTabTitle(_activeTab),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMain,
+                ),
               ),
             ],
           ),
@@ -310,8 +402,14 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.notifications_outlined, size: 22, color: AppColors.textMuted),
-                    onPressed: () => setState(() => _showNotifications = !_showNotifications),
+                    icon: const Icon(
+                      Icons.notifications_outlined,
+                      size: 22,
+                      color: AppColors.textMuted,
+                    ),
+                    onPressed: () => setState(
+                      () => _showNotifications = !_showNotifications,
+                    ),
                   ),
                   Positioned(
                     right: 10,
@@ -319,7 +417,10 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.error),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.error,
+                      ),
                     ),
                   ),
                 ],
@@ -327,7 +428,10 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               const SizedBox(width: 8),
               // User Chip
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.bgPage,
                   borderRadius: BorderRadius.circular(20),
@@ -335,18 +439,30 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.account_balance, size: 14, color: AppColors.primary),
+                    const Icon(
+                      Icons.account_balance,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       user?.instituteCode ?? 'INST-2025',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMain),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMain,
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
               IconButton(
-                icon: const Icon(Icons.logout, size: 20, color: AppColors.error),
+                icon: const Icon(
+                  Icons.logout,
+                  size: 20,
+                  color: AppColors.error,
+                ),
                 tooltip: 'Logout',
                 onPressed: () async {
                   await auth.logout();
@@ -376,6 +492,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         return 'Class Timetable';
       case 'materials':
         return 'Course Materials & Lectures';
+      case 'classrooms':
+        return 'Classroom';
       case 'timetable':
         return 'Weekly Schedule Grid';
       case 'parents':
@@ -397,6 +515,15 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   Widget _buildTabContent(UserModel? user, NavigationProvider nav) {
     switch (_activeTab) {
+      case 'classrooms':
+        return ClassroomHubScreen(
+          userRole: 'student',
+          userId: user?.rollNumber?.isNotEmpty == true
+              ? user!.rollNumber!
+              : (user?.id.isNotEmpty == true ? user!.id : 'STU-2025-001'),
+          userName: user?.name.isNotEmpty == true ? user!.name : 'Student',
+          userEmail: user?.email,
+        );
       case 'dashboard':
         return _buildDashboardTab(user);
       case 'profile':
@@ -452,11 +579,18 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Welcome Back!', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const Text(
+                    'Welcome Back!',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     user?.name ?? 'Rahul Sharma',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -471,30 +605,61 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => setState(() => _activeTab = 'leave-application'),
-                    icon: const Icon(Icons.event_note, size: 17, color: AppColors.studentPrimary),
+                    onPressed: () =>
+                        setState(() => _activeTab = 'leave-application'),
+                    icon: const Icon(
+                      Icons.event_note,
+                      size: 17,
+                      color: AppColors.studentPrimary,
+                    ),
                     label: const Text(
                       'Apply for Leave',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.studentPrimary),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.studentPrimary,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.studentPrimary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 2,
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Column(
                       children: [
-                        Text('TERM STATUS', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w700)),
-                        Text('Semester 3', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                        Text(
+                          'TERM STATUS',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          'Semester 3',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -568,13 +733,34 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Today's Lectures", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    const Text(
+                      "Today's Lectures",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    _buildLectureItem('10:00 AM - 11:30 AM', 'Database Systems (CS-301)', 'Hall 302 • Dr. Amit Sharma', 'Scheduled'),
+                    _buildLectureItem(
+                      '10:00 AM - 11:30 AM',
+                      'Database Systems (CS-301)',
+                      'Hall 302 • Dr. Amit Sharma',
+                      'Scheduled',
+                    ),
                     const Divider(color: AppColors.border),
-                    _buildLectureItem('11:45 AM - 01:15 PM', 'Data Structures & Algorithms', 'Lab 2 • Prof. Rajesh Gupta', 'In Progress'),
+                    _buildLectureItem(
+                      '11:45 AM - 01:15 PM',
+                      'Data Structures & Algorithms',
+                      'Lab 2 • Prof. Rajesh Gupta',
+                      'In Progress',
+                    ),
                     const Divider(color: AppColors.border),
-                    _buildLectureItem('02:00 PM - 03:30 PM', 'Computer Networks (CS-303)', 'Hall 105 • Prof. Sunita Rao', 'Upcoming'),
+                    _buildLectureItem(
+                      '02:00 PM - 03:30 PM',
+                      'Computer Networks (CS-303)',
+                      'Hall 105 • Prof. Sunita Rao',
+                      'Upcoming',
+                    ),
                   ],
                 ),
               ),
@@ -594,17 +780,43 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Quick Access', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    const Text(
+                      'Quick Access',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    _buildQuickAction('Apply for Leave', Icons.event_note_outlined, () => setState(() => _activeTab = 'leave-application')),
+                    _buildQuickAction(
+                      'Apply for Leave',
+                      Icons.event_note_outlined,
+                      () => setState(() => _activeTab = 'leave-application'),
+                    ),
                     const SizedBox(height: 10),
-                    _buildQuickAction('Take Online Exam', Icons.quiz_outlined, () => setState(() => _activeTab = 'exams')),
+                    _buildQuickAction(
+                      'Take Online Exam',
+                      Icons.quiz_outlined,
+                      () => setState(() => _activeTab = 'exams'),
+                    ),
                     const SizedBox(height: 10),
-                    _buildQuickAction('View Grade Card', Icons.grade_outlined, () => setState(() => _activeTab = 'grades')),
+                    _buildQuickAction(
+                      'View Grade Card',
+                      Icons.grade_outlined,
+                      () => setState(() => _activeTab = 'grades'),
+                    ),
                     const SizedBox(height: 10),
-                    _buildQuickAction('Download Study Notes', Icons.download_outlined, () => setState(() => _activeTab = 'materials')),
+                    _buildQuickAction(
+                      'Download Study Notes',
+                      Icons.download_outlined,
+                      () => setState(() => _activeTab = 'materials'),
+                    ),
                     const SizedBox(height: 10),
-                    _buildQuickAction('Parent Meeting Request', Icons.connect_without_contact, () => setState(() => _activeTab = 'parents')),
+                    _buildQuickAction(
+                      'Parent Meeting Request',
+                      Icons.connect_without_contact,
+                      () => setState(() => _activeTab = 'parents'),
+                    ),
                   ],
                 ),
               ),
@@ -621,8 +833,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   Widget _buildDashboardLeavesCard(UserModel? user) {
     final leaveProv = Provider.of<LeaveProvider>(context);
-    final myLeaves = leaveProv.getStudentLeaves(user?.rollNumber ?? user?.name ?? 'STU-1023');
-    final displayLeaves = myLeaves.isNotEmpty ? myLeaves : leaveProv.leaves.take(3).toList();
+    final myLeaves = leaveProv.getStudentLeaves(
+      user?.rollNumber ?? user?.name ?? 'STU-1023',
+    );
+    final displayLeaves = myLeaves.isNotEmpty
+        ? myLeaves
+        : leaveProv.leaves.take(3).toList();
 
     return Container(
       padding: const EdgeInsets.all(22),
@@ -645,27 +861,50 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       color: const Color(0xFFF3E8FF),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.event_note, color: AppColors.studentPrimary, size: 20),
+                    child: const Icon(
+                      Icons.event_note,
+                      color: AppColors.studentPrimary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('My Leave Applications', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textMain)),
-                      Text('Live status synchronization with Teacher & Faculty Desk', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      Text(
+                        'My Leave Applications',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textMain,
+                        ),
+                      ),
+                      Text(
+                        'Live status synchronization with Teacher & Faculty Desk',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: () => setState(() => _activeTab = 'leave-application'),
+                onPressed: () =>
+                    setState(() => _activeTab = 'leave-application'),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Apply for Leave'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.studentPrimary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ],
@@ -675,7 +914,10 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Center(
-                child: Text('No leave applications submitted yet.', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+                child: Text(
+                  'No leave applications submitted yet.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                ),
               ),
             )
           else
@@ -686,18 +928,18 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               Color bgBadge = isApproved
                   ? const Color(0xFFECFDF5)
                   : isRejected
-                      ? const Color(0xFFFFF1F2)
-                      : const Color(0xFFFFFBEB);
+                  ? const Color(0xFFFFF1F2)
+                  : const Color(0xFFFFFBEB);
               Color textBadge = isApproved
                   ? const Color(0xFF059669)
                   : isRejected
-                      ? const Color(0xFFE11D48)
-                      : const Color(0xFFD97706);
+                  ? const Color(0xFFE11D48)
+                  : const Color(0xFFD97706);
               Color borderBadge = isApproved
                   ? const Color(0xFFA7F3D0)
                   : isRejected
-                      ? const Color(0xFFFECDD3)
-                      : const Color(0xFFFDE68A);
+                  ? const Color(0xFFFECDD3)
+                  : const Color(0xFFFDE68A);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
@@ -721,8 +963,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                         isApproved
                             ? Icons.check_circle_outline
                             : isRejected
-                                ? Icons.highlight_off
-                                : Icons.schedule,
+                            ? Icons.highlight_off
+                            : Icons.schedule,
                         color: textBadge,
                         size: 22,
                       ),
@@ -734,34 +976,72 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                         children: [
                           Row(
                             children: [
-                              Text(leave.id, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain)),
+                              Text(
+                                leave.id,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFEDE9FE),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text(leave.category, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.studentPrimary)),
+                                child: Text(
+                                  leave.category,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.studentPrimary,
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 8),
-                              Text('${leave.startDate} to ${leave.endDate} (${leave.days})', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                              Text(
+                                '${leave.startDate} to ${leave.endDate} (${leave.days})',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text('Reason: ${leave.reason}', style: const TextStyle(fontSize: 12, color: AppColors.textMain), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(
+                            'Reason: ${leave.reason}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMain,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           if (leave.reviewedBy != null && !isPending) ...[
                             const SizedBox(height: 2),
                             Text(
                               '${leave.status} by ${leave.reviewedBy}${leave.reviewedOn != null ? " on ${leave.reviewedOn}" : ""}',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textBadge),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: textBadge,
+                              ),
                             ),
                           ],
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: bgBadge,
                         borderRadius: BorderRadius.circular(20),
@@ -769,7 +1049,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       ),
                       child: Text(
                         leave.status,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textBadge),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: textBadge,
+                        ),
                       ),
                     ),
                   ],
@@ -781,7 +1065,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     );
   }
 
-  Widget _buildLectureItem(String time, String title, String subtitle, String status) {
+  Widget _buildLectureItem(
+    String time,
+    String title,
+    String subtitle,
+    String status,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -791,16 +1080,36 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.studentPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.access_time, color: AppColors.studentPrimary, size: 18),
+                decoration: BoxDecoration(
+                  color: AppColors.studentPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.access_time,
+                  color: AppColors.studentPrimary,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('$time • $subtitle', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    '$time • $subtitle',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -826,8 +1135,20 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           children: [
             Icon(icon, size: 18, color: AppColors.studentPrimary),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.textLight),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: AppColors.textLight,
+            ),
           ],
         ),
       ),
@@ -862,7 +1183,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       setState(() {
         if (isStart) {
           _leaveStartDate = picked;
-          if (_leaveEndDate != null && _leaveEndDate!.isBefore(_leaveStartDate!)) {
+          if (_leaveEndDate != null &&
+              _leaveEndDate!.isBefore(_leaveStartDate!)) {
             _leaveEndDate = _leaveStartDate;
           }
         } else {
@@ -879,39 +1201,56 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter Student Name'), backgroundColor: AppColors.error),
+        const SnackBar(
+          content: Text('Please enter Student Name'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
     if (studentId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter Student ID'), backgroundColor: AppColors.error),
+        const SnackBar(
+          content: Text('Please enter Student ID'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
     if (_leaveStartDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select Leave Start Date'), backgroundColor: AppColors.error),
+        const SnackBar(
+          content: Text('Please select Leave Start Date'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
     if (_leaveEndDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select Leave End Date'), backgroundColor: AppColors.error),
+        const SnackBar(
+          content: Text('Please select Leave End Date'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
     if (reason.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter Reason for Leave'), backgroundColor: AppColors.error),
+        const SnackBar(
+          content: Text('Please enter Reason for Leave'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
 
     final diff = _leaveEndDate!.difference(_leaveStartDate!).inDays + 1;
     final daysStr = diff <= 1 ? '1 Day' : '$diff Days';
-    final startStr = '${_leaveStartDate!.day.toString().padLeft(2, '0')}/${_leaveStartDate!.month.toString().padLeft(2, '0')}/${_leaveStartDate!.year}';
-    final endStr = '${_leaveEndDate!.day.toString().padLeft(2, '0')}/${_leaveEndDate!.month.toString().padLeft(2, '0')}/${_leaveEndDate!.year}';
+    final startStr =
+        '${_leaveStartDate!.day.toString().padLeft(2, '0')}/${_leaveStartDate!.month.toString().padLeft(2, '0')}/${_leaveStartDate!.year}';
+    final endStr =
+        '${_leaveEndDate!.day.toString().padLeft(2, '0')}/${_leaveEndDate!.month.toString().padLeft(2, '0')}/${_leaveEndDate!.year}';
 
     final leaveProv = Provider.of<LeaveProvider>(context, listen: false);
     final refId = leaveProv.applyLeave(
@@ -966,8 +1305,13 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.studentPrimary,
                 side: const BorderSide(color: AppColors.studentPrimary),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             Container(
@@ -979,11 +1323,19 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.verified, size: 14, color: AppColors.studentPrimary),
+                  Icon(
+                    Icons.verified,
+                    size: 14,
+                    color: AppColors.studentPrimary,
+                  ),
                   SizedBox(width: 6),
                   Text(
                     'Excused Absence Portal',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.studentPrimary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.studentPrimary,
+                    ),
                   ),
                 ],
               ),
@@ -1019,19 +1371,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     children: [
                       Text(
                         'Application Submitted Successfully! (Ref: $_lastLeaveRefId)',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF065F46)),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: Color(0xFF065F46),
+                        ),
                       ),
                       const SizedBox(height: 2),
                       const Text(
                         'Your leave request has been sent to your Department Coordinator Dr. Neha Verma for approval.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF047857)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF047857),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: Color(0xFF047857)),
-                  onPressed: () => setState(() => _leaveSubmittedSuccess = false),
+                  icon: const Icon(
+                    Icons.close,
+                    size: 18,
+                    color: Color(0xFF047857),
+                  ),
+                  onPressed: () =>
+                      setState(() => _leaveSubmittedSuccess = false),
                 ),
               ],
             ),
@@ -1044,7 +1408,10 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 children: [
                   Expanded(flex: 7, child: _buildLeaveFormCard(user)),
                   const SizedBox(width: 24),
-                  Expanded(flex: 5, child: _buildLeaveSidebarCard(leaveProv, user)),
+                  Expanded(
+                    flex: 5,
+                    child: _buildLeaveSidebarCard(leaveProv, user),
+                  ),
                 ],
               )
             : Column(
@@ -1085,7 +1452,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   color: const Color(0xFFF3E8FF),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.event_note, color: AppColors.studentPrimary, size: 24),
+                child: const Icon(
+                  Icons.event_note,
+                  color: AppColors.studentPrimary,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 14),
               const Expanded(
@@ -1094,12 +1465,19 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   children: [
                     Text(
                       'Leave Application Form',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textMain,
+                      ),
                     ),
                     SizedBox(height: 2),
                     Text(
                       'Apply for official leave of absence from classes & campus',
-                      style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -1111,43 +1489,102 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           const SizedBox(height: 20),
 
           // Student Name Field
-          const Text('Student Name', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain)),
+          const Text(
+            'Student Name',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.textMain,
+            ),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _leaveNameController,
             decoration: InputDecoration(
               hintText: 'Enter student full name',
-              prefixIcon: const Icon(Icons.person_outline, color: AppColors.studentPrimary, size: 20),
+              prefixIcon: const Icon(
+                Icons.person_outline,
+                color: AppColors.studentPrimary,
+                size: 20,
+              ),
               filled: true,
               fillColor: AppColors.bgPage,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.studentPrimary, width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.studentPrimary,
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
           const SizedBox(height: 18),
 
           // Student ID Field
-          const Text('Student ID / Roll Number', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain)),
+          const Text(
+            'Student ID / Roll Number',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.textMain,
+            ),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _leaveIdController,
             decoration: InputDecoration(
               hintText: 'e.g. STU-1023 or Roll No',
-              prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.studentPrimary, size: 20),
+              prefixIcon: const Icon(
+                Icons.badge_outlined,
+                color: AppColors.studentPrimary,
+                size: 20,
+              ),
               filled: true,
               fillColor: AppColors.bgPage,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.studentPrimary, width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.studentPrimary,
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
           const SizedBox(height: 18),
 
           // Leave Category Dropdown
-          const Text('Leave Category', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain)),
+          const Text(
+            'Leave Category',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.textMain,
+            ),
+          ),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -1160,13 +1597,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               child: DropdownButton<String>(
                 value: _leaveCategory,
                 isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppColors.textMuted,
+                ),
                 items: const [
-                  DropdownMenuItem(value: 'Medical Leave', child: Text('Medical Leave / Health Issue')),
-                  DropdownMenuItem(value: 'Family Emergency', child: Text('Family Emergency')),
-                  DropdownMenuItem(value: 'Academic Conference', child: Text('Academic Conference / Hackathon')),
-                  DropdownMenuItem(value: 'Official Sports / Cultural', child: Text('Official Sports / Cultural Event')),
-                  DropdownMenuItem(value: 'Personal Leave', child: Text('Personal Leave / Other')),
+                  DropdownMenuItem(
+                    value: 'Medical Leave',
+                    child: Text('Medical Leave / Health Issue'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Family Emergency',
+                    child: Text('Family Emergency'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Academic Conference',
+                    child: Text('Academic Conference / Hackathon'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Official Sports / Cultural',
+                    child: Text('Official Sports / Cultural Event'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'Personal Leave',
+                    child: Text('Personal Leave / Other'),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) setState(() => _leaveCategory = val);
@@ -1183,24 +1638,40 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Leave Start Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain)),
+                    const Text(
+                      'Leave Start Date',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.textMain,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: () => _pickLeaveDate(isStart: true),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.bgPage,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _leaveStartDate != null ? AppColors.studentPrimary : AppColors.border,
+                            color: _leaveStartDate != null
+                                ? AppColors.studentPrimary
+                                : AppColors.border,
                             width: _leaveStartDate != null ? 1.5 : 1,
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.studentPrimary),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 18,
+                              color: AppColors.studentPrimary,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -1209,8 +1680,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                                     : 'Select Start Date',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: _leaveStartDate != null ? FontWeight.w700 : FontWeight.w500,
-                                  color: _leaveStartDate != null ? AppColors.textMain : AppColors.textLight,
+                                  fontWeight: _leaveStartDate != null
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: _leaveStartDate != null
+                                      ? AppColors.textMain
+                                      : AppColors.textLight,
                                 ),
                               ),
                             ),
@@ -1226,24 +1701,40 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Leave End Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain)),
+                    const Text(
+                      'Leave End Date',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.textMain,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     InkWell(
                       onTap: () => _pickLeaveDate(isStart: false),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.bgPage,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _leaveEndDate != null ? AppColors.studentPrimary : AppColors.border,
+                            color: _leaveEndDate != null
+                                ? AppColors.studentPrimary
+                                : AppColors.border,
                             width: _leaveEndDate != null ? 1.5 : 1,
                           ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.event_outlined, size: 18, color: AppColors.studentPrimary),
+                            const Icon(
+                              Icons.event_outlined,
+                              size: 18,
+                              color: AppColors.studentPrimary,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -1252,8 +1743,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                                     : 'Select End Date',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: _leaveEndDate != null ? FontWeight.w700 : FontWeight.w500,
-                                  color: _leaveEndDate != null ? AppColors.textMain : AppColors.textLight,
+                                  fontWeight: _leaveEndDate != null
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: _leaveEndDate != null
+                                      ? AppColors.textMain
+                                      : AppColors.textLight,
                                 ),
                               ),
                             ),
@@ -1270,29 +1765,60 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             const SizedBox(height: 8),
             Text(
               'Selected Duration: ${_leaveEndDate!.difference(_leaveStartDate!).inDays + 1} day(s)',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.studentPrimary),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.studentPrimary,
+              ),
             ),
           ],
           const SizedBox(height: 18),
 
           // Reason for Leave
-          const Text('Reason for Leave', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain)),
+          const Text(
+            'Reason for Leave',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.textMain,
+            ),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _leaveReasonController,
             maxLines: 4,
             decoration: InputDecoration(
-              hintText: 'State the clear reason for absence and any relevant context...',
+              hintText:
+                  'State the clear reason for absence and any relevant context...',
               prefixIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 50),
-                child: Icon(Icons.description_outlined, color: AppColors.studentPrimary, size: 20),
+                child: Icon(
+                  Icons.description_outlined,
+                  color: AppColors.studentPrimary,
+                  size: 20,
+                ),
               ),
               filled: true,
               fillColor: AppColors.bgPage,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.studentPrimary, width: 2)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.studentPrimary,
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -1313,7 +1839,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     backgroundColor: AppColors.studentPrimary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 1,
                   ),
                 ),
@@ -1333,7 +1861,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     foregroundColor: AppColors.textMuted,
                     side: const BorderSide(color: AppColors.border),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text('Reset Form'),
                 ),
@@ -1346,7 +1876,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   }
 
   Widget _buildLeaveSidebarCard(LeaveProvider leaveProv, UserModel? user) {
-    final myLeaves = leaveProv.getStudentLeaves(user?.rollNumber ?? user?.name ?? 'STU-1023');
+    final myLeaves = leaveProv.getStudentLeaves(
+      user?.rollNumber ?? user?.name ?? 'STU-1023',
+    );
     final displayLeaves = myLeaves.isNotEmpty ? myLeaves : leaveProv.leaves;
 
     return Column(
@@ -1364,17 +1896,37 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: AppColors.studentPrimary),
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: AppColors.studentPrimary,
+                  ),
                   SizedBox(width: 8),
-                  Text('Leave Policy & Guidelines', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textMain)),
+                  Text(
+                    'Leave Policy & Guidelines',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-              _buildLeaveRuleRow('75% Rule', 'Cumulative attendance must stay above 75% to sit for semester examinations.'),
+              _buildLeaveRuleRow(
+                '75% Rule',
+                'Cumulative attendance must stay above 75% to sit for semester examinations.',
+              ),
               const SizedBox(height: 8),
-              _buildLeaveRuleRow('Medical Leaves', 'Absences exceeding 3 days require a doctor prescription certificate upon campus return.'),
+              _buildLeaveRuleRow(
+                'Medical Leaves',
+                'Absences exceeding 3 days require a doctor prescription certificate upon campus return.',
+              ),
               const SizedBox(height: 8),
-              _buildLeaveRuleRow('Review Time', 'Applications are reviewed within 24-48 business hours by Department Coordinator Dr. Neha Verma.'),
+              _buildLeaveRuleRow(
+                'Review Time',
+                'Applications are reviewed within 24-48 business hours by Department Coordinator Dr. Neha Verma.',
+              ),
             ],
           ),
         ),
@@ -1394,16 +1946,30 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Recent Applications', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.textMain)),
+                  const Text(
+                    'Recent Applications',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF3E8FF),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '${displayLeaves.length} Total',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.studentPrimary),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.studentPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -1413,19 +1979,24 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 16),
                   child: Center(
-                    child: Text('No leave applications submitted yet.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    child: Text(
+                      'No leave applications submitted yet.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ),
                 )
               else
                 ...displayLeaves.map((app) {
                   final isPending = app.status == 'Pending';
                   final isApproved = app.status == 'Approved';
-                  final isRejected = app.status == 'Rejected';
                   final borderColor = isPending
                       ? const Color(0xFFFED7AA)
                       : isApproved
-                          ? const Color(0xFFA7F3D0)
-                          : const Color(0xFFFECDD3);
+                      ? const Color(0xFFA7F3D0)
+                      : const Color(0xFFFECDD3);
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -1443,43 +2014,69 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                           children: [
                             Text(
                               app.id,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.textMain),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                color: AppColors.textMain,
+                              ),
                             ),
-                            StatusBadge(label: app.status, status: app.status.toLowerCase()),
+                            StatusBadge(
+                              label: app.status,
+                              status: app.status.toLowerCase(),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${app.category} • ${app.days}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.studentPrimary),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.studentPrimary,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '${app.startDate} to ${app.endDate}',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           app.reason,
-                          style: const TextStyle(fontSize: 11, color: AppColors.textMain),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMain,
+                          ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (app.reviewedBy != null && !isPending) ...[
                           const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: isApproved ? const Color(0xFFECFDF5) : const Color(0xFFFFF1F2),
+                              color: isApproved
+                                  ? const Color(0xFFECFDF5)
+                                  : const Color(0xFFFFF1F2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  isApproved ? Icons.verified : Icons.cancel_outlined,
+                                  isApproved
+                                      ? Icons.verified
+                                      : Icons.cancel_outlined,
                                   size: 12,
-                                  color: isApproved ? const Color(0xFF059669) : const Color(0xFFE11D48),
+                                  color: isApproved
+                                      ? const Color(0xFF059669)
+                                      : const Color(0xFFE11D48),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -1487,7 +2084,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
-                                    color: isApproved ? const Color(0xFF059669) : const Color(0xFFE11D48),
+                                    color: isApproved
+                                        ? const Color(0xFF059669)
+                                        : const Color(0xFFE11D48),
                                   ),
                                 ),
                               ],
@@ -1517,9 +2116,19 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+                height: 1.4,
+              ),
               children: [
-                TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textMain)),
+                TextSpan(
+                  text: '$label: ',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMain,
+                  ),
+                ),
                 TextSpan(text: desc),
               ],
             ),
@@ -1547,19 +2156,37 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 radius: 36,
                 backgroundColor: AppColors.studentPrimary,
                 child: Text(
-                  user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'R',
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white),
+                  user?.name.isNotEmpty == true
+                      ? user!.name[0].toUpperCase()
+                      : 'R',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(width: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user?.name ?? 'Rahul Sharma', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                  Text(
+                    user?.name ?? 'Rahul Sharma',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('Roll Number: ${user?.rollNumber ?? "1023"} • ${user?.className ?? "BCA - Sem 3"}', style: const TextStyle(color: AppColors.textMuted)),
+                  Text(
+                    'Roll Number: ${user?.rollNumber ?? "1023"} • ${user?.className ?? "BCA - Sem 3"}',
+                    style: const TextStyle(color: AppColors.textMuted),
+                  ),
                   const SizedBox(height: 6),
-                  const StatusBadge(label: 'Enrolled & Verified', status: 'active'),
+                  const StatusBadge(
+                    label: 'Enrolled & Verified',
+                    status: 'active',
+                  ),
                 ],
               ),
             ],
@@ -1567,20 +2194,38 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           const SizedBox(height: 28),
           const Divider(color: AppColors.border),
           const SizedBox(height: 20),
-          const Text('Academic Information', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const Text(
+            'Academic Information',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 14),
-          _buildInfoRow('Registered Email', user?.email ?? 'rahul@institute.com'),
-          _buildInfoRow('Course / Degree', user?.course ?? 'Bachelor of Computer Applications'),
+          _buildInfoRow(
+            'Registered Email',
+            user?.email ?? 'rahul@institute.com',
+          ),
+          _buildInfoRow(
+            'Course / Degree',
+            user?.course ?? 'Bachelor of Computer Applications',
+          ),
           _buildInfoRow('Current Semester', user?.semester ?? 'Semester 3'),
-          _buildInfoRow('Institute Name', user?.instituteName ?? 'Apex Institute of Technology'),
+          _buildInfoRow(
+            'Institute Name',
+            user?.instituteName ?? 'Apex Institute of Technology',
+          ),
           _buildInfoRow('Institute Code', user?.instituteCode ?? 'INST-2025'),
           const SizedBox(height: 24),
-          const Text('Parent / Guardian Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const Text(
+            'Parent / Guardian Details',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 14),
           _buildInfoRow('Father Name', user?.fatherName ?? 'Rakesh Sharma'),
           _buildInfoRow('Father Phone', user?.fatherPhone ?? '+91 98765 43210'),
           _buildInfoRow('Mother Name', user?.motherName ?? 'Pooja Sharma'),
-          _buildInfoRow('Residential Address', user?.address ?? '123, Green Park, Delhi - 110016'),
+          _buildInfoRow(
+            'Residential Address',
+            user?.address ?? '123, Green Park, Delhi - 110016',
+          ),
         ],
       ),
     );
@@ -1593,9 +2238,25 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         children: [
           SizedBox(
             width: 180,
-            child: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w600)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(color: AppColors.textMain, fontSize: 13, fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.textMain,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1605,7 +2266,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildAttendanceTab() {
     final subjects = [
       {'name': 'Database Systems', 'held': 40, 'attended': 38, 'rate': 95.0},
-      {'name': 'Data Structures & Algorithms', 'held': 44, 'attended': 40, 'rate': 90.9},
+      {
+        'name': 'Data Structures & Algorithms',
+        'held': 44,
+        'attended': 40,
+        'rate': 90.9,
+      },
       {'name': 'Operating Systems', 'held': 36, 'attended': 32, 'rate': 88.8},
       {'name': 'Web Technologies', 'held': 35, 'attended': 33, 'rate': 94.2},
       {'name': 'Applied Mathematics', 'held': 38, 'attended': 34, 'rate': 89.4},
@@ -1620,15 +2286,39 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 4,
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Cumulative Attendance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                    const Text(
+                      'Cumulative Attendance',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    const Text('92.4%', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.accentGreen)),
+                    const Text(
+                      '92.4%',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.accentGreen,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    const Text('Status: Eligible for final examinations (Threshold: 75%)', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    const Text(
+                      'Status: Eligible for final examinations (Threshold: 75%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1638,15 +2328,37 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 8,
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Attendance Rules', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                    Text(
+                      'Attendance Rules',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     SizedBox(height: 8),
-                    Text('• Minimum 75% attendance mandatory in each course to sit for semester exams.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    Text(
+                      '• Minimum 75% attendance mandatory in each course to sit for semester exams.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text('• Medical leaves must be approved by class coordinator within 3 working days.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    Text(
+                      '• Medical leaves must be approved by class coordinator within 3 working days.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1657,11 +2369,18 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Course Attendance Breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              const Text(
+                'Course Attendance Breakdown',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 16),
               ...subjects.map((s) {
                 final rate = s['rate'] as double;
@@ -1673,15 +2392,29 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(s['name'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                          Text('${s['attended']} / ${s['held']} (${rate.toStringAsFixed(1)}%)', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          Text(
+                            s['name'] as String,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            '${s['attended']} / ${s['held']} (${rate.toStringAsFixed(1)}%)',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
                       LinearProgressIndicator(
                         value: rate / 100,
                         backgroundColor: AppColors.bgPage,
-                        valueColor: AlwaysStoppedAnimation<Color>(rate >= 75 ? AppColors.accentGreen : AppColors.error),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          rate >= 75 ? AppColors.accentGreen : AppColors.error,
+                        ),
                         minHeight: 8,
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -1699,16 +2432,50 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   // 4. Grades Tab
   Widget _buildGradesTab() {
     final grades = [
-      {'code': 'CS-301', 'title': 'Database Management Systems', 'credits': 4, 'grade': 'A+', 'score': 92},
-      {'code': 'CS-302', 'title': 'Data Structures & Algorithms', 'credits': 4, 'grade': 'A', 'score': 88},
-      {'code': 'CS-303', 'title': 'Operating Systems', 'credits': 4, 'grade': 'B+', 'score': 79},
-      {'code': 'CS-304', 'title': 'Web Technologies & Frameworks', 'credits': 3, 'grade': 'A+', 'score': 95},
-      {'code': 'MA-301', 'title': 'Applied Numerical Mathematics', 'credits': 4, 'grade': 'A', 'score': 85},
+      {
+        'code': 'CS-301',
+        'title': 'Database Management Systems',
+        'credits': 4,
+        'grade': 'A+',
+        'score': 92,
+      },
+      {
+        'code': 'CS-302',
+        'title': 'Data Structures & Algorithms',
+        'credits': 4,
+        'grade': 'A',
+        'score': 88,
+      },
+      {
+        'code': 'CS-303',
+        'title': 'Operating Systems',
+        'credits': 4,
+        'grade': 'B+',
+        'score': 79,
+      },
+      {
+        'code': 'CS-304',
+        'title': 'Web Technologies & Frameworks',
+        'credits': 3,
+        'grade': 'A+',
+        'score': 95,
+      },
+      {
+        'code': 'MA-301',
+        'title': 'Applied Numerical Mathematics',
+        'credits': 4,
+        'grade': 'A',
+        'score': 85,
+      },
     ];
 
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1718,17 +2485,29 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Semester Grade Report', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  Text('Semester 2 Result Card • Official Transcript', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    'Semester Grade Report',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    'Semester 2 Result Card • Official Transcript',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Grade report downloaded as PDF!')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Grade report downloaded as PDF!'),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text('Download PDF'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.studentPrimary,
+                ),
               ),
             ],
           ),
@@ -1743,23 +2522,51 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(g['title'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                      Text('${g['code']} • Credits: ${g['credits']}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      Text(
+                        g['title'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        '${g['code']} • Credits: ${g['credits']}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                   Row(
                     children: [
-                      Text('${g['score']}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                      Text(
+                        '${g['score']}%',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.studentPrimary.withValues(alpha: 0.1),
+                          color: AppColors.studentPrimary.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           g['grade'] as String,
-                          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.studentPrimary, fontSize: 14),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.studentPrimary,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
@@ -1778,22 +2585,62 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
     final scheduleMap = {
       'Mon': [
-        {'time': '09:00 - 10:30', 'course': 'Database Systems', 'room': 'Hall 302', 'faculty': 'Dr. Amit Sharma'},
-        {'time': '11:00 - 12:30', 'course': 'Data Structures Lab', 'room': 'Lab 1', 'faculty': 'Prof. Rajesh Gupta'},
+        {
+          'time': '09:00 - 10:30',
+          'course': 'Database Systems',
+          'room': 'Hall 302',
+          'faculty': 'Dr. Amit Sharma',
+        },
+        {
+          'time': '11:00 - 12:30',
+          'course': 'Data Structures Lab',
+          'room': 'Lab 1',
+          'faculty': 'Prof. Rajesh Gupta',
+        },
       ],
       'Tue': [
-        {'time': '10:00 - 11:30', 'course': 'Operating Systems', 'room': 'Hall 105', 'faculty': 'Prof. Sunita Rao'},
-        {'time': '01:00 - 02:30', 'course': 'Web Technologies', 'room': 'Lab 3', 'faculty': 'Dr. Amit Sharma'},
+        {
+          'time': '10:00 - 11:30',
+          'course': 'Operating Systems',
+          'room': 'Hall 105',
+          'faculty': 'Prof. Sunita Rao',
+        },
+        {
+          'time': '01:00 - 02:30',
+          'course': 'Web Technologies',
+          'room': 'Lab 3',
+          'faculty': 'Dr. Amit Sharma',
+        },
       ],
       'Wed': [
-        {'time': '09:00 - 10:30', 'course': 'Applied Mathematics', 'room': 'Hall 201', 'faculty': 'Dr. Ramanujan'},
-        {'time': '11:00 - 12:30', 'course': 'Database Lab', 'room': 'Lab 2', 'faculty': 'Dr. Amit Sharma'},
+        {
+          'time': '09:00 - 10:30',
+          'course': 'Applied Mathematics',
+          'room': 'Hall 201',
+          'faculty': 'Dr. Ramanujan',
+        },
+        {
+          'time': '11:00 - 12:30',
+          'course': 'Database Lab',
+          'room': 'Lab 2',
+          'faculty': 'Dr. Amit Sharma',
+        },
       ],
       'Thu': [
-        {'time': '10:00 - 11:30', 'course': 'Data Structures & Algorithms', 'room': 'Hall 302', 'faculty': 'Prof. Rajesh Gupta'},
+        {
+          'time': '10:00 - 11:30',
+          'course': 'Data Structures & Algorithms',
+          'room': 'Hall 302',
+          'faculty': 'Prof. Rajesh Gupta',
+        },
       ],
       'Fri': [
-        {'time': '09:00 - 10:30', 'course': 'Web Development Workshop', 'room': 'Seminar Hall', 'faculty': 'Guest Faculty'},
+        {
+          'time': '09:00 - 10:30',
+          'course': 'Web Development Workshop',
+          'room': 'Seminar Hall',
+          'faculty': 'Guest Faculty',
+        },
       ],
     };
 
@@ -1810,10 +2657,14 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               child: ElevatedButton(
                 onPressed: () => setState(() => _selectedDay = d),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isSel ? AppColors.studentPrimary : Colors.white,
+                  backgroundColor: isSel
+                      ? AppColors.studentPrimary
+                      : Colors.white,
                   foregroundColor: isSel ? Colors.white : AppColors.textMain,
                   elevation: 0,
-                  side: BorderSide(color: isSel ? AppColors.studentPrimary : AppColors.border),
+                  side: BorderSide(
+                    color: isSel ? AppColors.studentPrimary : AppColors.border,
+                  ),
                 ),
                 child: Text(d),
               ),
@@ -1823,41 +2674,78 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("$_selectedDay's Timetable", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              Text(
+                "$_selectedDay's Timetable",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 16),
-              ...currentList.map((c) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.bgPage,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(c['course']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                              const SizedBox(height: 4),
-                              Text('${c['room']} • Faculty: ${c['faculty']}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                            child: Text(c['time']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.studentPrimary)),
-                          ),
-                        ],
-                      ),
+              ...currentList.map(
+                (c) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgPage,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
                     ),
-                  )),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              c['course']!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${c['room']} • Faculty: ${c['faculty']}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            c['time']!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.studentPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1868,21 +2756,51 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   // 6. Materials Tab
   Widget _buildMaterialsTab() {
     final materials = [
-      {'title': 'Relational Schema & 3NF Normalization.pdf', 'course': 'Database Systems', 'size': '4.2 MB', 'date': 'May 02, 2025'},
-      {'title': 'Balanced BST & Graph Algorithms.pdf', 'course': 'Algorithms', 'size': '6.8 MB', 'date': 'Apr 28, 2025'},
-      {'title': 'Virtual Memory & Page Replacement.pdf', 'course': 'Operating Systems', 'size': '3.1 MB', 'date': 'Apr 24, 2025'},
-      {'title': 'REST API Architecture & JSON Schemas.pdf', 'course': 'Web Technologies', 'size': '2.5 MB', 'date': 'Apr 20, 2025'},
+      {
+        'title': 'Relational Schema & 3NF Normalization.pdf',
+        'course': 'Database Systems',
+        'size': '4.2 MB',
+        'date': 'May 02, 2025',
+      },
+      {
+        'title': 'Balanced BST & Graph Algorithms.pdf',
+        'course': 'Algorithms',
+        'size': '6.8 MB',
+        'date': 'Apr 28, 2025',
+      },
+      {
+        'title': 'Virtual Memory & Page Replacement.pdf',
+        'course': 'Operating Systems',
+        'size': '3.1 MB',
+        'date': 'Apr 24, 2025',
+      },
+      {
+        'title': 'REST API Architecture & JSON Schemas.pdf',
+        'course': 'Web Technologies',
+        'size': '2.5 MB',
+        'date': 'Apr 20, 2025',
+      },
     ];
 
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Lecture Materials & Resources', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const Text(
+            'Lecture Materials & Resources',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 6),
-          const Text('Download notes, slides and reference materials uploaded by instructors.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          const Text(
+            'Download notes, slides and reference materials uploaded by instructors.',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 20),
           ...materials.map((m) {
             return Padding(
@@ -1901,24 +2819,50 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.picture_as_pdf, color: AppColors.error, size: 20),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.picture_as_pdf,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(m['title']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                            Text(
+                              m['title']!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('${m['course']} • ${m['size']} • Uploaded: ${m['date']}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                            Text(
+                              '${m['course']} • ${m['size']} • Uploaded: ${m['date']}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
                           ],
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.download, color: AppColors.studentPrimary),
+                      icon: const Icon(
+                        Icons.download,
+                        color: AppColors.studentPrimary,
+                      ),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Downloading ${m["title"]}...')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Downloading ${m["title"]}...'),
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -1935,24 +2879,44 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildTimetableTab() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Weekly Academic Timetable Matrix', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          Text(
+            'Weekly Academic Timetable Matrix',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
           SizedBox(height: 8),
-          Text('Complete 5-day class matrix for BCA Semester 3 (Section A)', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          Text(
+            'Complete 5-day class matrix for BCA Semester 3 (Section A)',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
           SizedBox(height: 24),
           // Simple visual timetable grid
-          Text('• Monday: 09:00 DBMS (H-302) | 11:00 DSA Lab (L-1) | 02:00 Web Tech (H-102)'),
+          Text(
+            '• Monday: 09:00 DBMS (H-302) | 11:00 DSA Lab (L-1) | 02:00 Web Tech (H-102)',
+          ),
           SizedBox(height: 10),
-          Text('• Tuesday: 10:00 OS (H-105) | 01:00 Web Tech Lab (L-3) | 03:00 Maths (H-201)'),
+          Text(
+            '• Tuesday: 10:00 OS (H-105) | 01:00 Web Tech Lab (L-3) | 03:00 Maths (H-201)',
+          ),
           SizedBox(height: 10),
-          Text('• Wednesday: 09:00 Maths (H-201) | 11:00 DBMS Lab (L-2) | 02:00 DSA (H-302)'),
+          Text(
+            '• Wednesday: 09:00 Maths (H-201) | 11:00 DBMS Lab (L-2) | 02:00 DSA (H-302)',
+          ),
           SizedBox(height: 10),
-          Text('• Thursday: 10:00 DSA (H-302) | 01:00 OS Lab (L-1) | 03:00 DBMS (H-302)'),
+          Text(
+            '• Thursday: 10:00 DSA (H-302) | 01:00 OS Lab (L-1) | 03:00 DBMS (H-302)',
+          ),
           SizedBox(height: 10),
-          Text('• Friday: 09:00 Workshop (Seminar Hall) | 02:00 Faculty Mentoring'),
+          Text(
+            '• Friday: 09:00 Workshop (Seminar Hall) | 02:00 Faculty Mentoring',
+          ),
         ],
       ),
     );
@@ -1962,27 +2926,48 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildParentsTab(UserModel? user) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Parent & Guardian Portal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const Text(
+            'Parent & Guardian Portal',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
-          const Text('Registered contact information and Parent-Teacher Meeting (PTM) records.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          const Text(
+            'Registered contact information and Parent-Teacher Meeting (PTM) records.',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 24),
           _buildInfoRow('Father Name', user?.fatherName ?? 'Rakesh Sharma'),
           _buildInfoRow('Father Phone', user?.fatherPhone ?? '+91 98765 43210'),
-          _buildInfoRow('Father Email', user?.fatherEmail ?? 'rakesh@example.com'),
+          _buildInfoRow(
+            'Father Email',
+            user?.fatherEmail ?? 'rakesh@example.com',
+          ),
           _buildInfoRow('Mother Name', user?.motherName ?? 'Pooja Sharma'),
           _buildInfoRow('Mother Phone', user?.motherPhone ?? '+91 98765 43211'),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PTM meeting scheduled for next Friday 04:00 PM.')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'PTM meeting scheduled for next Friday 04:00 PM.',
+                  ),
+                ),
+              );
             },
             icon: const Icon(Icons.event, size: 16),
             label: const Text('Schedule PTM Meeting'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.studentPrimary,
+            ),
           ),
         ],
       ),
@@ -1996,13 +2981,23 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Upcoming Examinations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const Text(
+                'Upcoming Examinations',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 6),
-              const Text('Review instructions and enter the online testing environment.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+              const Text(
+                'Review instructions and enter the online testing environment.',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
               const SizedBox(height: 20),
               _buildExamCard(
                 title: 'DBMS Mid-Term Examination (CS-301)',
@@ -2047,16 +3042,35 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: AppColors.studentPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.assignment, color: AppColors.studentPrimary, size: 24),
+                decoration: BoxDecoration(
+                  color: AppColors.studentPrimary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.assignment,
+                  color: AppColors.studentPrimary,
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 3),
-                  Text('$date • $duration', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    '$date • $duration',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -2064,7 +3078,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           if (onEnter != null)
             ElevatedButton(
               onPressed: onEnter,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.studentPrimary,
+              ),
               child: const Text('Start Exam'),
             )
           else
@@ -2078,32 +3094,53 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildExamInstructionsTab() {
     return Container(
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Online Examination Rules & Instructions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const Text(
+            'Online Examination Rules & Instructions',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 6),
-          const Text('DBMS Mid-Term Examination (CS-301) • Academic Session 2025–2026', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          const Text(
+            'DBMS Mid-Term Examination (CS-301) • Academic Session 2025–2026',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 20),
           const Divider(color: AppColors.border),
           const SizedBox(height: 16),
-          const Text('1. Examination Duration: 60 minutes. The countdown starts immediately once you click Start Exam.'),
+          const Text(
+            '1. Examination Duration: 60 minutes. The countdown starts immediately once you click Start Exam.',
+          ),
           const SizedBox(height: 8),
-          const Text('2. Total Questions: 20 multiple choice questions. Each question carries 2.5 marks.'),
+          const Text(
+            '2. Total Questions: 20 multiple choice questions. Each question carries 2.5 marks.',
+          ),
           const SizedBox(height: 8),
-          const Text('3. Navigating away from the exam tab will trigger automatic warning and proctor review.'),
+          const Text(
+            '3. Navigating away from the exam tab will trigger automatic warning and proctor review.',
+          ),
           const SizedBox(height: 8),
-          const Text('4. Click "Submit Exam" once you have attempted all required questions.'),
+          const Text(
+            '4. Click "Submit Exam" once you have attempted all required questions.',
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
               Checkbox(
                 value: _instructionsAccepted,
-                onChanged: (v) => setState(() => _instructionsAccepted = v ?? false),
+                onChanged: (v) =>
+                    setState(() => _instructionsAccepted = v ?? false),
               ),
               const Expanded(
-                child: Text('I have read and agree to comply with all online examination guidelines and honor code.'),
+                child: Text(
+                  'I have read and agree to comply with all online examination guidelines and honor code.',
+                ),
               ),
             ],
           ),
@@ -2131,27 +3168,51 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     final questions = [
       {
         'id': 1,
-        'q': 'Which normal form is based on the concept of full functional dependency?',
-        'options': {'A': 'First Normal Form (1NF)', 'B': 'Second Normal Form (2NF)', 'C': 'Third Normal Form (3NF)', 'D': 'Boyce-Codd Normal Form (BCNF)'},
+        'q':
+            'Which normal form is based on the concept of full functional dependency?',
+        'options': {
+          'A': 'First Normal Form (1NF)',
+          'B': 'Second Normal Form (2NF)',
+          'C': 'Third Normal Form (3NF)',
+          'D': 'Boyce-Codd Normal Form (BCNF)',
+        },
       },
       {
         'id': 2,
-        'q': 'In SQL, which command is used to remove an index from a database?',
-        'options': {'A': 'DROP INDEX', 'B': 'REMOVE INDEX', 'C': 'DELETE INDEX', 'D': 'ALTER TABLE DROP'},
+        'q':
+            'In SQL, which command is used to remove an index from a database?',
+        'options': {
+          'A': 'DROP INDEX',
+          'B': 'REMOVE INDEX',
+          'C': 'DELETE INDEX',
+          'D': 'ALTER TABLE DROP',
+        },
       },
       {
         'id': 3,
-        'q': 'What does ACID stand for in the context of database transactions?',
-        'options': {'A': 'Accuracy, Consistency, Integrity, Durability', 'B': 'Atomicity, Compatibility, Isolation, Durability', 'C': 'Atomicity, Consistency, Isolation, Durability', 'D': 'Access, Control, Isolation, Distribution'},
+        'q':
+            'What does ACID stand for in the context of database transactions?',
+        'options': {
+          'A': 'Accuracy, Consistency, Integrity, Durability',
+          'B': 'Atomicity, Compatibility, Isolation, Durability',
+          'C': 'Atomicity, Consistency, Isolation, Durability',
+          'D': 'Access, Control, Isolation, Distribution',
+        },
       },
       {
         'id': 4,
         'q': 'Which of the following is NOT an aggregate function in SQL?',
-        'options': {'A': 'AVG()', 'B': 'COUNT()', 'C': 'SUM()', 'D': 'SELECT()'},
+        'options': {
+          'A': 'AVG()',
+          'B': 'COUNT()',
+          'C': 'SUM()',
+          'D': 'SELECT()',
+        },
       },
     ];
 
-    final currentQ = questions[(_currentQuestion - 1).clamp(0, questions.length - 1)];
+    final currentQ =
+        questions[(_currentQuestion - 1).clamp(0, questions.length - 1)];
 
     return Column(
       children: [
@@ -2168,16 +3229,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('DBMS Mid-Term Examination', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                  Text('Live Proctored Session', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                  Text(
+                    'DBMS Mid-Term Examination',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    'Live Proctored Session',
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -2185,7 +3261,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     const SizedBox(width: 8),
                     Text(
                       _formatTime(_examTimeSeconds),
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.error),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: AppColors.error,
+                      ),
                     ),
                   ],
                 ),
@@ -2203,18 +3283,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 8,
               child: Container(
                 padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Question $_currentQuestion of ${questions.length}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.studentPrimary)),
+                        Text(
+                          'Question $_currentQuestion of ${questions.length}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.studentPrimary,
+                          ),
+                        ),
                         OutlinedButton.icon(
                           onPressed: () {
                             setState(() {
-                              if (_flaggedQuestions.contains(_currentQuestion)) {
+                              if (_flaggedQuestions.contains(
+                                _currentQuestion,
+                              )) {
                                 _flaggedQuestions.remove(_currentQuestion);
                               } else {
                                 _flaggedQuestions.add(_currentQuestion);
@@ -2222,59 +3315,111 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                             });
                           },
                           icon: Icon(
-                            _flaggedQuestions.contains(_currentQuestion) ? Icons.flag : Icons.outlined_flag,
+                            _flaggedQuestions.contains(_currentQuestion)
+                                ? Icons.flag
+                                : Icons.outlined_flag,
                             size: 16,
-                            color: _flaggedQuestions.contains(_currentQuestion) ? AppColors.accentOrange : AppColors.textMuted,
+                            color: _flaggedQuestions.contains(_currentQuestion)
+                                ? AppColors.accentOrange
+                                : AppColors.textMuted,
                           ),
-                          label: Text(_flaggedQuestions.contains(_currentQuestion) ? 'Flagged' : 'Flag for Review'),
+                          label: Text(
+                            _flaggedQuestions.contains(_currentQuestion)
+                                ? 'Flagged'
+                                : 'Flag for Review',
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(currentQ['q'] as String, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, height: 1.4)),
+                    Text(
+                      currentQ['q'] as String,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        height: 1.4,
+                      ),
+                    ),
                     const SizedBox(height: 24),
-                    ...(currentQ['options'] as Map<String, String>).entries.map((opt) {
-                      final isSelected = _selectedAnswers[_currentQuestion] == opt.key;
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: InkWell(
-                          onTap: () => setState(() => _selectedAnswers[_currentQuestion] = opt.key),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFF3E8FF) : AppColors.bgPage,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: isSelected ? AppColors.studentPrimary : AppColors.border, width: isSelected ? 1.5 : 1),
+                    ...(currentQ['options'] as Map<String, String>).entries.map(
+                      (opt) {
+                        final isSelected =
+                            _selectedAnswers[_currentQuestion] == opt.key;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () => setState(
+                              () =>
+                                  _selectedAnswers[_currentQuestion] = opt.key,
                             ),
-                            child: Row(
-                              children: [
-                                Text('${opt.key}. ', style: TextStyle(fontWeight: FontWeight.w800, color: isSelected ? AppColors.studentPrimary : AppColors.textMain)),
-                                Expanded(child: Text(opt.value, style: TextStyle(fontSize: 14, color: isSelected ? AppColors.studentPrimary : AppColors.textMain))),
-                              ],
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFFF3E8FF)
+                                    : AppColors.bgPage,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.studentPrimary
+                                      : AppColors.border,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '${opt.key}. ',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      color: isSelected
+                                          ? AppColors.studentPrimary
+                                          : AppColors.textMain,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      opt.value,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isSelected
+                                            ? AppColors.studentPrimary
+                                            : AppColors.textMain,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         OutlinedButton(
-                          onPressed: _currentQuestion > 1 ? () => setState(() => _currentQuestion--) : null,
+                          onPressed: _currentQuestion > 1
+                              ? () => setState(() => _currentQuestion--)
+                              : null,
                           child: const Text('Previous'),
                         ),
                         if (_currentQuestion < questions.length)
                           ElevatedButton(
                             onPressed: () => setState(() => _currentQuestion++),
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.studentPrimary,
+                            ),
                             child: const Text('Next Question'),
                           )
                         else
                           ElevatedButton(
                             onPressed: _submitExam,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                            ),
                             child: const Text('Submit Final Exam'),
                           ),
                       ],
@@ -2290,11 +3435,21 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 4,
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Question Navigator', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                    const Text(
+                      'Question Navigator',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     Wrap(
                       spacing: 8,
@@ -2322,7 +3477,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                             decoration: BoxDecoration(
                               color: bg,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: isCur ? AppColors.studentPrimary : AppColors.border),
+                              border: Border.all(
+                                color: isCur
+                                    ? AppColors.studentPrimary
+                                    : AppColors.border,
+                              ),
                             ),
                             alignment: Alignment.center,
                             child: Text(
@@ -2330,7 +3489,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
-                                color: isCur ? Colors.white : AppColors.textMain,
+                                color: isCur
+                                    ? Colors.white
+                                    : AppColors.textMain,
                               ),
                             ),
                           ),
@@ -2360,16 +3521,34 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildExamSubmittedTab() {
     return Container(
       padding: const EdgeInsets.all(36),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.successBg, shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle, color: AppColors.success, size: 54),
+            decoration: BoxDecoration(
+              color: AppColors.successBg,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_circle,
+              color: AppColors.success,
+              size: 54,
+            ),
           ),
           const SizedBox(height: 20),
-          const Text('Exam Successfully Submitted!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.textMain)),
+          const Text(
+            'Exam Successfully Submitted!',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: AppColors.textMain,
+            ),
+          ),
           const SizedBox(height: 8),
           const Text(
             'Your answers for DBMS Mid-Term Examination have been recorded into the database.',
@@ -2382,7 +3561,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             children: [
               ElevatedButton(
                 onPressed: () => setState(() => _activeTab = 'exam-results'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.studentPrimary,
+                ),
                 child: const Text('View Exam Results'),
               ),
               const SizedBox(width: 14),
@@ -2401,7 +3582,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildExamResultsTab() {
     return Container(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2411,14 +3596,32 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Examination Scorecard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                  Text('DBMS Mid-Term Examination (CS-301) Result', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  Text(
+                    'Examination Scorecard',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    'DBMS Mid-Term Examination (CS-301) Result',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: AppColors.successBg, borderRadius: BorderRadius.circular(12)),
-                child: const Text('PASSED (GRADE: A)', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.success)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.successBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'PASSED (GRADE: A)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.success,
+                  ),
+                ),
               ),
             ],
           ),
@@ -2427,16 +3630,42 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildResultStat('Score', '46 / 50', AppColors.studentPrimary)),
-              Expanded(child: _buildResultStat('Percentage', '92.0%', AppColors.accentGreen)),
-              Expanded(child: _buildResultStat('Accuracy', '95.0%', AppColors.accentOrange)),
-              Expanded(child: _buildResultStat('Attempted', '4 / 4', AppColors.primary)),
+              Expanded(
+                child: _buildResultStat(
+                  'Score',
+                  '46 / 50',
+                  AppColors.studentPrimary,
+                ),
+              ),
+              Expanded(
+                child: _buildResultStat(
+                  'Percentage',
+                  '92.0%',
+                  AppColors.accentGreen,
+                ),
+              ),
+              Expanded(
+                child: _buildResultStat(
+                  'Accuracy',
+                  '95.0%',
+                  AppColors.accentOrange,
+                ),
+              ),
+              Expanded(
+                child: _buildResultStat(
+                  'Attempted',
+                  '4 / 4',
+                  AppColors.primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 28),
           ElevatedButton(
             onPressed: () => setState(() => _activeTab = 'dashboard'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.studentPrimary,
+            ),
             child: const Text('Return to Student Dashboard'),
           ),
         ],
@@ -2456,9 +3685,23 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

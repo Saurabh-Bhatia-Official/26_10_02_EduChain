@@ -231,7 +231,7 @@ class _LectureScheduleScreenState extends State<LectureScheduleScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: day,
+                          initialValue: day,
                           decoration: const InputDecoration(labelText: 'Day of Week *'),
                           items: const [
                             DropdownMenuItem(value: 'Mon', child: Text('Monday (Mon)')),
@@ -278,7 +278,7 @@ class _LectureScheduleScreenState extends State<LectureScheduleScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: cls,
+                          initialValue: cls,
                           decoration: const InputDecoration(labelText: 'Class / Batch *'),
                           items: const [
                             DropdownMenuItem(value: 'BCA-301', child: Text('BCA-301')),
@@ -294,7 +294,7 @@ class _LectureScheduleScreenState extends State<LectureScheduleScreen> {
                       const SizedBox(width: 14),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: sem,
+                          initialValue: sem,
                           decoration: const InputDecoration(labelText: 'Semester *'),
                           items: const [
                             DropdownMenuItem(value: 'Semester 1', child: Text('Semester 1')),
@@ -313,7 +313,7 @@ class _LectureScheduleScreenState extends State<LectureScheduleScreen> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: instructor,
+                          initialValue: instructor,
                           decoration: const InputDecoration(labelText: 'Faculty Instructor *'),
                           items: const [
                             DropdownMenuItem(value: 'Dr. Amit Sharma', child: Text('Dr. Amit Sharma')),
@@ -328,7 +328,7 @@ class _LectureScheduleScreenState extends State<LectureScheduleScreen> {
                       const SizedBox(width: 14),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: room,
+                          initialValue: room,
                           decoration: const InputDecoration(labelText: 'Classroom / Lab *'),
                           items: const [
                             DropdownMenuItem(value: 'Hall 101', child: Text('Hall 101')),
@@ -685,7 +685,7 @@ class _LectureScheduleScreenState extends State<LectureScheduleScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _filteredSlots.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderLight),
+              separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.borderLight),
               itemBuilder: (context, index) {
                 final slot = _filteredSlots[index];
                 return Padding(

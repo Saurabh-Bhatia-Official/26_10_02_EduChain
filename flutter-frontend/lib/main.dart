@@ -7,6 +7,7 @@ import 'providers/navigation_provider.dart';
 import 'providers/student_provider.dart';
 import 'providers/instructor_provider.dart';
 import 'providers/leave_provider.dart';
+import 'features/classroom/providers/classroom_provider.dart';
 
 import 'widgets/navbar.dart';
 
@@ -43,6 +44,7 @@ class EduChainApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StudentProvider()),
         ChangeNotifierProvider(create: (_) => InstructorProvider()),
         ChangeNotifierProvider(create: (_) => LeaveProvider()),
+        ChangeNotifierProvider(create: (_) => ClassroomProvider()),
       ],
       child: MaterialApp(
         title: 'Institute Portal - Multiplatform Frontend',
