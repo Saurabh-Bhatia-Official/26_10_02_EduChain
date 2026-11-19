@@ -18,13 +18,13 @@ public class S3Config {
 
     private static final Logger log = LoggerFactory.getLogger(S3Config.class);
 
-    @Value("${aws.s3.endpoint:https://br-restless-shape-b3qhppdx.storage.c-4.ap-southeast-1.aws.neon.tech}")
+    @Value("${aws.s3.endpoint:}")
     private String endpoint;
 
-    @Value("${aws.s3.access-key:nak_live_e304bc80162e4afea37a338a9738015f}")
+    @Value("${aws.s3.access-key:}")
     private String accessKey;
 
-    @Value("${aws.s3.secret-key:nsk_live_08ba5bee3b3499bddbe28af5b28ee2e5a48bf9cefd95c54e0e70080fdf42424c}")
+    @Value("${aws.s3.secret-key:}")
     private String secretKey;
 
     @Value("${aws.s3.region:ap-southeast-1}")

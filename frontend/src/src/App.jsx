@@ -137,6 +137,7 @@ export default function App() {
         'forgot-password',
         // Student Portal
         'student-dashboard',
+        'student-leave',
         'student-profile',
         'student-attendance',
         'student-grades',
@@ -337,14 +338,6 @@ export default function App() {
             initialMode={pageParams.mode || 'login'}
             currentUser={currentUser}
             onLogout={handleLogout}
-            onQuickUnlock={() =>
-              handleLoginSuccess({
-                role: 'institute',
-                instituteCode: 'INST-2025',
-                name: 'Institute Admin',
-                instituteName: 'Apex Institute',
-              })
-            }
           />
         )}
 

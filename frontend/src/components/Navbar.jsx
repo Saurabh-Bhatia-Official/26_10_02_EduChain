@@ -13,20 +13,30 @@ import {
 
 export default function Navbar({ currentPage, onNavigate, currentUser, onLogout }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
   const isInstituteLoggedIn = currentUser?.role === 'institute';
   const isStudentLoggedIn = currentUser?.role === 'student';
   const isTeacherLoggedIn = currentUser?.role === 'teacher';
 
   const scrollToSection = (id) => {
+    setActiveSection(id);
     if (currentPage !== 'home') {
       onNavigate('home');
       setTimeout(() => {
-        const el = document.getElementById(id);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
+        if (id === 'home') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          const el = document.getElementById(id);
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
       }, 100);
     } else {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      if (id === 'home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
     }
     setMobileMenuOpen(false);
   };
@@ -37,7 +47,7 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
         {/* Brand Logo */}
         <div
           className="navbar-logo"
-          onClick={() => onNavigate('home')}
+          onClick={() => scrollToSection('home')}
           role="button"
           tabIndex={0}
         >
@@ -51,31 +61,28 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
         <nav className="navbar-nav-links">
           <button
             type="button"
-            className={`nav-link ${currentPage === 'home' ? 'active' : ''}`}
-            onClick={() => {
-              onNavigate('home');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
+            className={`nav-link ${currentPage === 'home' && activeSection === 'home' ? 'active' : ''}`}
+            onClick={() => scrollToSection('home')}
           >
             Home
           </button>
           <button
             type="button"
-            className="nav-link"
+            className={`nav-link ${currentPage === 'home' && activeSection === 'about' ? 'active' : ''}`}
             onClick={() => scrollToSection('about')}
           >
             About
           </button>
           <button
             type="button"
-            className="nav-link"
+            className={`nav-link ${currentPage === 'home' && activeSection === 'features' ? 'active' : ''}`}
             onClick={() => scrollToSection('features')}
           >
             Features
           </button>
           <button
             type="button"
-            className="nav-link"
+            className={`nav-link ${currentPage === 'home' && activeSection === 'contact' ? 'active' : ''}`}
             onClick={() => scrollToSection('contact')}
           >
             Contact
@@ -215,31 +222,28 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
           <div className="mobile-links">
             <button
               type="button"
-              className={`mobile-nav-link ${currentPage === 'home' ? 'active' : ''}`}
-              onClick={() => {
-                onNavigate('home');
-                setMobileMenuOpen(false);
-              }}
+              className={`mobile-nav-link ${currentPage === 'home' && activeSection === 'home' ? 'active' : ''}`}
+              onClick={() => scrollToSection('home')}
             >
               Home
             </button>
             <button
               type="button"
-              className="mobile-nav-link"
+              className={`mobile-nav-link ${currentPage === 'home' && activeSection === 'about' ? 'active' : ''}`}
               onClick={() => scrollToSection('about')}
             >
               About
             </button>
             <button
               type="button"
-              className="mobile-nav-link"
+              className={`mobile-nav-link ${currentPage === 'home' && activeSection === 'features' ? 'active' : ''}`}
               onClick={() => scrollToSection('features')}
             >
               Features
             </button>
             <button
               type="button"
-              className="mobile-nav-link"
+              className={`mobile-nav-link ${currentPage === 'home' && activeSection === 'contact' ? 'active' : ''}`}
               onClick={() => scrollToSection('contact')}
             >
               Contact

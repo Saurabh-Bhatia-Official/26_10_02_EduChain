@@ -48,6 +48,7 @@ import {
   Share2,
   Shield
 } from 'lucide-react';
+import { leaveService } from '../services/leaveService';
 
 export default function StudentPortalPage({ onNavigate, currentUser, onLogout, initialTab = 'dashboard' }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -79,6 +80,60 @@ export default function StudentPortalPage({ onNavigate, currentUser, onLogout, i
   const [showEditParentModal, setShowEditParentModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showPTMModal, setShowPTMModal] = useState(false);
+
+  // Leave Application Form State with live synchronization
+  const [leaveApplications, setLeaveApplications] = useState(() => leaveService.getLeaves());
+
+  useEffect(() => {
+    const unsubscribe = leaveService.subscribe((updatedLeaves) => {
+      setLeaveApplications(updatedLeaves);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const [leaveFormData, setLeaveFormData] = useState({
+    studentName: currentUser?.name || 'Rahul Sharma',
+    studentId: currentUser?.rollNumber || 'STU-1023',
+    startDate: '',
+    endDate: '',
+    category: 'Medical Leave',
+    reason: '',
+  });
+
+  const [leaveSubmittedSuccess, setLeaveSubmittedSuccess] = useState(false);
+  const [lastLeaveRefId, setLastLeaveRefId] = useState('');
+
+  const handleLeaveSubmit = (e) => {
+    e.preventDefault();
+    if (!leaveFormData.studentName || !leaveFormData.studentId || !leaveFormData.startDate || !leaveFormData.endDate || !leaveFormData.reason) {
+      showToast('Please fill all required fields');
+      return;
+    }
+    const d1 = new Date(leaveFormData.startDate);
+    const d2 = new Date(leaveFormData.endDate);
+    const diffDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+    const daysStr = `${diffDays} Day${diffDays > 1 ? 's' : ''}`;
+
+    const newApp = leaveService.applyLeave({
+      studentName: leaveFormData.studentName,
+      studentId: leaveFormData.studentId,
+      category: leaveFormData.category,
+      startDate: leaveFormData.startDate,
+      endDate: leaveFormData.endDate,
+      days: daysStr,
+      reason: leaveFormData.reason,
+    });
+
+    setLeaveSubmittedSuccess(true);
+    setLastLeaveRefId(newApp.id);
+    showToast(`Leave application (${newApp.id}) submitted successfully!`);
+    setLeaveFormData({
+      ...leaveFormData,
+      startDate: '',
+      endDate: '',
+      reason: '',
+    });
+  };
 
   // Keep activeTab in sync with initialTab prop
   useEffect(() => {
@@ -201,6 +256,7 @@ export default function StudentPortalPage({ onNavigate, currentUser, onLogout, i
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'attendance', label: 'Attendance', icon: CheckSquare, badge: '92%' },
+    { id: 'leave', label: 'Apply for Leave', icon: CalendarDays },
     { id: 'grades', label: 'Grades', icon: Award, badge: 'A+' },
     { id: 'schedule', label: 'Class Schedule', icon: Calendar },
     { id: 'materials', label: 'Lecture Materials', icon: BookOpen, badge: 'New' },
@@ -477,6 +533,28 @@ export default function StudentPortalPage({ onNavigate, currentUser, onLogout, i
                     <span className="banner-tag-pill">
                       <ShieldCheck size={14} /> Enrolled ID: STD-1023
                     </span>
+                    <button
+                      type="button"
+                      className="banner-apply-leave-btn"
+                      onClick={() => setActiveTab('leave')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: '#ffffff',
+                        color: '#7c3aed',
+                        border: 'none',
+                        borderRadius: '20px',
+                        padding: '6px 14px',
+                        fontSize: '0.8125rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                      }}
+                    >
+                      <CalendarDays size={14} color="#7c3aed" />
+                      <span>Apply for Leave</span>
+                    </button>
                   </div>
                 </div>
                 <div className="banner-graphic-col">
@@ -551,9 +629,26 @@ export default function StudentPortalPage({ onNavigate, currentUser, onLogout, i
 
               {/* Recent Activities Section (Matching User's Uploaded Image) */}
               <div className="student-card-section">
-                <div className="section-title-row">
-                  <h3>Recent Activities</h3>
-                  <span className="section-subtitle-tag">Real-time academic updates</span>
+                <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3>Recent Activities</h3>
+                    <span className="section-subtitle-tag">Real-time academic updates</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => setActiveTab('leave')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.8125rem',
+                      padding: '8px 14px',
+                    }}
+                  >
+                    <CalendarDays size={14} />
+                    <span>Apply for Leave</span>
+                  </button>
                 </div>
                 <div className="recent-activities-list">
                   <div className="activity-row-item">
@@ -600,6 +695,78 @@ export default function StudentPortalPage({ onNavigate, currentUser, onLogout, i
                       View Details →
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Real-time Leave Requests Status Section on Student Dashboard */}
+              <div className="student-card-section" style={{ marginTop: '20px' }}>
+                <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+                      <CalendarDays size={20} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 800 }}>My Leave Applications Status</h3>
+                      <span className="section-subtitle-tag" style={{ marginTop: '2px', display: 'inline-block' }}>Live synchronization with Faculty & Teacher Dashboard</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-outline"
+                    onClick={() => setActiveTab('leave')}
+                    style={{ fontSize: '0.8125rem', padding: '6px 14px', fontWeight: 700 }}
+                  >
+                    Apply for New Leave →
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
+                  {leaveApplications.slice(0, 3).map((app) => (
+                    <div
+                      key={app.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '14px 18px',
+                        background: '#f8fafc',
+                        borderRadius: '12px',
+                        border: app.status === 'Pending' ? '1px solid #fed7aa' : app.status === 'Approved' ? '1px solid #a7f3d0' : '1px solid #fecdd3',
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>{app.id}</strong>
+                          <span style={{ fontSize: '0.75rem', color: '#7c3aed', fontWeight: 700, background: '#ede9fe', padding: '2px 8px', borderRadius: '6px' }}>
+                            {app.category}
+                          </span>
+                          <span style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+                            {app.startDate} to {app.endDate} ({app.days})
+                          </span>
+                        </div>
+                        <p style={{ margin: '6px 0 0', fontSize: '0.8125rem', color: '#334155' }}>
+                          <strong>Reason:</strong> {app.reason}
+                        </p>
+                        {app.reviewedBy && app.status !== 'Pending' && (
+                          <div style={{ marginTop: '5px', fontSize: '0.75rem', fontWeight: 700, color: app.status === 'Approved' ? '#059669' : '#e11d48' }}>
+                            ✓ {app.status} by {app.reviewedBy} {app.reviewedOn ? `(${app.reviewedOn})` : ''}
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '20px',
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          background: app.status === 'Approved' ? '#ecfdf5' : app.status === 'Rejected' ? '#fff1f2' : '#fef3c7',
+                          color: app.status === 'Approved' ? '#059669' : app.status === 'Rejected' ? '#e11d48' : '#d97706',
+                          border: app.status === 'Approved' ? '1px solid #a7f3d0' : app.status === 'Rejected' ? '1px solid #fecdd3' : '1px solid #fde68a',
+                        }}
+                      >
+                        {app.status}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1269,6 +1436,234 @@ export default function StudentPortalPage({ onNavigate, currentUser, onLogout, i
                       </tr>
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================
+              LEAVE APPLICATION PAGE (Matching Theme, Colors, Fonts, UI)
+             ========================================================= */}
+          {activeTab === 'leave' && (
+            <div className="leave-view-content">
+              <div className="view-header-with-filters">
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+                    <button
+                      type="button"
+                      className="btn-outline back-btn"
+                      onClick={() => setActiveTab('dashboard')}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '0.8125rem' }}
+                    >
+                      <ArrowLeft size={14} />
+                      <span>Back to Dashboard</span>
+                    </button>
+                    <h2>Leave Application</h2>
+                  </div>
+                  <p className="view-subheading">
+                    Submit your excused absence request for departmental review and attendance adjustment.
+                  </p>
+                </div>
+                <span className="section-subtitle-tag" style={{ background: '#f3e8ff', color: '#7c3aed', borderColor: '#d8b4fe' }}>
+                  Excused Absence Portal
+                </span>
+              </div>
+
+              {leaveSubmittedSuccess && (
+                <div className="portal-alert-box success" style={{ marginBottom: '24px', padding: '16px 20px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#ecfdf5', border: '1px solid #a7f3d0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <CheckCircle2 size={22} color="#10b981" />
+                    <div>
+                      <strong style={{ color: '#065f46', fontSize: '0.9375rem' }}>Leave Application Submitted Successfully! (Ref: {lastLeaveRefId})</strong>
+                      <p style={{ margin: 0, color: '#047857', fontSize: '0.8125rem' }}>Your request has been forwarded to Department Coordinator Dr. Neha Verma for review.</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setLeaveSubmittedSuccess(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#047857', fontSize: '1rem' }}>✕</button>
+                </div>
+              )}
+
+              <div className="dashboard-grid-dual">
+                {/* Form Card */}
+                <div className="portal-card-block" style={{ padding: '28px' }}>
+                  <div className="section-title-row" style={{ marginBottom: '20px' }}>
+                    <div className="title-with-icon">
+                      <CalendarDays size={20} className="title-icon purple" style={{ color: '#7c3aed' }} />
+                      <h4 style={{ fontSize: '1.125rem', fontWeight: 800 }}>Student Leave Form</h4>
+                    </div>
+                    <span className="section-subtitle-tag">Form ID: LEV-REQ</span>
+                  </div>
+
+                  <form onSubmit={handleLeaveSubmit} className="leave-form-grid" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                    <div className="form-group-item">
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8125rem', marginBottom: '6px' }}>Student Name *</label>
+                      <input
+                        type="text"
+                        className="portal-input"
+                        value={leaveFormData.studentName}
+                        onChange={(e) => setLeaveFormData({ ...leaveFormData, studentName: e.target.value })}
+                        placeholder="Enter full name"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group-item">
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8125rem', marginBottom: '6px' }}>Student ID / Roll Number *</label>
+                      <input
+                        type="text"
+                        className="portal-input"
+                        value={leaveFormData.studentId}
+                        onChange={(e) => setLeaveFormData({ ...leaveFormData, studentId: e.target.value })}
+                        placeholder="e.g. STD-1023"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group-item">
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8125rem', marginBottom: '6px' }}>Leave Category</label>
+                      <select
+                        className="portal-input"
+                        value={leaveFormData.category}
+                        onChange={(e) => setLeaveFormData({ ...leaveFormData, category: e.target.value })}
+                      >
+                        <option>Medical Leave / Illness</option>
+                        <option>Family Emergency</option>
+                        <option>Academic Conference / Hackathon</option>
+                        <option>Official Sports / Cultural Activity</option>
+                        <option>Personal Leave</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-group-item">
+                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8125rem', marginBottom: '6px' }}>Leave Start Date *</label>
+                        <input
+                          type="date"
+                          className="portal-input"
+                          value={leaveFormData.startDate}
+                          onChange={(e) => setLeaveFormData({ ...leaveFormData, startDate: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="form-group-item">
+                        <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8125rem', marginBottom: '6px' }}>End Date *</label>
+                        <input
+                          type="date"
+                          className="portal-input"
+                          value={leaveFormData.endDate}
+                          onChange={(e) => setLeaveFormData({ ...leaveFormData, endDate: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group-item">
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8125rem', marginBottom: '6px' }}>Reason for Leave *</label>
+                      <textarea
+                        className="portal-input"
+                        rows={4}
+                        value={leaveFormData.reason}
+                        onChange={(e) => setLeaveFormData({ ...leaveFormData, reason: e.target.value })}
+                        placeholder="Provide detailed explanation for your leave request..."
+                        required
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                      <button
+                        type="submit"
+                        className="btn-primary"
+                        style={{ flex: 1, padding: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 700 }}
+                      >
+                        <CalendarDays size={18} />
+                        <span>Submit Leave Application</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-outline"
+                        onClick={() => setLeaveFormData({ ...leaveFormData, startDate: '', endDate: '', reason: '' })}
+                        style={{ padding: '14px 20px' }}
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Sidebar: Guidelines & Recent Leaves */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {/* Rules Card */}
+                  <div className="portal-card-block" style={{ padding: '22px' }}>
+                    <h4 className="block-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9375rem', fontWeight: 800, marginBottom: '14px' }}>
+                      <Info size={18} color="#7c3aed" />
+                      <span>Leave Guidelines & Policy</span>
+                    </h4>
+                    <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8125rem', color: '#64748b' }}>
+                      <li><strong>75% Attendance Rule:</strong> Ensure your aggregate attendance stays above 75% for exam clearance.</li>
+                      <li><strong>Doctor Note:</strong> Medical leaves for more than 3 consecutive days require doctor verification.</li>
+                      <li><strong>Review Turnaround:</strong> Applications are evaluated within 24 to 48 hours by department coordinator.</li>
+                    </ul>
+                  </div>
+
+                  {/* Leave History Card */}
+                  <div className="portal-card-block" style={{ padding: '22px' }}>
+                    <div className="section-title-row" style={{ marginBottom: '14px' }}>
+                      <h4 className="block-title" style={{ fontSize: '0.9375rem', fontWeight: 800 }}>Recent Leave Submissions</h4>
+                      <span className="section-subtitle-tag">{leaveApplications.length} Total</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {leaveApplications.map((app) => {
+                        const isApproved = app.status === 'Approved';
+                        const isRejected = app.status === 'Rejected';
+                        const isPending = app.status === 'Pending';
+                        const borderColor = isPending ? '#fed7aa' : isApproved ? '#a7f3d0' : '#fecdd3';
+                        const badgeBg = isPending ? '#fef3c7' : isApproved ? '#ecfdf5' : '#fff1f2';
+                        const badgeColor = isPending ? '#d97706' : isApproved ? '#059669' : '#e11d48';
+
+                        return (
+                          <div
+                            key={app.id}
+                            style={{
+                              padding: '12px 14px',
+                              background: '#f8fafc',
+                              borderRadius: '12px',
+                              border: `1px solid ${borderColor}`,
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <strong style={{ fontSize: '0.8125rem', color: '#0f172a' }}>{app.id}</strong>
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontWeight: 700,
+                                  background: badgeBg,
+                                  color: badgeColor,
+                                  border: `1px solid ${borderColor}`,
+                                }}
+                              >
+                                {app.status}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#7c3aed' }}>
+                              {app.category} • {app.days}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                              {app.startDate} to {app.endDate}
+                            </div>
+                            <p style={{ fontSize: '0.75rem', color: '#334155', margin: '4px 0 0', lineHeight: 1.4 }}>
+                              {app.reason}
+                            </p>
+                            {app.reviewedBy && !isPending && (
+                              <div style={{ marginTop: '6px', fontSize: '0.72rem', fontWeight: 700, color: badgeColor }}>
+                                ✓ {app.status} by {app.reviewedBy} {app.reviewedOn ? `(${app.reviewedOn})` : ''}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

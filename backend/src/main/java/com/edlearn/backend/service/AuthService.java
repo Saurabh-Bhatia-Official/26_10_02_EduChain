@@ -7,7 +7,6 @@ import com.edlearn.backend.model.InstituteEntity;
 import com.edlearn.backend.model.UserEntity;
 import com.edlearn.backend.repository.InstituteRepository;
 import com.edlearn.backend.repository.UserRepository;
-import jakarta.annotation.PostConstruct;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,95 +32,10 @@ public class AuthService {
                 return passwordEncoder.matches(rawPassword, storedPassword);
             } catch (Exception ignored) {}
         }
-        return storedPassword.equals(rawPassword);
+        return false;
     }
 
-    @PostConstruct
-    public void seedDefaultDataIfEmpty() {
-        try {
-            if (instituteRepository.count() == 0) {
-                InstituteEntity defaultInst = new InstituteEntity();
-                defaultInst.setInstituteCode("INST-2025");
-                defaultInst.setInstituteName("Apex Institute of Technology");
-                defaultInst.setInstituteType("College");
-                defaultInst.setAdminName("Institute Administrator");
-                defaultInst.setEmail("admin@apex.edu");
-                defaultInst.setPassword("password123");
-                defaultInst.setPhone("+91 98765 43210");
-                defaultInst.setAddress("Academic Campus, Delhi");
-                defaultInst.setCampusLocation("Central Academic Campus");
-                defaultInst.setAccreditation("AICTE & UGC Recognized • Grade A+ NAAC Accredited");
-                defaultInst.setEstablishedYear("2008");
-                defaultInst.setVerified(true);
-                defaultInst.setVerificationStatus("Officially Verified");
-                defaultInst.setVerificationId("VRF-INST2025-2025");
-                defaultInst.setVerificationDate("Academic Session 2025–2026");
-                defaultInst.setStudentCount(1420);
-                defaultInst.setFacultyCount(86);
-                defaultInst.setDepartmentCount(8);
-                defaultInst.setActiveSemester("Academic Year 2025–2026");
-                instituteRepository.save(defaultInst);
-            }
 
-            if (userRepository.count() == 0) {
-                UserEntity student = new UserEntity();
-                student.setUserId("std_1023");
-                student.setEmail("rahul@institute.com");
-                student.setPassword("password123");
-                student.setRole("student");
-                student.setName("Rahul Sharma");
-                student.setRollNumber("1023");
-                student.setClassName("BCA - Sem 3");
-                student.setCourse("Bachelor of Computer Applications");
-                student.setSemester("Semester 3");
-                student.setInstituteCode("INST-2025");
-                student.setInstituteName("Apex Institute of Technology");
-                student.setGender("Male");
-                student.setDob("12-05-2005");
-                student.setFatherName("Rakesh Sharma");
-                student.setFatherPhone("+91 98765 43210");
-                student.setFatherEmail("rakesh@example.com");
-                student.setMotherName("Pooja Sharma");
-                student.setMotherPhone("+91 98765 43211");
-                student.setMotherEmail("pooja@example.com");
-                student.setAddress("123, Green Park, Delhi - 110016");
-                userRepository.save(student);
-
-                UserEntity teacher = new UserEntity();
-                teacher.setUserId("ins_001");
-                teacher.setEmail("amit.sharma@institute.com");
-                teacher.setPassword("password123");
-                teacher.setRole("teacher");
-                teacher.setName("Dr. Amit Sharma");
-                teacher.setInstructorId("INS-001");
-                teacher.setDesignation("Assistant Professor");
-                teacher.setDepartment("Computer Science");
-                teacher.setPhone("+91 98765 43210");
-                teacher.setJoiningDate("Jan 14, 2020");
-                teacher.setQualification("Ph.D - Computer Science");
-                teacher.setExperience("5 Years");
-                teacher.setAbout("Passionate educator with 5+ years of experience in teaching and research.");
-                teacher.setInstituteCode("INST-2025");
-                teacher.setInstituteName("Apex Institute of Technology");
-                userRepository.save(teacher);
-
-                UserEntity admin = new UserEntity();
-                admin.setUserId("adm_001");
-                admin.setEmail("amit.kumar@institute.com");
-                admin.setPassword("password123");
-                admin.setRole("admin");
-                admin.setName("Amit Kumar");
-                admin.setTitle("System Administrator");
-                admin.setDesignation("System Administrator");
-                admin.setPhone("+91 98765 43210");
-                admin.setInstituteCode("INST-2025");
-                admin.setInstituteName("Apex Institute of Technology");
-                userRepository.save(admin);
-            }
-        } catch (Exception e) {
-            System.out.println("Notice: Database seeding bypassed or database in standby mode: " + e.getMessage());
-        }
-    }
 
     public ApiResponse loginInstitute(LoginRequest req) {
         String codeOrEmail = req.getInstituteCode() != null && !req.getInstituteCode().isBlank() 
@@ -380,7 +294,8 @@ public class AuthService {
             return ApiResponse.error("An account with email " + email + " already exists. Please log in.");
         }
 
-        String rawPass = req.getPassword() != null && !req.getPassword().isBlank() ? req.getPassword() : "password123";
+        String rawPass = req.getPassword();
+        if (rawPass == null || rawPass.length() < 8) return ApiResponse.error("Password must contain at least 8 characters.");
         UserEntity student = new UserEntity();
         student.setUserId("std_" + System.currentTimeMillis());
 
@@ -392,11 +307,12 @@ public class AuthService {
 
         String instCode = req.getInstituteCode() != null && !req.getInstituteCode().isBlank() 
                 ? req.getInstituteCode().trim().toUpperCase() 
-                : "INST-2025";
+                : "";
         student.setInstituteCode(instCode);
         String instName = instituteRepository.findByInstituteCodeIgnoreCase(instCode)
                 .map(InstituteEntity::getInstituteName)
-                .orElse("Apex Institute of Technology");
+                .orElse(null);
+        if (instName == null) return ApiResponse.error("A valid institute code is required.");
         student.setInstituteName(instName);
 
         String roll = req.getRollNumber() != null && !req.getRollNumber().isBlank() 
@@ -480,7 +396,8 @@ public class AuthService {
             return ApiResponse.error("An account with email " + email + " already exists. Please log in.");
         }
 
-        String rawPass = req.getPassword() != null && !req.getPassword().isBlank() ? req.getPassword() : "password123";
+        String rawPass = req.getPassword();
+        if (rawPass == null || rawPass.length() < 8) return ApiResponse.error("Password must contain at least 8 characters.");
         UserEntity teacher = new UserEntity();
         teacher.setUserId("tch_" + System.currentTimeMillis());
 
@@ -492,11 +409,12 @@ public class AuthService {
 
         String instCode = req.getInstituteCode() != null && !req.getInstituteCode().isBlank() 
                 ? req.getInstituteCode().trim().toUpperCase() 
-                : "INST-2025";
+                : "";
         teacher.setInstituteCode(instCode);
         String instName = instituteRepository.findByInstituteCodeIgnoreCase(instCode)
                 .map(InstituteEntity::getInstituteName)
-                .orElse("Apex Institute of Technology");
+                .orElse(null);
+        if (instName == null) return ApiResponse.error("A valid institute code is required.");
         teacher.setInstituteName(instName);
 
         String empId = req.getEmployeeId() != null && !req.getEmployeeId().isBlank() 

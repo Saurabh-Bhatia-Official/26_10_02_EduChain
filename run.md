@@ -1,6 +1,14 @@
+<<<<<<< HEAD
 # 🚀 LMS Run & Execution Commands
 
 Quick reference commands to setup, run, and build both the Spring Boot backend and the React frontend.
+=======
+# 🚀 EduChain — Run & Execution Commands
+
+**One Platform, Endless Possibilities**
+
+Quick reference commands to setup, run, and build both the Spring Boot backend and the Flutter multiplatform frontend.
+>>>>>>> bfd33d2f4e9eaa1f9c0cdff31cf505d19c77608a
 
 ---
 

@@ -77,11 +77,53 @@ public class EdLearnBackendApplication {
         }
 
         String finalUrl = System.getProperty("SPRING_DATASOURCE_URL");
+        if (finalUrl == null || finalUrl.isBlank()) {
+            finalUrl = System.getenv("SPRING_DATASOURCE_URL");
+        }
         if (finalUrl != null && !finalUrl.contains("socketFactory=")) {
             finalUrl += (finalUrl.contains("?") ? "&" : "?") + "socketFactory=com.edlearn.backend.config.NeonSocketFactory";
             System.setProperty("SPRING_DATASOURCE_URL", finalUrl);
         }
 
-        SpringApplication.run(EdLearnBackendApplication.class, args);
+        SpringApplication application = new SpringApplication(EdLearnBackendApplication.class);
+        if (!hasUsableDatasourceUrl(finalUrl) && !hasExplicitProfile(args)) {
+            // A copied .env.example or an unconfigured local environment can expose
+            // the unresolved placeholder as a literal URL. Use the documented local
+            // H2 profile in that case so `mvn spring-boot:run` works out of the box.
+            System.err.println("No usable SPRING_DATASOURCE_URL found; starting with the local H2 dev profile.");
+            System.setProperty("spring.datasource.url",
+                    "jdbc:h2:mem:edlearn_dev;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS edlearn");
+            System.setProperty("spring.datasource.driver-class-name", "org.h2.Driver");
+            System.setProperty("spring.datasource.username", "sa");
+            System.setProperty("spring.datasource.password", "");
+            System.setProperty("spring.datasource.hikari.data-source-properties.socketFactory", "");
+            application.setAdditionalProfiles("dev");
+        }
+        application.run(args);
+    }
+
+    private static boolean hasUsableDatasourceUrl(String url) {
+        return url != null
+                && !url.isBlank()
+                && !url.contains("${")
+                && !url.contains("<host>")
+                && !url.contains("<database>")
+                && url.startsWith("jdbc:");
+    }
+
+    private static boolean hasExplicitProfile(String[] args) {
+        if (System.getProperty("spring.profiles.active") != null
+                || System.getenv("SPRING_PROFILES_ACTIVE") != null) {
+            return true;
+        }
+        for (String arg : args) {
+            if (arg.startsWith("--spring.profiles.active=")) {
+                return true;
+            }
+            if (arg.equals("--spring.profiles.active")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -40,6 +40,12 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
           onClick={() => onNavigate('home')}
           role="button"
           tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              onNavigate('home');
+            }
+          }}
         >
           <div className="logo-icon-box">
             <Landmark className="logo-icon" size={22} />
@@ -203,6 +209,8 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
             className="mobile-toggle-btn"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle navigation"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation-drawer"
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -211,7 +219,7 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="mobile-drawer">
+        <div className="mobile-drawer" id="mobile-navigation-drawer">
           <div className="mobile-links">
             <button
               type="button"
@@ -247,7 +255,39 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
           </div>
 
           <div className="mobile-auth-section">
-            {isInstituteLoggedIn ? (
+            {isTeacherLoggedIn ? (
+              <>
+                <button
+                  type="button"
+                  className="btn-mobile-signup primary"
+                  onClick={() => {
+                    onNavigate('teacher-dashboard');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <GraduationCap size={16} /> Teacher Portal
+                </button>
+                <button type="button" className="btn-mobile-login" onClick={() => { onLogout(); setMobileMenuOpen(false); }}>
+                  <LogOut size={16} /> Logout
+                </button>
+              </>
+            ) : isStudentLoggedIn ? (
+              <>
+                <button
+                  type="button"
+                  className="btn-mobile-signup primary"
+                  onClick={() => {
+                    onNavigate('student-dashboard');
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <GraduationCap size={16} /> Student Portal
+                </button>
+                <button type="button" className="btn-mobile-login" onClick={() => { onLogout(); setMobileMenuOpen(false); }}>
+                  <LogOut size={16} /> Logout
+                </button>
+              </>
+            ) : isInstituteLoggedIn ? (
               <>
                 <button
                   type="button"

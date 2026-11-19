@@ -67,34 +67,6 @@ export default function TeacherLoginPage({ onNavigate, onLoginSuccess }) {
     }
   };
 
-  const handleQuickDemoLogin = async () => {
-    setEmail('amit.sharma@institute.com');
-    setPassword('teacher123');
-    setErrorMessage('');
-    setSuccessMessage('Authenticating as Dr. Amit Sharma (Instructor)...');
-    try {
-      setLoading(true);
-      const res = await api.loginRole({
-        email: 'amit.sharma@institute.com',
-        password: 'password123',
-        role: 'teacher',
-      });
-      const teacherUser = res?.user;
-      if (!teacherUser) {
-        throw new Error(res?.message || 'Instructor account not found in database.');
-      }
-      if (onLoginSuccess) {
-        onLoginSuccess(teacherUser);
-      }
-      setTimeout(() => {
-        onNavigate('teacher-dashboard');
-      }, 700);
-    } catch (err) {
-      setErrorMessage(err.message || 'Quick login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="portal-page-wrapper">
@@ -249,32 +221,6 @@ export default function TeacherLoginPage({ onNavigate, onLoginSuccess }) {
                 {loading ? 'Authenticating Teacher...' : 'Login'}
               </button>
 
-              {/* 1-Click Instant Demo Login */}
-              <button
-                type="button"
-                className="btn-quick-unlock-subtle"
-                style={{
-                  width: '100%',
-                  marginTop: '10px',
-                  padding: '9px 12px',
-                  borderRadius: '8px',
-                  border: '1px dashed #0284c7',
-                  background: '#f0f9ff',
-                  color: '#0369a1',
-                  fontWeight: '600',
-                  fontSize: '0.825rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  cursor: 'pointer'
-                }}
-                onClick={handleQuickDemoLogin}
-                disabled={loading}
-              >
-                <Sparkles size={15} color="#0284c7" />
-                <span>1-Click Demo Login (Dr. Amit Sharma)</span>
-              </button>
 
               {/* Footer Links */}
               <div className="form-footer-link center">

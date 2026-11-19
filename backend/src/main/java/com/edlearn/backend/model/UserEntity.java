@@ -20,6 +20,7 @@ public class UserEntity {
     @Column(nullable = false)
     private String email;
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
 

@@ -31,17 +31,13 @@ public class DashboardController {
         stats.put("totalStudents", studentCount);
         stats.put("totalInstructors", instructorCount);
         stats.put("totalInstitutes", instituteCount);
-        stats.put("activeClasses", 18);
-        stats.put("attendanceRate", 91.5);
         stats.put("systemStatus", "Healthy & Connected");
 
         List<UserEntity> recentStudents = userRepository.findByRoleIgnoreCaseOrderByCreatedAtDesc("student");
-        if (recentStudents.isEmpty()) recentStudents = userRepository.findByRoleIgnoreCase("student");
         if (recentStudents.size() > 5) recentStudents = recentStudents.subList(0, 5);
         stats.put("recentStudents", recentStudents);
 
         List<UserEntity> recentInstructors = userRepository.findByRoleIgnoreCaseOrderByCreatedAtDesc("teacher");
-        if (recentInstructors.isEmpty()) recentInstructors = userRepository.findByRoleIgnoreCase("teacher");
         if (recentInstructors.size() > 5) recentInstructors = recentInstructors.subList(0, 5);
         stats.put("recentInstructors", recentInstructors);
 
@@ -51,16 +47,8 @@ public class DashboardController {
     @GetMapping("/instructor/{id}")
     public ResponseEntity<Map<String, Object>> getInstructorDashboardStats(@PathVariable String id) {
         Map<String, Object> stats = new LinkedHashMap<>();
-        stats.put("assignedCourses", 4);
-        stats.put("totalStudents", userRepository.countByRoleIgnoreCase("student"));
-        stats.put("upcomingLectures", 3);
-        stats.put("pendingAssignments", 12);
-        stats.put("averageClassRating", 4.8);
-
-        List<UserEntity> students = userRepository.findByRoleIgnoreCaseOrderByCreatedAtDesc("student");
-        if (students.isEmpty()) students = userRepository.findByRoleIgnoreCase("student");
-        if (students.size() > 6) students = students.subList(0, 6);
-        stats.put("enrolledStudents", students);
+        // Detailed classroom metrics are omitted until classroom ownership is backed by persisted relations.
+        stats.put("enrolledStudents", List.of());
 
         return ResponseEntity.ok(stats);
     }

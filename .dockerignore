@@ -1,0 +1,10 @@
+frontend/
+.git/
+.github/
+backend/target/
+backend/.env
+backend/.env.*
+!.env.example
+*.log
+.idea/
+.vscode/

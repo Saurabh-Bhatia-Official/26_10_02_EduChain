@@ -11,9 +11,9 @@ import java.net.URI;
 
 public class TestS3 {
     public static void main(String[] args) {
-        String endpoint = "https://br-restless-shape-b3qhppdx.storage.c-4.ap-southeast-1.aws.neon.tech";
-        String accessKey = "nak_live_e304bc80162e4afea37a338a9738015f";
-        String secretKey = "nsk_live_08ba5bee3b3499bddbe28af5b28ee2e5a48bf9cefd95c54e0e70080fdf42424c";
+        String endpoint = System.getenv("AWS_ENDPOINT_URL_S3");
+        String accessKey = System.getenv("AWS_ACCESS_KEY_ID");
+        String secretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
         String region = "ap-southeast-1";
 
         try {

@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import InstituteBuildingIllustration from '../components/illustrations/InstituteBuildingIllustration';
 import { studentService, dashboardService } from '../services/api';
+import { leaveService } from '../services/leaveService';
 
 export default function TeacherPortalPage({
   onNavigate,
@@ -55,11 +56,12 @@ export default function TeacherPortalPage({
   onLogout,
   initialTab = 'dashboard'
 }) {
-  // Active screen / view state matching the 12 screens
-  // 'dashboard' (1), 'classes' (2), 'students' (3), 'add-student' (4), 'student-detail' (5),
-  // 'courses' (6), 'add-course' (7), 'remove-course' (8), 'course-details' (9),
-  // 'lectures' (10), 'update-lecture' (11), 'profile' (12)
+  // Active screen / view state matching screens:
+  // 'dashboard', 'leave-requests', 'classes', 'students', 'add-student', 'student-detail',
+  // 'courses', 'add-course', 'remove-course', 'course-details',
+  // 'lectures', 'update-lecture', 'profile'
   const [activeScreen, setActiveScreen] = useState(() => {
+    if (initialTab === 'leave-requests' || initialTab === 'leave') return 'leave-requests';
     if (initialTab === 'classes' || initialTab === 'my-classes') return 'classes';
     if (initialTab === 'students' || initialTab === 'student-records') return 'students';
     if (initialTab === 'add-student') return 'add-student';
@@ -78,10 +80,41 @@ export default function TeacherPortalPage({
   const [globalSearch, setGlobalSearch] = useState('');
   const [showDiagramNavigator, setShowDiagramNavigator] = useState(true);
 
+  // Leave Requests state with real-time subscription
+  const [leaveRequests, setLeaveRequests] = useState(() => leaveService.getLeaves());
+  const [leaveFilter, setLeaveFilter] = useState('All');
+
+  useEffect(() => {
+    const unsubscribe = leaveService.subscribe((updated) => {
+      setLeaveRequests(updated);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const pendingLeavesCount = leaveRequests.filter((l) => l.status === 'Pending').length;
+  const approvedLeavesCount = leaveRequests.filter((l) => l.status === 'Approved').length;
+  const rejectedLeavesCount = leaveRequests.filter((l) => l.status === 'Rejected').length;
+
+  const handleApproveLeave = (id, studentName) => {
+    leaveService.updateStatus(id, 'Approved', instructorProfile?.name || 'Dr. Amit Sharma');
+    showToast(`Leave application (${id}) for ${studentName} APPROVED!`);
+  };
+
+  const handleRejectLeave = (id, studentName) => {
+    leaveService.updateStatus(id, 'Rejected', instructorProfile?.name || 'Dr. Amit Sharma');
+    showToast(`Leave application (${id}) for ${studentName} REJECTED.`);
+  };
+
+  const handleResetLeave = (id) => {
+    leaveService.updateStatus(id, 'Pending', instructorProfile?.name || 'Dr. Amit Sharma');
+    showToast(`Leave application (${id}) status reset to Pending.`);
+  };
+
   // Sync with initialTab prop
   useEffect(() => {
     if (initialTab) {
-      if (initialTab === 'classes' || initialTab === 'my-classes') setActiveScreen('classes');
+      if (initialTab === 'leave-requests' || initialTab === 'leave') setActiveScreen('leave-requests');
+      else if (initialTab === 'classes' || initialTab === 'my-classes') setActiveScreen('classes');
       else if (initialTab === 'students' || initialTab === 'student-records') setActiveScreen('students');
       else if (initialTab === 'add-student') setActiveScreen('add-student');
       else if (initialTab === 'student-detail') setActiveScreen('student-detail');
@@ -1006,11 +1039,323 @@ export default function TeacherPortalPage({
     )
       return 'courses';
     if (activeScreen === 'lectures' || activeScreen === 'update-lecture') return 'lectures';
+    if (activeScreen === 'leave-requests') return 'leave-requests';
     if (activeScreen === 'profile') return 'profile';
     return 'dashboard';
   };
 
   const activeSidebarTab = getActiveSidebarTab();
+
+  const renderLeaveRequestsSection = (isCompact = false) => {
+    const filteredLeaves = leaveRequests.filter((leave) => {
+      if (leaveFilter === 'All') return true;
+      return leave.status === leaveFilter;
+    });
+
+    return (
+      <div className="portal-card-block" style={{ marginTop: isCompact ? '24px' : '0', padding: '24px', background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+        {/* Section Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#ccfbf1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0d9488' }}>
+              <CalendarDays size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>Student Leave Requests</h3>
+                <span
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    background: pendingLeavesCount > 0 ? '#fef3c7' : '#ecfdf5',
+                    color: pendingLeavesCount > 0 ? '#d97706' : '#059669',
+                    border: pendingLeavesCount > 0 ? '1px solid #fde68a' : '1px solid #a7f3d0',
+                  }}
+                >
+                  {pendingLeavesCount} Pending Review
+                </span>
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
+                Review, approve, or reject student excused absence applications with real-time status synchronization
+              </p>
+            </div>
+          </div>
+
+          {isCompact && (
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={() => goToScreen('leave-requests')}
+              style={{ fontSize: '0.8125rem', padding: '6px 14px', fontWeight: 700 }}
+            >
+              Manage All ({leaveRequests.length}) →
+            </button>
+          )}
+        </div>
+
+        {/* Filter Tabs */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          {[
+            { label: 'All', count: leaveRequests.length },
+            { label: 'Pending', count: pendingLeavesCount },
+            { label: 'Approved', count: approvedLeavesCount },
+            { label: 'Rejected', count: rejectedLeavesCount },
+          ].map((tab) => {
+            const isSelected = leaveFilter === tab.label;
+            return (
+              <button
+                key={tab.label}
+                type="button"
+                onClick={() => setLeaveFilter(tab.label)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '0.8125rem',
+                  fontWeight: isSelected ? 700 : 600,
+                  background: isSelected ? '#0d9488' : '#f8fafc',
+                  color: isSelected ? '#ffffff' : '#334155',
+                  border: isSelected ? '1px solid #0d9488' : '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                }}
+              >
+                <span>{tab.label}</span>
+                <span
+                  style={{
+                    background: isSelected ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.06)',
+                    color: isSelected ? '#ffffff' : '#64748b',
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Leaves List */}
+        {filteredLeaves.length === 0 ? (
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b' }}>
+            <CalendarDays size={42} style={{ opacity: 0.4, marginBottom: '10px' }} />
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#334155' }}>
+              No {leaveFilter !== 'All' ? leaveFilter.toLowerCase() : ''} leave requests found
+            </div>
+            <p style={{ margin: '4px 0 0', fontSize: '0.8125rem', color: '#94a3b8' }}>
+              Student leave applications submitted via the Student Portal will display here automatically.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {filteredLeaves.map((leave) => {
+              const isApproved = leave.status === 'Approved';
+              const isRejected = leave.status === 'Rejected';
+              const isPending = leave.status === 'Pending';
+
+              const cardBorder = isPending ? '#fed7aa' : isApproved ? '#a7f3d0' : '#fecdd3';
+              const badgeBg = isPending ? '#fef3c7' : isApproved ? '#ecfdf5' : '#fff1f2';
+              const badgeColor = isPending ? '#d97706' : isApproved ? '#059669' : '#e11d48';
+
+              return (
+                <div
+                  key={leave.id}
+                  style={{
+                    padding: '18px 20px',
+                    background: '#f8fafc',
+                    borderRadius: '14px',
+                    border: `1.5px solid ${cardBorder}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                  }}
+                >
+                  {/* Top: Student Header & Status Pill */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div
+                        style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '50%',
+                          background: '#0d9488',
+                          color: '#fff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: '0.9375rem',
+                        }}
+                      >
+                        {leave.studentName ? leave.studentName[0].toUpperCase() : 'S'}
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 800, fontSize: '0.9375rem', color: '#0f172a' }}>{leave.studentName}</span>
+                          <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                            ID: {leave.studentId}
+                          </span>
+                          <span style={{ background: '#f3e8ff', color: '#7c3aed', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
+                            {leave.category}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          Submitted: {leave.submittedOn} • Ref: {leave.id}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        background: badgeBg,
+                        color: badgeColor,
+                        border: `1px solid ${cardBorder}`,
+                      }}
+                    >
+                      {leave.status}
+                    </span>
+                  </div>
+
+                  {/* Body: Dates, Duration & Reason */}
+                  <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.8125rem' }}>
+                    <div style={{ marginBottom: '6px', color: '#0f172a' }}>
+                      <strong style={{ color: '#475569' }}>Duration: </strong>
+                      <span style={{ fontWeight: 700, color: '#0d9488' }}>
+                        {leave.startDate} to {leave.endDate}
+                      </span>
+                      <span style={{ color: '#64748b' }}> ({leave.days})</span>
+                    </div>
+                    <div style={{ color: '#334155', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#475569' }}>Reason: </strong>
+                      {leave.reason}
+                    </div>
+
+                    {leave.reviewedBy && !isPending && (
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0', fontSize: '0.75rem', fontWeight: 700, color: badgeColor }}>
+                        ✓ Decision: {leave.status} by {leave.reviewedBy} {leave.reviewedOn ? `on ${leave.reviewedOn}` : ''}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions: Approve / Reject Buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {isPending ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleRejectLeave(leave.id, leave.studentName)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 700,
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            border: '1px solid #fecdd3',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <X size={15} />
+                          <span>Reject Leave</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApproveLeave(leave.id, leave.studentName)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '8px 18px',
+                            borderRadius: '8px',
+                            fontSize: '0.8125rem',
+                            fontWeight: 700,
+                            background: '#059669',
+                            color: '#ffffff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                          }}
+                        >
+                          <Check size={15} />
+                          <span>Approve Leave</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Decision recorded.</span>
+                        {isApproved ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRejectLeave(leave.id, leave.studentName)}
+                            style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: '#dc2626',
+                              background: '#fff',
+                              border: '1px solid #fecdd3',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Change to Reject
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleApproveLeave(leave.id, leave.studentName)}
+                            style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: '#059669',
+                              background: '#fff',
+                              border: '1px solid #a7f3d0',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Change to Approve
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleResetLeave(leave.id)}
+                          style={{
+                            fontSize: '0.75rem',
+                            color: '#64748b',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          Reset to Pending
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="teacher-portal-root">
@@ -1045,6 +1390,30 @@ export default function TeacherPortalPage({
             >
               <LayoutDashboard size={19} className="nav-icon" />
               <span>Instructor Dashboard</span>
+            </button>
+
+            <button
+              type="button"
+              className={`teacher-nav-item ${activeSidebarTab === 'leave-requests' ? 'active' : ''}`}
+              onClick={() => goToScreen('leave-requests')}
+            >
+              <CalendarDays size={19} className="nav-icon" />
+              <span>Leave Requests</span>
+              {pendingLeavesCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    background: '#f97316',
+                    color: '#ffffff',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  {pendingLeavesCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -1231,6 +1600,27 @@ export default function TeacherPortalPage({
                         <span className="stat-trend-tag green">↑ Present</span>
                       </div>
                       <span className="stat-label">Average Attendance</span>
+                    </div>
+                  </div>
+
+                  <div className="teacher-stat-card" onClick={() => goToScreen('leave-requests')}>
+                    <div className="stat-icon-square orange" style={{ background: '#fff7ed', color: '#ea580c' }}>
+                      <CalendarDays size={24} />
+                    </div>
+                    <div className="stat-content">
+                      <div className="stat-num-row">
+                        <span className="stat-number">{pendingLeavesCount}</span>
+                        <span
+                          className="stat-trend-tag"
+                          style={{
+                            background: pendingLeavesCount > 0 ? '#ffedd5' : '#ecfdf5',
+                            color: pendingLeavesCount > 0 ? '#c2410c' : '#059669',
+                          }}
+                        >
+                          {pendingLeavesCount > 0 ? 'Pending' : 'All Clear'}
+                        </span>
+                      </div>
+                      <span className="stat-label">Leave Requests</span>
                     </div>
                   </div>
                 </div>
@@ -1458,6 +1848,26 @@ export default function TeacherPortalPage({
                     </div>
                   </div>
                 </div>
+
+                {/* Real-time Student Leave Requests Section on Teacher Dashboard */}
+                {renderLeaveRequestsSection(true)}
+              </div>
+            )}
+
+            {/* ========================================================
+                SCREEN: LEAVE REQUESTS
+               ======================================================== */}
+            {activeScreen === 'leave-requests' && (
+              <div className="screen-view screen-leave-requests">
+                <div className="screen-header-row" style={{ marginBottom: '20px' }}>
+                  <div>
+                    <h1 className="screen-page-title">Leave Requests Management</h1>
+                    <p className="screen-page-subtitle">
+                      Manage, approve and reject student absence applications with real-time sync.
+                    </p>
+                  </div>
+                </div>
+                {renderLeaveRequestsSection(false)}
               </div>
             )}
 
