@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
@@ -686,8 +686,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   onSelected: (val) {
-                    if (val == 'edit')
+                    if (val == 'edit') {
                       _showClassroomFormDialog(existing: classroom);
+                    }
                     if (val == 'regen_code') {
                       final newCode = provider.regenerateCode(classroom.id);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1009,11 +1010,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     ClassroomProvider provider,
   ) {
     final events = provider.activitiesFor(classroom.id);
-    if (events.isEmpty)
+    if (events.isEmpty) {
       return _buildSectionEmpty(
         'Classroom activity will appear here as people post, submit, and share resources.',
         Icons.timeline,
       );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1079,11 +1081,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             .where((assignment) => assignment.dueAt != null)
             .toList()
           ..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
-    if (assignments.isEmpty)
+    if (assignments.isEmpty) {
       return _buildSectionEmpty(
         'Assignments with due dates will appear here.',
         Icons.calendar_month_outlined,
       );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1318,13 +1321,14 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                                 value: index,
                                 groupValue: selected,
                                 onChanged: (value) {
-                                  if (value != null)
+                                  if (value != null) {
                                     provider.votePoll(
                                       classroom.id,
                                       poll.id,
                                       widget.userId,
                                       value,
                                     );
+                                  }
                                 },
                               )
                             : Icon(
@@ -1448,19 +1452,23 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           );
     final earnedBadges = <(String, IconData)>[];
     if (_isStudent && studentProgress != null) {
-      if (studentProgress.submittedCount > 0)
+      if (studentProgress.submittedCount > 0) {
         earnedBadges.add(('First submission', Icons.upload_file));
+      }
       if (studentProgress.totalAttendanceSessions > 0 &&
-          studentProgress.attendancePercentage == 100)
+          studentProgress.attendancePercentage == 100) {
         earnedBadges.add(('Perfect attendance', Icons.event_available));
+      }
       if (provider
           .quizzesFor(classroom.id)
           .any(
             (quiz) => provider.quizAttemptFor(quiz.id, widget.userId) != null,
-          ))
+          )) {
         earnedBadges.add(('Quiz finisher', Icons.quiz));
-      if (provider.peerReviewsForReviewer(widget.userId).isNotEmpty)
+      }
+      if (provider.peerReviewsForReviewer(widget.userId).isNotEmpty) {
         earnedBadges.add(('Peer helper', Icons.rate_review));
+      }
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1553,11 +1561,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         .recentlyViewedFor(widget.userId)
         .where((item) => item.classroomId == _selected?.id)
         .toList();
-    if (items.isEmpty)
+    if (items.isEmpty) {
       return _buildSectionEmpty(
         'Items you open in this classroom will appear here.',
         Icons.history,
       );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1950,16 +1959,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 if (canManage)
                   PopupMenuButton<String>(
                     onSelected: (val) {
-                      if (val == 'pin')
+                      if (val == 'pin') {
                         provider.togglePinPost(classroom.id, post.id);
-                      if (val == 'edit')
+                      }
+                      if (val == 'edit') {
                         _showAnnouncementDialog(
                           classroom,
                           provider,
                           existing: post,
                         );
-                      if (val == 'delete')
+                      }
+                      if (val == 'delete') {
                         provider.deletePost(classroom.id, post.id);
+                      }
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(
@@ -2857,8 +2869,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               int present = 0, absent = 0, late = 0;
               sess.records.forEach((_, st) {
                 if (st == AttendanceStatus.present ||
-                    st == AttendanceStatus.excused)
+                    st == AttendanceStatus.excused) {
                   present++;
+                }
                 if (st == AttendanceStatus.absent) absent++;
                 if (st == AttendanceStatus.late) late++;
               });
@@ -3283,14 +3296,16 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     if (canManage)
                       PopupMenuButton<String>(
                         onSelected: (val) {
-                          if (val == 'edit')
+                          if (val == 'edit') {
                             _showMaterialDialog(
                               classroom,
                               provider,
                               existing: mat,
                             );
-                          if (val == 'delete')
+                          }
+                          if (val == 'delete') {
                             provider.deleteMaterial(classroom.id, mat.id);
+                          }
                         },
                         itemBuilder: (_) => const [
                           PopupMenuItem(value: 'edit', child: Text('Edit')),
@@ -3808,8 +3823,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               const Duration(days: 365),
                             ),
                           );
-                          if (picked != null)
+                          if (picked != null) {
                             setDialogState(() => dueAt = picked);
+                          }
                         },
                         icon: const Icon(Icons.calendar_month),
                         label: Text(
@@ -3996,8 +4012,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                                   groupValue: answers[questionIndex],
                                   title: Text(question.options[optionIndex]),
                                   onChanged: (value) => setDialogState(() {
-                                    if (value != null)
+                                    if (value != null) {
                                       answers[questionIndex] = value;
+                                    }
                                   }),
                                 ),
                               ),
@@ -4842,8 +4859,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               const Duration(days: 365),
                             ),
                           );
-                          if (picked != null)
+                          if (picked != null) {
                             setDialogState(() => dueAt = picked);
+                          }
                         },
                       ),
                     ],
@@ -4868,8 +4886,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   final criterionTitle = editor.title.text.trim();
                   final points = int.tryParse(editor.points.text.trim());
                   if (criterionTitle.isEmpty &&
-                      (editor.points.text.trim().isEmpty))
+                      (editor.points.text.trim().isEmpty)) {
                     continue;
+                  }
                   if (criterionTitle.isEmpty || points == null || points <= 0) {
                     invalidRubric = true;
                     break;
@@ -4942,8 +4961,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   final criterionTitle = editor.title.text.trim();
                   final points = int.tryParse(editor.points.text.trim());
                   if (criterionTitle.isEmpty &&
-                      editor.points.text.trim().isEmpty)
+                      editor.points.text.trim().isEmpty) {
                     continue;
+                  }
                   if (criterionTitle.isEmpty || points == null || points <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -5591,8 +5611,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               const Duration(days: 7),
                             ),
                           );
-                          if (picked != null)
+                          if (picked != null) {
                             setDialogState(() => date = picked);
+                          }
                         },
                       ),
                     ],
@@ -5935,13 +5956,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   String _resourceFileType(String? fileName) {
     final extension = fileName?.split('.').last.toLowerCase() ?? '';
     if (extension == 'pdf') return 'pdf';
-    if (extension == 'ppt' || extension == 'pptx' || extension == 'key')
+    if (extension == 'ppt' || extension == 'pptx' || extension == 'key') {
       return 'slides';
+    }
     if (extension == 'zip' ||
         extension == 'dart' ||
         extension == 'java' ||
-        extension == 'cpp')
+        extension == 'cpp') {
       return 'code';
+    }
     return fileName == null ? 'link' : 'document';
   }
 
@@ -6049,7 +6072,7 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   Expanded(
                     child: ListView.separated(
                       itemCount: notifications.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                           const Divider(height: 1, color: AppColors.border),
                       itemBuilder: (context, idx) {
                         final notif = notifications[idx];

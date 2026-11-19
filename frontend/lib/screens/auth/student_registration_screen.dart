@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/navigation_provider.dart';
@@ -10,7 +10,8 @@ class StudentRegistrationScreen extends StatefulWidget {
   const StudentRegistrationScreen({super.key});
 
   @override
-  State<StudentRegistrationScreen> createState() => _StudentRegistrationScreenState();
+  State<StudentRegistrationScreen> createState() =>
+      _StudentRegistrationScreenState();
 }
 
 class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
@@ -47,7 +48,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       _nameController.text = 'Rahul Sharma';
       _emailController.text = 'rahul.new@institute.com';
       _codeController.text = 'INST-2025';
-      _rollController.text = 'BCA-${DateTime.now().millisecondsSinceEpoch % 1000}';
+      _rollController.text =
+          'BCA-${DateTime.now().millisecondsSinceEpoch % 1000}';
       _selectedCourse = 'BCA';
       _passwordController.text = 'password123';
     });
@@ -72,7 +74,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Student registered successfully!'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Student registered successfully!'),
+          backgroundColor: AppColors.success,
+        ),
       );
       nav.navigateTo('student-dashboard');
     }
@@ -88,7 +93,10 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       backgroundColor: AppColors.bgPage,
       body: Column(
         children: [
-          const PortalHeader(backTarget: 'select-role', backLabel: 'Back to Role Selection'),
+          const PortalHeader(
+            backTarget: 'select-role',
+            backLabel: 'Back to Role Selection',
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
@@ -157,7 +165,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
           const SizedBox(height: 16),
           const Text(
             'Student Registration',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -191,40 +203,72 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
               children: [
                 const Text(
                   'Student Enrollment',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _handleDemoFill,
-                  icon: const Icon(Icons.bolt, size: 15, color: AppColors.studentPrimary),
-                  label: const Text('Demo Fill', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.studentPrimary)),
+                  icon: const Icon(
+                    Icons.bolt,
+                    size: 15,
+                    color: AppColors.studentPrimary,
+                  ),
+                  label: const Text(
+                    'Demo Fill',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.studentPrimary,
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            const Text('Enter your academic details below.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+            const Text(
+              'Enter your academic details below.',
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+            ),
             const SizedBox(height: 24),
 
             if (auth.errorMessage != null) ...[
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: AppColors.errorBg, borderRadius: BorderRadius.circular(10)),
-                child: Text(auth.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  auth.errorMessage!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                ),
               ),
               const SizedBox(height: 16),
             ],
 
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Student Full Name', hintText: 'e.g. Rahul Sharma'),
-              validator: (v) => v == null || v.trim().isEmpty ? 'Full name required' : null,
+              decoration: const InputDecoration(
+                labelText: 'Student Full Name',
+                hintText: 'e.g. Rahul Sharma',
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Full name required' : null,
             ),
             const SizedBox(height: 14),
 
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Student Email Address', hintText: 'rahul@institute.com'),
-              validator: (v) => v == null || !v.contains('@') ? 'Valid email required' : null,
+              decoration: const InputDecoration(
+                labelText: 'Student Email Address',
+                hintText: 'rahul@institute.com',
+              ),
+              validator: (v) =>
+                  v == null || !v.contains('@') ? 'Valid email required' : null,
             ),
             const SizedBox(height: 14),
 
@@ -233,16 +277,25 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _codeController,
-                    decoration: const InputDecoration(labelText: 'Institute Code', hintText: 'INST-2025'),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Code required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Institute Code',
+                      hintText: 'INST-2025',
+                    ),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Code required' : null,
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: TextFormField(
                     controller: _rollController,
-                    decoration: const InputDecoration(labelText: 'Roll Number', hintText: 'BCA-301'),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Roll number required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Roll Number',
+                      hintText: 'BCA-301',
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Roll number required'
+                        : null,
                   ),
                 ),
               ],
@@ -251,9 +304,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
 
             DropdownButtonFormField<String>(
               initialValue: _selectedCourse,
-              items: _courses.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              items: _courses
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
               onChanged: (v) => setState(() => _selectedCourse = v ?? 'BCA'),
-              decoration: const InputDecoration(labelText: 'Enrolled Class / Course'),
+              decoration: const InputDecoration(
+                labelText: 'Enrolled Class / Course',
+              ),
             ),
             const SizedBox(height: 14),
 
@@ -263,11 +320,16 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
               decoration: InputDecoration(
                 labelText: 'Password',
                 suffixIcon: IconButton(
-                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                    size: 18,
+                  ),
+                  onPressed: () =>
+                      setState(() => _showPassword = !_showPassword),
                 ),
               ),
-              validator: (v) => v == null || v.length < 6 ? 'Min 6 characters' : null,
+              validator: (v) =>
+                  v == null || v.length < 6 ? 'Min 6 characters' : null,
             ),
             const SizedBox(height: 24),
 
@@ -276,9 +338,18 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: auth.isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.studentPrimary,
+                ),
                 child: auth.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Complete Student Registration'),
               ),
             ),
@@ -287,10 +358,20 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
             Center(
               child: Wrap(
                 children: [
-                  const Text('Already registered? ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  const Text(
+                    'Already registered? ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
                   InkWell(
                     onTap: () => nav.navigateTo('student-login'),
-                    child: const Text('Sign in here', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.studentPrimary)),
+                    child: const Text(
+                      'Sign in here',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.studentPrimary,
+                      ),
+                    ),
                   ),
                 ],
               ),

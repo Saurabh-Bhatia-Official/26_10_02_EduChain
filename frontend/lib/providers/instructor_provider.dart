@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../models/instructor_model.dart';
 import '../services/api_service.dart';
 
@@ -102,4 +102,3 @@ class InstructorProvider with ChangeNotifier {
     }
   }
 }
-

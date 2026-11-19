@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../../constants/app_colors.dart';
 import '../../../models/class_batch_model.dart';
 import '../../../widgets/metric_card.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/navigation_provider.dart';
@@ -79,7 +79,10 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
           Expanded(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 36,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1000),
                   child: Container(
@@ -100,7 +103,10 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
                         ? Row(
                             children: [
                               Expanded(flex: 5, child: _buildLeftHeroPanel()),
-                              Expanded(flex: 6, child: _buildLoginForm(auth, nav)),
+                              Expanded(
+                                flex: 6,
+                                child: _buildLoginForm(auth, nav),
+                              ),
                             ],
                           )
                         : Column(
@@ -138,22 +144,37 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
             decoration: BoxDecoration(
               color: AppColors.secondary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.secondary.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.4),
+              ),
             ),
             child: const Text(
               'ACADEMIC ADMINISTRATION',
-              style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
+              style: TextStyle(
+                color: AppColors.secondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
             ),
           ),
           const SizedBox(height: 16),
           const Text(
             'Institute Login',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 10),
           const Text(
             'Sign in to access centralized institute administration, verified campus analytics, and faculty controls.',
-            style: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), height: 1.5),
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF94A3B8),
+              height: 1.5,
+            ),
           ),
           if (!compact) ...[
             const SizedBox(height: 32),
@@ -161,9 +182,16 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
             const SizedBox(height: 24),
             Row(
               children: [
-                const Icon(Icons.verified, size: 16, color: AppColors.accentGreen),
+                const Icon(
+                  Icons.verified,
+                  size: 16,
+                  color: AppColors.accentGreen,
+                ),
                 const SizedBox(width: 8),
-                const Text('AICTE & UGC Recognized Standards', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const Text(
+                  'AICTE & UGC Recognized Standards',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
               ],
             ),
           ],
@@ -185,21 +213,29 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
               children: [
                 const Text(
                   'Sign In to Campus',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _handleDemoFill,
                   icon: Icon(
                     _autoFilled ? Icons.check : Icons.bolt,
                     size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
+                    color: _autoFilled
+                        ? AppColors.accentGreen
+                        : AppColors.primary,
                   ),
                   label: Text(
                     _autoFilled ? 'Filled!' : 'Demo Fill',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
+                      color: _autoFilled
+                          ? AppColors.accentGreen
+                          : AppColors.primary,
                     ),
                   ),
                 ),
@@ -218,16 +254,25 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: AppColors.error, size: 18),
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.error,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         auth.errorMessage!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -237,7 +282,10 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
             ],
 
             // Institute Code
-            const Text('Institute Code / ID', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Institute Code / ID',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _codeController,
@@ -245,12 +293,17 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
                 hintText: 'e.g., INST-2025',
                 prefixIcon: Icon(Icons.tag, size: 18),
               ),
-              validator: (v) => v == null || v.trim().isEmpty ? 'Please enter institute code' : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? 'Please enter institute code'
+                  : null,
             ),
             const SizedBox(height: 16),
 
             // Email
-            const Text('Administrator Email', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Administrator Email',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _emailController,
@@ -260,7 +313,8 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
                 prefixIcon: Icon(Icons.email_outlined, size: 18),
               ),
               validator: (v) {
-                if (v == null || v.trim().isEmpty) return 'Please enter administrator email';
+                if (v == null || v.trim().isEmpty)
+                  return 'Please enter administrator email';
                 if (!v.contains('@')) return 'Enter a valid email address';
                 return null;
               },
@@ -268,7 +322,10 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
             const SizedBox(height: 16),
 
             // Password
-            const Text('Password', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Password',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _passwordController,
@@ -277,11 +334,16 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
                 hintText: '••••••••',
                 prefixIcon: const Icon(Icons.lock_outline, size: 18),
                 suffixIcon: IconButton(
-                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                    size: 18,
+                  ),
+                  onPressed: () =>
+                      setState(() => _showPassword = !_showPassword),
                 ),
               ),
-              validator: (v) => v == null || v.isEmpty ? 'Please enter your password' : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Please enter your password' : null,
             ),
             const SizedBox(height: 14),
 
@@ -293,16 +355,28 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
                   children: [
                     Checkbox(
                       value: _rememberMe,
-                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _rememberMe = v ?? false),
                     ),
-                    const Text('Remember me', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                    const Text(
+                      'Remember me',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
                 InkWell(
-                  onTap: () => nav.navigateTo('forgot-password', {'role': 'institute'}),
+                  onTap: () =>
+                      nav.navigateTo('forgot-password', {'role': 'institute'}),
                   child: const Text(
                     'Forgot password?',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -315,9 +389,18 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: auth.isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
                 child: auth.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Verify & Enter Institute'),
               ),
             ),
@@ -328,12 +411,19 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
               child: Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  const Text('New institute? ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  const Text(
+                    'New institute? ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
                   InkWell(
                     onTap: () => nav.navigateTo('institute-register'),
                     child: const Text(
                       'Register your campus',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ],
@@ -345,4 +435,3 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
     );
   }
 }
-

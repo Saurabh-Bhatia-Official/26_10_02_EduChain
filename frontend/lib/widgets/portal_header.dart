@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/navigation_provider.dart';
@@ -26,9 +26,7 @@ class PortalHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: AppColors.border, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -96,7 +94,10 @@ class PortalHeader extends StatelessWidget {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   side: const BorderSide(color: AppColors.border),
                   backgroundColor: AppColors.bgPage,
                 ),
@@ -109,7 +110,10 @@ class PortalHeader extends StatelessWidget {
                   label: const Text('Logout'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.error,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                   ),
                 ),
               ],
@@ -120,4 +124,3 @@ class PortalHeader extends StatelessWidget {
     );
   }
 }
-

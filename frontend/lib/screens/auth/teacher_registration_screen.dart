@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/navigation_provider.dart';
@@ -10,7 +10,8 @@ class TeacherRegistrationScreen extends StatefulWidget {
   const TeacherRegistrationScreen({super.key});
 
   @override
-  State<TeacherRegistrationScreen> createState() => _TeacherRegistrationScreenState();
+  State<TeacherRegistrationScreen> createState() =>
+      _TeacherRegistrationScreenState();
 }
 
 class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
@@ -48,7 +49,8 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       _nameController.text = 'Dr. Sunita Rao';
       _emailController.text = 'sunita.new@institute.com';
       _codeController.text = 'INST-2025';
-      _empIdController.text = 'INS-${DateTime.now().millisecondsSinceEpoch % 1000}';
+      _empIdController.text =
+          'INS-${DateTime.now().millisecondsSinceEpoch % 1000}';
       _selectedDept = 'Computer Science & IT';
       _phoneController.text = '+91 98765 44332';
       _passwordController.text = 'password123';
@@ -75,7 +77,10 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Faculty account registered successfully!'), backgroundColor: AppColors.success),
+        const SnackBar(
+          content: Text('Faculty account registered successfully!'),
+          backgroundColor: AppColors.success,
+        ),
       );
       nav.navigateTo('teacher-dashboard');
     }
@@ -91,7 +96,10 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       backgroundColor: AppColors.bgPage,
       body: Column(
         children: [
-          const PortalHeader(backTarget: 'select-role', backLabel: 'Back to Role Selection'),
+          const PortalHeader(
+            backTarget: 'select-role',
+            backLabel: 'Back to Role Selection',
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
@@ -155,12 +163,20 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
               color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.cast_for_education, color: Colors.white, size: 28),
+            child: const Icon(
+              Icons.cast_for_education,
+              color: Colors.white,
+              size: 28,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
             'Teacher Registration',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -194,40 +210,72 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
               children: [
                 const Text(
                   'Faculty Registration',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _handleDemoFill,
-                  icon: const Icon(Icons.bolt, size: 15, color: AppColors.teacherPrimary),
-                  label: const Text('Demo Fill', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.teacherPrimary)),
+                  icon: const Icon(
+                    Icons.bolt,
+                    size: 15,
+                    color: AppColors.teacherPrimary,
+                  ),
+                  label: const Text(
+                    'Demo Fill',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.teacherPrimary,
+                    ),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            const Text('Enter your academic and department details.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+            const Text(
+              'Enter your academic and department details.',
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+            ),
             const SizedBox(height: 24),
 
             if (auth.errorMessage != null) ...[
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: AppColors.errorBg, borderRadius: BorderRadius.circular(10)),
-                child: Text(auth.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                decoration: BoxDecoration(
+                  color: AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  auth.errorMessage!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                ),
               ),
               const SizedBox(height: 16),
             ],
 
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Faculty Full Name', hintText: 'e.g. Dr. Amit Sharma'),
-              validator: (v) => v == null || v.trim().isEmpty ? 'Full name required' : null,
+              decoration: const InputDecoration(
+                labelText: 'Faculty Full Name',
+                hintText: 'e.g. Dr. Amit Sharma',
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Full name required' : null,
             ),
             const SizedBox(height: 14),
 
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Faculty Email', hintText: 'amit.sharma@institute.com'),
-              validator: (v) => v == null || !v.contains('@') ? 'Valid email required' : null,
+              decoration: const InputDecoration(
+                labelText: 'Faculty Email',
+                hintText: 'amit.sharma@institute.com',
+              ),
+              validator: (v) =>
+                  v == null || !v.contains('@') ? 'Valid email required' : null,
             ),
             const SizedBox(height: 14),
 
@@ -236,16 +284,25 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _codeController,
-                    decoration: const InputDecoration(labelText: 'Institute Code', hintText: 'INST-2025'),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Code required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Institute Code',
+                      hintText: 'INST-2025',
+                    ),
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? 'Code required' : null,
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: TextFormField(
                     controller: _empIdController,
-                    decoration: const InputDecoration(labelText: 'Employee / Faculty ID', hintText: 'INS-001'),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Employee ID required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Employee / Faculty ID',
+                      hintText: 'INS-001',
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Employee ID required'
+                        : null,
                   ),
                 ),
               ],
@@ -254,16 +311,24 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
 
             DropdownButtonFormField<String>(
               initialValue: _selectedDept,
-              items: _departments.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-              onChanged: (v) => setState(() => _selectedDept = v ?? 'Computer Science & IT'),
-              decoration: const InputDecoration(labelText: 'Department / Discipline'),
+              items: _departments
+                  .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                  .toList(),
+              onChanged: (v) =>
+                  setState(() => _selectedDept = v ?? 'Computer Science & IT'),
+              decoration: const InputDecoration(
+                labelText: 'Department / Discipline',
+              ),
             ),
             const SizedBox(height: 14),
 
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone Number', hintText: '+91 98765 00000'),
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                hintText: '+91 98765 00000',
+              ),
             ),
             const SizedBox(height: 14),
 
@@ -273,11 +338,16 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
               decoration: InputDecoration(
                 labelText: 'Password',
                 suffixIcon: IconButton(
-                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                    size: 18,
+                  ),
+                  onPressed: () =>
+                      setState(() => _showPassword = !_showPassword),
                 ),
               ),
-              validator: (v) => v == null || v.length < 6 ? 'Min 6 characters' : null,
+              validator: (v) =>
+                  v == null || v.length < 6 ? 'Min 6 characters' : null,
             ),
             const SizedBox(height: 24),
 
@@ -286,9 +356,18 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: auth.isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.teacherPrimary,
+                ),
                 child: auth.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Complete Teacher Registration'),
               ),
             ),
@@ -297,10 +376,20 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
             Center(
               child: Wrap(
                 children: [
-                  const Text('Already registered? ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  const Text(
+                    'Already registered? ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
                   InkWell(
                     onTap: () => nav.navigateTo('teacher-login'),
-                    child: const Text('Sign in here', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.teacherPrimary)),
+                    child: const Text(
+                      'Sign in here',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.teacherPrimary,
+                      ),
+                    ),
                   ),
                 ],
               ),

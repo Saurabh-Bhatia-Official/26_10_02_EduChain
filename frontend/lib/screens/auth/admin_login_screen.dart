@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/navigation_provider.dart';
@@ -69,11 +69,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       backgroundColor: AppColors.bgPage,
       body: Column(
         children: [
-          const PortalHeader(backTarget: 'select-role', backLabel: 'Back to Role Selection'),
+          const PortalHeader(
+            backTarget: 'select-role',
+            backLabel: 'Back to Role Selection',
+          ),
           Expanded(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 36,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 960),
                   child: Container(
@@ -138,7 +144,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           const SizedBox(height: 16),
           const Text(
             'Admin Login',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -161,25 +171,51 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     children: [
                       Icon(Icons.lock_clock, color: Colors.white70, size: 18),
                       SizedBox(width: 8),
-                      Text('System Administrator Privileges', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                      Text(
+                        'System Administrator Privileges',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 8),
                   Text(
                     'Full control over student admissions, instructor allocation, exam timetables, and real-time backend reports.',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Switch Role:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+            const Text(
+              'Switch Role:',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildRoleSwitchBtn('Teacher', Icons.cast_for_education, () => nav.navigateTo('teacher-login')),
+                _buildRoleSwitchBtn(
+                  'Teacher',
+                  Icons.cast_for_education,
+                  () => nav.navigateTo('teacher-login'),
+                ),
                 const SizedBox(width: 8),
-                _buildRoleSwitchBtn('Student', Icons.school, () => nav.navigateTo('student-login')),
+                _buildRoleSwitchBtn(
+                  'Student',
+                  Icons.school,
+                  () => nav.navigateTo('student-login'),
+                ),
               ],
             ),
           ],
@@ -203,7 +239,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           children: [
             Icon(icon, size: 13, color: Colors.white),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -223,21 +266,29 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               children: [
                 const Text(
                   'Admin Sign In',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _handleDemoFill,
                   icon: Icon(
                     _autoFilled ? Icons.check : Icons.bolt,
                     size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.adminPrimary,
+                    color: _autoFilled
+                        ? AppColors.accentGreen
+                        : AppColors.adminPrimary,
                   ),
                   label: Text(
                     _autoFilled ? 'Filled!' : 'Demo Fill',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.adminPrimary,
+                      color: _autoFilled
+                          ? AppColors.accentGreen
+                          : AppColors.adminPrimary,
                     ),
                   ),
                 ),
@@ -257,12 +308,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(auth.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                child: Text(
+                  auth.errorMessage!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                ),
               ),
               const SizedBox(height: 16),
             ],
 
-            const Text('Institute Code', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Institute Code',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _codeController,
@@ -273,7 +330,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             ),
             const SizedBox(height: 16),
 
-            const Text('Admin Email Address', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Admin Email Address',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _emailController,
@@ -282,11 +342,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 hintText: 'amit.kumar@institute.com',
                 prefixIcon: Icon(Icons.email_outlined, size: 18),
               ),
-              validator: (v) => v == null || !v.contains('@') ? 'Valid admin email required' : null,
+              validator: (v) => v == null || !v.contains('@')
+                  ? 'Valid admin email required'
+                  : null,
             ),
             const SizedBox(height: 16),
 
-            const Text('Password', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Password',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _passwordController,
@@ -295,11 +360,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 hintText: '••••••••',
                 prefixIcon: const Icon(Icons.lock_outline, size: 18),
                 suffixIcon: IconButton(
-                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                    size: 18,
+                  ),
+                  onPressed: () =>
+                      setState(() => _showPassword = !_showPassword),
                 ),
               ),
-              validator: (v) => v == null || v.isEmpty ? 'Password required' : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Password required' : null,
             ),
             const SizedBox(height: 14),
 
@@ -310,16 +380,28 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   children: [
                     Checkbox(
                       value: _rememberMe,
-                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _rememberMe = v ?? false),
                     ),
-                    const Text('Remember me', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                    const Text(
+                      'Remember me',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
                 InkWell(
-                  onTap: () => nav.navigateTo('forgot-password', {'role': 'admin'}),
+                  onTap: () =>
+                      nav.navigateTo('forgot-password', {'role': 'admin'}),
                   child: const Text(
                     'Forgot password?',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.adminPrimary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.adminPrimary,
+                    ),
                   ),
                 ),
               ],
@@ -331,9 +413,18 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: auth.isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.adminPrimary,
+                ),
                 child: auth.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Sign In as Admin'),
               ),
             ),
@@ -343,4 +434,3 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     );
   }
 }
-

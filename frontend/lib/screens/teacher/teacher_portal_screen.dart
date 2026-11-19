@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/user_model.dart';
@@ -581,7 +581,9 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           userId: user?.instructorId?.isNotEmpty == true
               ? user!.instructorId!
               : (user?.id.isNotEmpty == true ? user!.id : 'INS-2025-001'),
-          userName: user?.name.isNotEmpty == true ? user!.name : 'Prof. Rajesh Verma',
+          userName: user?.name.isNotEmpty == true
+              ? user!.name
+              : 'Prof. Rajesh Verma',
           userEmail: user?.email,
         );
       case 'dashboard':

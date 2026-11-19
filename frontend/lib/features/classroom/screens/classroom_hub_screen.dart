@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../models/instructor_model.dart';
 import '../../../providers/instructor_provider.dart';
 import '../models/classroom_model.dart';
 import '../providers/classroom_provider.dart';
@@ -22,6 +23,7 @@ class ClassroomHubScreen extends StatefulWidget {
     required this.userId,
     required this.userName,
     this.userEmail,
+    this.onNavigate,
   });
 
   /// True if teacher, false if student (backward compatible)
@@ -33,6 +35,7 @@ class ClassroomHubScreen extends StatefulWidget {
   final String userId;
   final String userName;
   final String? userEmail;
+  final void Function(String screenName, {String? param})? onNavigate;
 
   @override
   State<ClassroomHubScreen> createState() => _ClassroomHubScreenState();
@@ -40,7 +43,10 @@ class ClassroomHubScreen extends StatefulWidget {
 
 class _QuizQuestionEditor {
   final TextEditingController prompt = TextEditingController();
-  final List<TextEditingController> options = List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> options = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   int correctIndex = 0;
 
   void dispose() {
@@ -70,8 +76,13 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   ClassroomModel? _selected;
   String _query = '';
   String _subject = 'All subjects';
+  String _assignmentQuery = '';
+  String _assignmentStatus = 'All work';
+  String _teacherFilter = 'All instructors';
+  String _classSort = 'Newest first';
   bool _showArchived = false;
-  int _activeDetailTab = 0; // 0: Stream, 1: Classwork, 2: Grades, 3: Attendance, 4: Materials, 5: People, 6: Analytics
+  int _activeDetailTab =
+      0; // 0: Stream, 1: Classwork, 2: Grades, 3: Attendance, 4: Materials, 5: People, 6: Analytics
 
   ClassroomRole get _role {
     if (widget.userRole != null && widget.userRole!.isNotEmpty) {
@@ -102,10 +113,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   @override
   void didUpdateWidget(covariant ClassroomHubScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.userId != widget.userId || oldWidget.userRole != widget.userRole) {
+    if (oldWidget.userId != widget.userId ||
+        oldWidget.userRole != widget.userRole) {
       _selected = null;
       _query = '';
       _subject = 'All subjects';
+      _teacherFilter = 'All instructors';
+      _classSort = 'Newest first';
+      _assignmentQuery = '';
+      _assignmentStatus = 'All work';
       _showArchived = false;
       _activeDetailTab = 0;
     }
@@ -124,8 +140,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     final classrooms = _showArchived
         ? provider.archivedForRole(_role, widget.userId)
         : provider.forRole(_role, widget.userId);
-    final selectedCandidate = _selected == null ? null : provider.byId(_selected!.id);
-    final selected = selectedCandidate != null && provider.canAccessClass(selectedCandidate, _role, widget.userId)
+    final selectedCandidate = _selected == null
+        ? null
+        : provider.byId(_selected!.id);
+    final selected =
+        selectedCandidate != null &&
+            provider.canAccessClass(selectedCandidate, _role, widget.userId)
         ? selectedCandidate
         : null;
 
@@ -144,38 +164,70 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // 1. Grid of Classrooms
   // ==========================================
 
-  Widget _buildClassroomsGrid(List<ClassroomModel> source, ClassroomProvider provider) {
+  Widget _buildClassroomsGrid(
+    List<ClassroomModel> source,
+    ClassroomProvider provider,
+  ) {
     final subjects = <String>{
       'All subjects',
       ...source.map((e) => e.subject).where((s) => s.isNotEmpty),
     }.toList();
 
     final filtered = source.where((item) {
-      final matchesQuery = '${item.name} ${item.subject} ${item.section} ${item.teacherName} ${item.code}'
-          .toLowerCase()
-          .contains(_query.toLowerCase());
-      final matchesSubject = _subject == 'All subjects' || item.subject == _subject;
-      return matchesQuery && matchesSubject;
+      final matchesQuery =
+          '${item.name} ${item.subject} ${item.section} ${item.teacherName} ${item.code}'
+              .toLowerCase()
+              .contains(_query.toLowerCase());
+      final matchesSubject =
+          _subject == 'All subjects' || item.subject == _subject;
+      final matchesTeacher =
+          _teacherFilter == 'All instructors' ||
+          item.teacherName == _teacherFilter;
+      return matchesQuery && matchesSubject && matchesTeacher;
     }).toList();
+
+    filtered.sort((a, b) {
+      switch (_classSort) {
+        case 'A to Z':
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case 'Most students':
+          return b.studentIds.length.compareTo(a.studentIds.length);
+        case 'Most assignments':
+          return provider
+              .assignmentsFor(b.id, includeDrafts: !_isStudent)
+              .length
+              .compareTo(
+                provider
+                    .assignmentsFor(a.id, includeDrafts: !_isStudent)
+                    .length,
+              );
+        case 'Attendance':
+          return provider
+              .calculateClassAttendanceRate(b.id)
+              .compareTo(provider.calculateClassAttendanceRate(a.id));
+        default:
+          return b.createdAt.compareTo(a.createdAt);
+      }
+    });
 
     final unreadCount = provider.unreadNotificationsCount(widget.userId);
     final pageTitle = _showArchived
         ? 'Archived Classrooms'
         : _isTeacher
-            ? 'Teacher Classrooms'
-            : _isAdmin
-                ? 'Classroom Oversight & LMS'
-                : 'My Enrolled Classrooms';
-    final roleColor = _isTeacher
-        ? AppColors.secondary
+        ? 'Teacher Classrooms'
         : _isAdmin
-            ? AppColors.adminPrimary
-            : AppColors.primary;
+        ? 'Classroom Oversight & LMS'
+        : 'My Enrolled Classrooms';
+    final roleColor = _isTeacher
+        ? AppColors.teacherPrimary
+        : _isAdmin
+        ? AppColors.adminPrimary
+        : AppColors.studentPrimary;
     final pageSummary = _isTeacher
         ? 'Manage your assigned classes, create coursework, grade submissions, and track attendance.'
         : _isAdmin
-            ? 'Institution-wide view across all active faculty classes, rosters, and academic performance.'
-            : 'Access your coursework, turn in assignments, check grades, and view study materials.';
+        ? 'Institution-wide view across all active faculty classes, rosters, and academic performance.'
+        : 'Access your coursework, turn in assignments, check grades, and view study materials.';
     final titleBlock = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -184,18 +236,41 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(pageTitle, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+            Text(
+              pageTitle,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textMain,
+              ),
+            ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: roleColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-              child: Text(_role.name.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: roleColor)),
+              decoration: BoxDecoration(
+                color: roleColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                _role.name.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: roleColor,
+                ),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 4),
-        Text(pageSummary, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+        Text(
+          pageSummary,
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+        ),
         const SizedBox(height: 4),
-        const Text('Classroom changes are saved on this device only.', style: TextStyle(color: AppColors.textLight, fontSize: 11)),
+        const Text(
+          'Classroom changes are saved on this device only.',
+          style: TextStyle(color: AppColors.textLight, fontSize: 11),
+        ),
       ],
     );
     final actions = Wrap(
@@ -217,23 +292,33 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             onPressed: _showArchived ? null : () => _showClassroomFormDialog(),
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Create Classroom'),
-            style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+            style: FilledButton.styleFrom(
+              backgroundColor: roleColor,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
           ),
         if (_isStudent)
           FilledButton.icon(
             onPressed: _showJoinClassDialog,
             icon: const Icon(Icons.vpn_key_outlined, size: 18),
             label: const Text('Join with Code'),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.studentPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
           ),
         if (_isTeacher || _isAdmin)
           IconButton(
-            tooltip: _showArchived ? 'Show active classrooms' : 'Show archived classrooms',
+            tooltip: _showArchived
+                ? 'Show active classrooms'
+                : 'Show archived classrooms',
             onPressed: () => setState(() {
               _showArchived = !_showArchived;
               _selected = null;
             }),
-            icon: Icon(_showArchived ? Icons.inventory_2 : Icons.archive_outlined),
+            icon: Icon(
+              _showArchived ? Icons.inventory_2 : Icons.archive_outlined,
+            ),
           ),
       ],
     );
@@ -244,9 +329,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         prefixIcon: const Icon(Icons.search, size: 20),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
       ),
     );
     final subjectField = DropdownButtonFormField<String>(
@@ -254,17 +348,73 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
       ),
-      items: subjects.map((subject) => DropdownMenuItem(value: subject, child: Text(subject, overflow: TextOverflow.ellipsis))).toList(),
+      items: subjects
+          .map(
+            (subject) => DropdownMenuItem(
+              value: subject,
+              child: Text(subject, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
       onChanged: (value) => setState(() => _subject = value ?? 'All subjects'),
     );
+    final instructors = <String>{
+      'All instructors',
+      ...source
+          .map((item) => item.teacherName)
+          .where((name) => name.isNotEmpty),
+    }.toList();
+    final instructorField = DropdownButtonFormField<String>(
+      initialValue: instructors.contains(_teacherFilter)
+          ? _teacherFilter
+          : 'All instructors',
+      decoration: const InputDecoration(labelText: 'Instructor', isDense: true),
+      items: instructors
+          .map(
+            (name) => DropdownMenuItem(
+              value: name,
+              child: Text(name, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
+      onChanged: (value) =>
+          setState(() => _teacherFilter = value ?? 'All instructors'),
+    );
+    final sortField = DropdownButtonFormField<String>(
+      initialValue: _classSort,
+      decoration: const InputDecoration(labelText: 'Sort by', isDense: true),
+      items:
+          const [
+                'Newest first',
+                'A to Z',
+                'Most students',
+                'Most assignments',
+                'Attendance',
+              ]
+              .map(
+                (value) => DropdownMenuItem(value: value, child: Text(value)),
+              )
+              .toList(),
+      onChanged: (value) =>
+          setState(() => _classSort = value ?? 'Newest first'),
+    );
     final adminJoinAction = OutlinedButton.icon(
-      onPressed: _showJoinClassDialog,
+      onPressed: _showInspectClassDialog,
       icon: const Icon(Icons.add_link, size: 16),
-      label: const Text('Join by Code'),
+      label: const Text('Open by Code'),
     );
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -292,41 +442,81 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 final icon = Container(
                   width: 54,
                   height: 54,
-                  decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(14)),
-                  child: const Icon(Icons.school_rounded, color: AppColors.primary, size: 30),
+                  decoration: BoxDecoration(
+                    color: roleColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(Icons.school_rounded, color: roleColor, size: 30),
                 );
                 final intro = Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [icon, const SizedBox(width: 16), Expanded(child: titleBlock)],
+                  children: [
+                    icon,
+                    const SizedBox(width: 16),
+                    Expanded(child: titleBlock),
+                  ],
                 );
                 if (compact) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [intro, const SizedBox(height: 12), Align(alignment: Alignment.centerRight, child: actions)],
+                    children: [
+                      intro,
+                      const SizedBox(height: 12),
+                      Align(alignment: Alignment.centerRight, child: actions),
+                    ],
                   );
                 }
-                return Row(children: [Expanded(child: intro), const SizedBox(width: 12), actions]);
+                return Row(
+                  children: [
+                    Expanded(child: intro),
+                    const SizedBox(width: 12),
+                    actions,
+                  ],
+                );
               },
             ),
           ),
 
           const SizedBox(height: 18),
 
+          if (_isStudent && !_showArchived) ...[
+            _buildStudentLearningOverview(source, provider),
+            const SizedBox(height: 20),
+          ],
+
+          if (_isTeacher && !_showArchived) ...[
+            _buildTeacherClassroomOverview(source, provider),
+            const SizedBox(height: 20),
+          ],
+
+          if (_isAdmin && !_showArchived) ...[
+            _buildAdminClassroomOverview(source, provider),
+            const SizedBox(height: 20),
+          ],
+
           // Filters adapt to narrow portal widths.
           LayoutBuilder(
             builder: (context, constraints) {
-              if (constraints.maxWidth < 640) {
+              if (constraints.maxWidth < 900) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     searchField,
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(child: subjectField),
-                        if (_isAdmin) ...[const SizedBox(width: 8), adminJoinAction],
-                      ],
-                    ),
+                    subjectField,
+                    if (_isAdmin) ...[
+                      const SizedBox(height: 8),
+                      instructorField,
+                    ],
+                    const SizedBox(height: 8),
+                    sortField,
+                    if (_isAdmin) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: adminJoinAction,
+                      ),
+                    ],
                   ],
                 );
               }
@@ -335,6 +525,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   Expanded(flex: 2, child: searchField),
                   const SizedBox(width: 12),
                   Expanded(flex: 1, child: subjectField),
+                  if (_isAdmin) ...[
+                    const SizedBox(width: 12),
+                    Expanded(flex: 1, child: instructorField),
+                  ],
+                  const SizedBox(width: 12),
+                  Expanded(flex: 1, child: sortField),
                   if (_isAdmin) ...[const SizedBox(width: 12), adminJoinAction],
                 ],
               );
@@ -366,9 +562,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final item = filtered[index];
-                    final canManage = provider.canManageClass(item, _role, widget.userId);
-                    final assignments = provider.assignmentsFor(item.id, includeDrafts: !_isStudent);
-                    final attRate = provider.calculateClassAttendanceRate(item.id);
+                    final canManage = provider.canManageClass(
+                      item,
+                      _role,
+                      widget.userId,
+                    );
+                    final assignments = provider.assignmentsFor(
+                      item.id,
+                      includeDrafts: !_isStudent,
+                    );
+                    final attRate = provider.calculateClassAttendanceRate(
+                      item.id,
+                    );
 
                     return ClassroomCard(
                       classroom: item,
@@ -379,12 +584,22 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       onTap: () => setState(() {
                         _selected = item;
                         _activeDetailTab = 0;
+                        _assignmentQuery = '';
+                        _assignmentStatus = 'All work';
                         _materialTopic = 'All Topics';
-                        provider.recordRecentlyViewed(widget.userId, 'classroom', item.id, item.name, item.id);
+                        provider.recordRecentlyViewed(
+                          widget.userId,
+                          'classroom',
+                          item.id,
+                          item.name,
+                          item.id,
+                        );
                       }),
                       onEdit: () => _showClassroomFormDialog(existing: item),
                       onDelete: () => _confirmDeleteClass(item),
-                      onLeave: _isStudent ? () => _confirmLeaveClass(item) : null,
+                      onLeave: _isStudent
+                          ? () => _confirmLeaveClass(item)
+                          : null,
                     );
                   },
                 );
@@ -394,6 +609,1389 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       ),
     );
   }
+
+  Widget _buildStudentLearningOverview(
+    List<ClassroomModel> classrooms,
+    ClassroomProvider provider,
+  ) {
+    final work = <Map<String, dynamic>>[];
+    final announcements = <Map<String, dynamic>>[];
+    var submittedCount = 0;
+    var gradedCount = 0;
+    var attendanceTotal = 0.0;
+
+    for (final classroom in classrooms) {
+      attendanceTotal += provider.calculateStudentAttendance(
+        classroom.id,
+        widget.userId,
+      );
+      for (final assignment in provider.assignmentsFor(
+        classroom.id,
+        includeDrafts: false,
+      )) {
+        final submission = provider.submissionFor(assignment.id, widget.userId);
+        if (submission == null) {
+          work.add({
+            'classroom': classroom,
+            'assignment': assignment,
+            'submission': null,
+          });
+        } else {
+          submittedCount++;
+          if (submission.marks != null) gradedCount++;
+        }
+      }
+      for (final post
+          in provider
+              .postsFor(classroom.id)
+              .where((item) => item.authorRole != 'student')
+              .take(2)) {
+        announcements.add({'classroom': classroom, 'post': post});
+      }
+    }
+
+    work.sort((a, b) {
+      final aDue = (a['assignment'] as ClassroomAssignment).dueAt;
+      final bDue = (b['assignment'] as ClassroomAssignment).dueAt;
+      if (aDue == null) return bDue == null ? 0 : 1;
+      if (bDue == null) return -1;
+      return aDue.compareTo(bDue);
+    });
+    announcements.sort(
+      (a, b) => (b['post'] as ClassroomPost).createdAt.compareTo(
+        (a['post'] as ClassroomPost).createdAt,
+      ),
+    );
+    final upcoming = work.take(3).toList();
+    final attendance = classrooms.isEmpty
+        ? 0
+        : attendanceTotal / classrooms.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your learning at a glance',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'A quick view of your courses, coursework, and progress.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _showNotificationsSheet(provider),
+              icon: const Icon(Icons.notifications_none_rounded, size: 17),
+              label: const Text('Notifications'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final count = constraints.maxWidth >= 760
+                ? 4
+                : (constraints.maxWidth >= 430 ? 2 : 1);
+            final width = (constraints.maxWidth - (count - 1) * 12) / count;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _overviewMetric(
+                  'Enrolled courses',
+                  '${classrooms.length}',
+                  Icons.menu_book_outlined,
+                  AppColors.studentPrimary,
+                  width,
+                ),
+                _overviewMetric(
+                  'To do',
+                  '${work.length}',
+                  Icons.pending_actions_rounded,
+                  AppColors.warning,
+                  width,
+                ),
+                _overviewMetric(
+                  'Turned in',
+                  '$submittedCount',
+                  Icons.task_alt_rounded,
+                  AppColors.success,
+                  width,
+                  detail: '$gradedCount graded',
+                ),
+                _overviewMetric(
+                  'Attendance',
+                  '${attendance.round()}%',
+                  Icons.event_available_outlined,
+                  AppColors.primary,
+                  width,
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 700;
+            final deadlines = _overviewPanel(
+              title: 'Upcoming work',
+              subtitle: work.isEmpty
+                  ? 'You are all caught up.'
+                  : '${work.length} assignment${work.length == 1 ? '' : 's'} still to submit',
+              icon: Icons.schedule_rounded,
+              child: work.isEmpty
+                  ? _overviewEmpty('New assignments will show up here.')
+                  : Column(
+                      children: upcoming.map((item) {
+                        final classroom = item['classroom'] as ClassroomModel;
+                        final assignment =
+                            item['assignment'] as ClassroomAssignment;
+                        final due = assignment.dueAt;
+                        final now = DateTime.now();
+                        final isLate =
+                            due != null &&
+                            DateTime(
+                              due.year,
+                              due.month,
+                              due.day,
+                            ).isBefore(DateTime(now.year, now.month, now.day));
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 17,
+                            backgroundColor: isLate
+                                ? AppColors.errorBg
+                                : AppColors.primaryLight,
+                            child: Icon(
+                              isLate
+                                  ? Icons.warning_amber_rounded
+                                  : Icons.assignment_outlined,
+                              size: 17,
+                              color: isLate
+                                  ? AppColors.error
+                                  : AppColors.primary,
+                            ),
+                          ),
+                          title: Text(
+                            assignment.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${classroom.name} · ${due == null ? 'No due date' : (isLate ? 'Overdue · ' : 'Due ') + _dateFormat.format(due)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isLate
+                                  ? AppColors.error
+                                  : AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 19,
+                            color: AppColors.textLight,
+                          ),
+                          onTap: () => setState(() {
+                            _selected = classroom;
+                            _activeDetailTab = 3;
+                            _assignmentQuery = '';
+                            _assignmentStatus = 'All work';
+                          }),
+                        );
+                      }).toList(),
+                    ),
+            );
+            final news = _overviewPanel(
+              title: 'Class announcements',
+              subtitle: 'The latest updates from your instructors',
+              icon: Icons.campaign_outlined,
+              child: announcements.isEmpty
+                  ? _overviewEmpty(
+                      'Instructor announcements will show up here.',
+                    )
+                  : Column(
+                      children: announcements.take(3).map((item) {
+                        final classroom = item['classroom'] as ClassroomModel;
+                        final post = item['post'] as ClassroomPost;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: const CircleAvatar(
+                            radius: 17,
+                            backgroundColor: Color(0xFFF3E8FF),
+                            child: Icon(
+                              Icons.campaign_outlined,
+                              size: 17,
+                              color: AppColors.studentPrimary,
+                            ),
+                          ),
+                          title: Text(
+                            classroom.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            post.text,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 19,
+                            color: AppColors.textLight,
+                          ),
+                          onTap: () => setState(() {
+                            _selected = classroom;
+                            _activeDetailTab = 1;
+                          }),
+                        );
+                      }).toList(),
+                    ),
+            );
+            return compact
+                ? Column(
+                    children: [deadlines, const SizedBox(height: 12), news],
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: deadlines),
+                      const SizedBox(width: 12),
+                      Expanded(child: news),
+                    ],
+                  );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTeacherClassroomOverview(
+    List<ClassroomModel> classrooms,
+    ClassroomProvider provider,
+  ) {
+    final assignments = <Map<String, dynamic>>[];
+    final reviews = <Map<String, dynamic>>[];
+    final announcements = <Map<String, dynamic>>[];
+    var studentCount = 0;
+    var attendanceTotal = 0.0;
+
+    for (final classroom in classrooms) {
+      studentCount += classroom.studentIds.length;
+      attendanceTotal += provider.calculateClassAttendanceRate(classroom.id);
+      for (final assignment in provider.assignmentsFor(
+        classroom.id,
+        includeDrafts: false,
+      )) {
+        assignments.add({'classroom': classroom, 'assignment': assignment});
+        for (final submission in provider.submissionsFor(assignment.id)) {
+          if (submission.marks == null) {
+            reviews.add({
+              'classroom': classroom,
+              'assignment': assignment,
+              'submission': submission,
+            });
+          }
+        }
+      }
+      for (final post in provider.postsFor(classroom.id).take(2)) {
+        announcements.add({'classroom': classroom, 'post': post});
+      }
+    }
+
+    assignments.sort((a, b) {
+      final aDue = (a['assignment'] as ClassroomAssignment).dueAt;
+      final bDue = (b['assignment'] as ClassroomAssignment).dueAt;
+      if (aDue == null) return bDue == null ? 0 : 1;
+      if (bDue == null) return -1;
+      return aDue.compareTo(bDue);
+    });
+    reviews.sort((a, b) {
+      final aSubmission = a['submission'] as ClassroomSubmission;
+      final bSubmission = b['submission'] as ClassroomSubmission;
+      return aSubmission.submittedAt.compareTo(bSubmission.submittedAt);
+    });
+    announcements.sort(
+      (a, b) => (b['post'] as ClassroomPost).createdAt.compareTo(
+        (a['post'] as ClassroomPost).createdAt,
+      ),
+    );
+    final attendance = classrooms.isEmpty
+        ? 0
+        : attendanceTotal / classrooms.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Teaching overview',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Your classes, student progress, and work that needs attention.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _showNotificationsSheet(provider),
+              icon: const Icon(Icons.notifications_none_rounded, size: 17),
+              label: const Text('Notifications'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final count = constraints.maxWidth >= 900
+                ? 5
+                : constraints.maxWidth >= 540
+                ? 3
+                : 2;
+            final width = (constraints.maxWidth - (count - 1) * 12) / count;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _overviewMetric(
+                  'Assigned classes',
+                  '${classrooms.length}',
+                  Icons.class_outlined,
+                  AppColors.teacherPrimary,
+                  width,
+                ),
+                _overviewMetric(
+                  'Students',
+                  '$studentCount',
+                  Icons.people_outline_rounded,
+                  AppColors.primary,
+                  width,
+                ),
+                _overviewMetric(
+                  'Assignments',
+                  '${assignments.length}',
+                  Icons.assignment_outlined,
+                  AppColors.accentPurple,
+                  width,
+                ),
+                _overviewMetric(
+                  'To grade',
+                  '${reviews.length}',
+                  Icons.rate_review_outlined,
+                  AppColors.warning,
+                  width,
+                ),
+                _overviewMetric(
+                  'Avg. attendance',
+                  '${attendance.round()}%',
+                  Icons.event_available_outlined,
+                  AppColors.success,
+                  width,
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 700;
+            final reviewPanel = _overviewPanel(
+              title: 'Needs grading',
+              subtitle: reviews.isEmpty
+                  ? 'You are all caught up.'
+                  : '${reviews.length} submission${reviews.length == 1 ? '' : 's'} awaiting review',
+              icon: Icons.rate_review_outlined,
+              color: AppColors.teacherPrimary,
+              child: reviews.isEmpty
+                  ? _overviewEmpty('New student submissions will appear here.')
+                  : Column(
+                      children: reviews.take(3).map((item) {
+                        final classroom = item['classroom'] as ClassroomModel;
+                        final assignment =
+                            item['assignment'] as ClassroomAssignment;
+                        final submission =
+                            item['submission'] as ClassroomSubmission;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: const CircleAvatar(
+                            radius: 17,
+                            backgroundColor: AppColors.warningBg,
+                            child: Icon(
+                              Icons.person_outline,
+                              size: 17,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                          title: Text(
+                            submission.studentName.isEmpty
+                                ? submission.studentId
+                                : submission.studentName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${assignment.title} · ${classroom.name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 19,
+                            color: AppColors.textLight,
+                          ),
+                          onTap: () => setState(() {
+                            _selected = classroom;
+                            _activeDetailTab = 3;
+                            _assignmentQuery = '';
+                            _assignmentStatus = 'All work';
+                          }),
+                        );
+                      }).toList(),
+                    ),
+            );
+            final deadlinesPanel = _overviewPanel(
+              title: 'Assignment deadlines',
+              subtitle: assignments.isEmpty
+                  ? 'No published assignments yet.'
+                  : 'The next deadlines across your classes',
+              icon: Icons.schedule_rounded,
+              color: AppColors.teacherPrimary,
+              child: assignments.isEmpty
+                  ? _overviewEmpty(
+                      'Published assignments with deadlines will appear here.',
+                    )
+                  : Column(
+                      children: assignments
+                          .where(
+                            (item) =>
+                                (item['assignment'] as ClassroomAssignment)
+                                    .dueAt !=
+                                null,
+                          )
+                          .take(3)
+                          .map((item) {
+                            final classroom =
+                                item['classroom'] as ClassroomModel;
+                            final assignment =
+                                item['assignment'] as ClassroomAssignment;
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                              leading: const CircleAvatar(
+                                radius: 17,
+                                backgroundColor: AppColors.infoBg,
+                                child: Icon(
+                                  Icons.assignment_outlined,
+                                  size: 17,
+                                  color: AppColors.info,
+                                ),
+                              ),
+                              title: Text(
+                                assignment.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${classroom.name} · Due ${_dateFormat.format(assignment.dueAt!)}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              trailing: const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 19,
+                                color: AppColors.textLight,
+                              ),
+                              onTap: () => setState(() {
+                                _selected = classroom;
+                                _activeDetailTab = 3;
+                                _assignmentQuery = '';
+                                _assignmentStatus = 'All work';
+                              }),
+                            );
+                          })
+                          .toList(),
+                    ),
+            );
+            final activityPanel = _overviewPanel(
+              title: 'Recent class activity',
+              subtitle: 'The latest posts across your classrooms',
+              icon: Icons.forum_outlined,
+              color: AppColors.teacherPrimary,
+              child: announcements.isEmpty
+                  ? _overviewEmpty('Class announcements will appear here.')
+                  : Column(
+                      children: announcements.take(3).map((item) {
+                        final classroom = item['classroom'] as ClassroomModel;
+                        final post = item['post'] as ClassroomPost;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: const CircleAvatar(
+                            radius: 17,
+                            backgroundColor: AppColors.infoBg,
+                            child: Icon(
+                              Icons.forum_outlined,
+                              size: 17,
+                              color: AppColors.teacherPrimary,
+                            ),
+                          ),
+                          title: Text(
+                            classroom.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            post.text,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 19,
+                            color: AppColors.textLight,
+                          ),
+                          onTap: () => setState(() {
+                            _selected = classroom;
+                            _activeDetailTab = 1;
+                          }),
+                        );
+                      }).toList(),
+                    ),
+            );
+            if (compact) {
+              return Column(
+                children: [
+                  reviewPanel,
+                  const SizedBox(height: 12),
+                  deadlinesPanel,
+                  const SizedBox(height: 12),
+                  activityPanel,
+                ],
+              );
+            }
+            return Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: reviewPanel),
+                    const SizedBox(width: 12),
+                    Expanded(child: deadlinesPanel),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                activityPanel,
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdminClassroomOverview(
+    List<ClassroomModel> classrooms,
+    ClassroomProvider provider,
+  ) {
+    final reviews = <Map<String, dynamic>>[];
+    final deadlines = <Map<String, dynamic>>[];
+    final activity = <Map<String, dynamic>>[];
+    final performance = <Map<String, dynamic>>[];
+    final teacherStats = <String, Map<String, dynamic>>{};
+    final studentIds = <String>{};
+    var assignmentCount = 0;
+    var attendanceTotal = 0.0;
+    var atRiskStudentCount = 0;
+
+    for (final classroom in classrooms) {
+      studentIds.addAll(classroom.studentIds);
+      final analytics = provider.getClassroomAnalytics(classroom.id);
+      attendanceTotal += analytics.attendanceRate;
+      atRiskStudentCount += analytics.atRiskStudentIds.length;
+      performance.add({'classroom': classroom, 'analytics': analytics});
+
+      final teacherKey = classroom.teacherId.isEmpty
+          ? classroom.teacherName
+          : classroom.teacherId;
+      final stats = teacherStats.putIfAbsent(
+        teacherKey,
+        () => {
+          'key': teacherKey,
+          'name': classroom.teacherName,
+          'classes': 0,
+          'students': <String>{},
+          'scoreTotal': 0.0,
+          'scoreClasses': 0,
+          'attendanceTotal': 0.0,
+        },
+      );
+      stats['classes'] = (stats['classes'] as int) + 1;
+      (stats['students'] as Set<String>).addAll(classroom.studentIds);
+      stats['attendanceTotal'] =
+          (stats['attendanceTotal'] as double) + analytics.attendanceRate;
+      if (analytics.totalAssignments > 0) {
+        stats['scoreTotal'] =
+            (stats['scoreTotal'] as double) + analytics.averageScorePercentage;
+        stats['scoreClasses'] = (stats['scoreClasses'] as int) + 1;
+      }
+
+      for (final assignment in provider.assignmentsFor(
+        classroom.id,
+        includeDrafts: false,
+      )) {
+        assignmentCount++;
+        if (assignment.dueAt != null) {
+          deadlines.add({'classroom': classroom, 'assignment': assignment});
+        }
+        for (final submission in provider.submissionsFor(assignment.id)) {
+          if (submission.marks == null) {
+            reviews.add({
+              'classroom': classroom,
+              'assignment': assignment,
+              'submission': submission,
+            });
+          }
+        }
+      }
+      for (final post in provider.postsFor(classroom.id).take(2)) {
+        activity.add({'classroom': classroom, 'post': post});
+      }
+    }
+
+    deadlines.sort(
+      (a, b) => (a['assignment'] as ClassroomAssignment).dueAt!.compareTo(
+        (b['assignment'] as ClassroomAssignment).dueAt!,
+      ),
+    );
+    reviews.sort(
+      (a, b) => (a['submission'] as ClassroomSubmission).submittedAt.compareTo(
+        (b['submission'] as ClassroomSubmission).submittedAt,
+      ),
+    );
+    activity.sort(
+      (a, b) => (b['post'] as ClassroomPost).createdAt.compareTo(
+        (a['post'] as ClassroomPost).createdAt,
+      ),
+    );
+    performance.sort((a, b) {
+      final aAnalytics = a['analytics'] as ClassroomAnalyticsSummary;
+      final bAnalytics = b['analytics'] as ClassroomAnalyticsSummary;
+      return bAnalytics.atRiskStudentIds.length.compareTo(
+        aAnalytics.atRiskStudentIds.length,
+      );
+    });
+
+    final teacherRows = teacherStats.values.toList()
+      ..sort((a, b) {
+        final aScore = (a['scoreClasses'] as int) == 0
+            ? 0.0
+            : (a['scoreTotal'] as double) / (a['scoreClasses'] as int);
+        final bScore = (b['scoreClasses'] as int) == 0
+            ? 0.0
+            : (b['scoreTotal'] as double) / (b['scoreClasses'] as int);
+        return aScore.compareTo(bScore);
+      });
+    final attendance = classrooms.isEmpty
+        ? 0
+        : attendanceTotal / classrooms.length;
+
+    const overviewHeader = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Institutional classroom overview',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textMain,
+          ),
+        ),
+        SizedBox(height: 3),
+        Text(
+          'Monitor teaching activity, student progress, and academic operations.',
+          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
+      ],
+    );
+    final overviewActions = Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      alignment: WrapAlignment.end,
+      children: [
+        if (widget.onNavigate != null)
+          TextButton.icon(
+            onPressed: () => widget.onNavigate!('lecture-schedule'),
+            icon: const Icon(Icons.calendar_month_outlined, size: 17),
+            label: const Text('Master schedule'),
+          ),
+        TextButton.icon(
+          onPressed: () => _showNotificationsSheet(provider),
+          icon: const Icon(Icons.notifications_none_rounded, size: 17),
+          label: const Text('Notifications'),
+        ),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) => constraints.maxWidth < 700
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    overviewHeader,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: overviewActions,
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: overviewHeader),
+                    overviewActions,
+                  ],
+                ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final count = constraints.maxWidth >= 1050
+                ? 6
+                : constraints.maxWidth >= 540
+                ? 3
+                : 2;
+            final width = (constraints.maxWidth - (count - 1) * 12) / count;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _overviewMetric(
+                  'Classrooms',
+                  '${classrooms.length}',
+                  Icons.class_outlined,
+                  AppColors.adminPrimary,
+                  width,
+                ),
+                _overviewMetric(
+                  'Instructors',
+                  '${teacherStats.length}',
+                  Icons.badge_outlined,
+                  AppColors.teacherPrimary,
+                  width,
+                ),
+                _overviewMetric(
+                  'Unique students',
+                  '${studentIds.length}',
+                  Icons.people_outline_rounded,
+                  AppColors.primary,
+                  width,
+                ),
+                _overviewMetric(
+                  'Published work',
+                  '$assignmentCount',
+                  Icons.assignment_outlined,
+                  AppColors.accentPurple,
+                  width,
+                ),
+                _overviewMetric(
+                  'At-risk enrollments',
+                  '$atRiskStudentCount',
+                  Icons.warning_amber_rounded,
+                  AppColors.warning,
+                  width,
+                ),
+                _overviewMetric(
+                  'Avg. attendance',
+                  '${attendance.round()}%',
+                  Icons.event_available_outlined,
+                  AppColors.success,
+                  width,
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 720;
+            final reviewsPanel = _overviewPanel(
+              title: 'Grading oversight',
+              subtitle: reviews.isEmpty
+                  ? 'No ungraded submissions.'
+                  : '${reviews.length} submission${reviews.length == 1 ? '' : 's'} awaiting review institution-wide',
+              icon: Icons.rate_review_outlined,
+              color: AppColors.adminPrimary,
+              child: reviews.isEmpty
+                  ? _overviewEmpty('New submissions will appear here.')
+                  : Column(
+                      children: reviews.take(3).map((item) {
+                        final classroom = item['classroom'] as ClassroomModel;
+                        final assignment =
+                            item['assignment'] as ClassroomAssignment;
+                        final submission =
+                            item['submission'] as ClassroomSubmission;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: const CircleAvatar(
+                            radius: 17,
+                            backgroundColor: AppColors.warningBg,
+                            child: Icon(
+                              Icons.rate_review_outlined,
+                              size: 17,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                          title: Text(
+                            submission.studentName.isEmpty
+                                ? submission.studentId
+                                : submission.studentName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${assignment.title} · ${classroom.name} · ${classroom.teacherName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 19,
+                            color: AppColors.textLight,
+                          ),
+                          onTap: () => setState(() {
+                            _selected = classroom;
+                            _activeDetailTab = 3;
+                            _assignmentQuery = '';
+                            _assignmentStatus = 'Needs grading';
+                          }),
+                        );
+                      }).toList(),
+                    ),
+            );
+            final deadlinesPanel = _overviewPanel(
+              title: 'Upcoming deadlines',
+              subtitle: deadlines.isEmpty
+                  ? 'No assignment deadlines are scheduled.'
+                  : 'The next due dates across all classrooms',
+              icon: Icons.schedule_rounded,
+              color: AppColors.adminPrimary,
+              child: deadlines.isEmpty
+                  ? _overviewEmpty('Published due dates will appear here.')
+                  : Column(
+                      children: deadlines.take(3).map((item) {
+                        final classroom = item['classroom'] as ClassroomModel;
+                        final assignment =
+                            item['assignment'] as ClassroomAssignment;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: const CircleAvatar(
+                            radius: 17,
+                            backgroundColor: AppColors.infoBg,
+                            child: Icon(
+                              Icons.assignment_outlined,
+                              size: 17,
+                              color: AppColors.info,
+                            ),
+                          ),
+                          title: Text(
+                            assignment.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${classroom.name} · Due ${_dateFormat.format(assignment.dueAt!)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 19,
+                            color: AppColors.textLight,
+                          ),
+                          onTap: () => setState(() {
+                            _selected = classroom;
+                            _activeDetailTab = 3;
+                            _assignmentQuery = '';
+                            _assignmentStatus = 'All work';
+                          }),
+                        );
+                      }).toList(),
+                    ),
+            );
+            if (compact) {
+              return Column(
+                children: [
+                  reviewsPanel,
+                  const SizedBox(height: 12),
+                  deadlinesPanel,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: reviewsPanel),
+                const SizedBox(width: 12),
+                Expanded(child: deadlinesPanel),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 700;
+            final facultyPanel = _overviewPanel(
+              title: 'Instructor performance',
+              subtitle: teacherRows.isEmpty
+                  ? 'Instructor assignments will appear here.'
+                  : 'Performance summaries by assigned teaching staff',
+              icon: Icons.insights_outlined,
+              color: AppColors.adminPrimary,
+              child: teacherRows.isEmpty
+                  ? _overviewEmpty(
+                      'Create or assign a classroom to begin monitoring.',
+                    )
+                  : Column(
+                      children: teacherRows.take(4).map((stats) {
+                        final classes = stats['classes'] as int;
+                        final scoreClasses = stats['scoreClasses'] as int;
+                        final averageScore = scoreClasses == 0
+                            ? null
+                            : (stats['scoreTotal'] as double) / scoreClasses;
+                        final averageAttendance =
+                            (stats['attendanceTotal'] as double) / classes;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 17,
+                            backgroundColor: AppColors.primaryLight,
+                            child: Text(
+                              (stats['name'] as String).isNotEmpty
+                                  ? (stats['name'] as String)[0].toUpperCase()
+                                  : 'I',
+                              style: const TextStyle(
+                                color: AppColors.adminPrimary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            stats['name'] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '$classes class${classes == 1 ? '' : 'es'} · ${(stats['students'] as Set<String>).length} students · ${averageScore == null ? 'No grades yet' : 'Avg ${averageScore.round()}%'} · ${averageAttendance.round()}% attendance',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            size: 19,
+                            color: AppColors.textLight,
+                          ),
+                          onTap: () {
+                            final classroom = classrooms.firstWhere(
+                              (item) =>
+                                  (item.teacherId.isEmpty
+                                      ? item.teacherName
+                                      : item.teacherId) ==
+                                  stats['key'],
+                            );
+                            setState(() {
+                              _selected = classroom;
+                              _activeDetailTab = 12;
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+            );
+            final classPanel = _overviewPanel(
+              title: 'Student performance watch',
+              subtitle: performance.isEmpty
+                  ? 'No active classrooms to analyze.'
+                  : '$atRiskStudentCount at-risk class enrollments across ${classrooms.length} classes',
+              icon: Icons.monitor_heart_outlined,
+              color: AppColors.adminPrimary,
+              child: performance.isEmpty
+                  ? _overviewEmpty('Classroom performance will appear here.')
+                  : Column(
+                      children: performance.take(5).map((item) {
+                        final classroom = item['classroom'] as ClassroomModel;
+                        final analytics =
+                            item['analytics'] as ClassroomAnalyticsSummary;
+                        final riskCount = analytics.atRiskStudentIds.length;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 17,
+                            backgroundColor: riskCount > 0
+                                ? AppColors.warningBg
+                                : AppColors.successBg,
+                            child: Icon(
+                              riskCount > 0
+                                  ? Icons.warning_amber_rounded
+                                  : Icons.check_circle_outline,
+                              size: 17,
+                              color: riskCount > 0
+                                  ? AppColors.warning
+                                  : AppColors.success,
+                            ),
+                          ),
+                          title: Text(
+                            classroom.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${classroom.teacherName} · ${analytics.totalStudents} students · ${analytics.averageScorePercentage.round()}% avg grade · ${analytics.attendanceRate.round()}% attendance',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: riskCount > 0
+                                  ? AppColors.warningBg
+                                  : AppColors.successBg,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$riskCount at risk',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: riskCount > 0
+                                    ? AppColors.warning
+                                    : AppColors.success,
+                              ),
+                            ),
+                          ),
+                          onTap: () => setState(() {
+                            _selected = classroom;
+                            _activeDetailTab = 12;
+                          }),
+                        );
+                      }).toList(),
+                    ),
+            );
+            if (compact) {
+              return Column(
+                children: [
+                  facultyPanel,
+                  const SizedBox(height: 12),
+                  classPanel,
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: facultyPanel),
+                const SizedBox(width: 12),
+                Expanded(child: classPanel),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        _overviewPanel(
+          title: 'Recent institutional classroom activity',
+          subtitle: activity.isEmpty
+              ? 'No announcements have been posted.'
+              : 'Latest posts across all managed classrooms',
+          icon: Icons.forum_outlined,
+          color: AppColors.adminPrimary,
+          child: activity.isEmpty
+              ? _overviewEmpty('Posts and announcements will appear here.')
+              : Column(
+                  children: activity.take(3).map((item) {
+                    final classroom = item['classroom'] as ClassroomModel;
+                    final post = item['post'] as ClassroomPost;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      leading: const CircleAvatar(
+                        radius: 17,
+                        backgroundColor: AppColors.primaryLight,
+                        child: Icon(
+                          Icons.forum_outlined,
+                          size: 17,
+                          color: AppColors.adminPrimary,
+                        ),
+                      ),
+                      title: Text(
+                        classroom.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      subtitle: Text(
+                        post.text,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 19,
+                        color: AppColors.textLight,
+                      ),
+                      onTap: () => setState(() {
+                        _selected = classroom;
+                        _activeDetailTab = 1;
+                      }),
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _overviewMetric(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    double width, {
+    String? detail,
+  }) => SizedBox(
+    width: width,
+    child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .1),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: color, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
+                ),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                if (detail != null)
+                  Text(
+                    detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.success,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _overviewPanel({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Widget child,
+    Color color = AppColors.studentPrimary,
+  }) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    ),
+  );
+
+  Widget _overviewEmpty(String message) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 18),
+    child: Center(
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+      ),
+    ),
+  );
 
   Widget _buildEmptyState(bool hasNoClasses) {
     return Container(
@@ -415,12 +2013,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           Text(
             hasNoClasses
                 ? (_showArchived
-                    ? 'No archived classrooms'
-                    : _isTeacher
-                    ? 'No assigned classrooms yet'
-                    : _isStudent
-                    ? 'You are not enrolled in any classrooms'
-                    : 'No active classrooms found')
+                      ? 'No archived classrooms'
+                      : _isTeacher
+                      ? 'No assigned classrooms yet'
+                      : _isStudent
+                      ? 'You are not enrolled in any classrooms'
+                      : 'No active classrooms found')
                 : 'No classrooms match your query',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
@@ -428,10 +2026,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           Text(
             hasNoClasses
                 ? (_showArchived
-                    ? 'Archived classrooms you manage will appear here.'
-                    : _isTeacher
-                    ? 'Click "Create Classroom" to configure your first course and syllabus.'
-                    : 'Click "Join with Code" and enter the 6-character code provided by your instructor.')
+                      ? 'Archived classrooms you manage will appear here.'
+                      : _isTeacher
+                      ? 'Click "Create Classroom" to configure your first course and syllabus.'
+                      : 'Click "Join with Code" and enter the 6-character code provided by your instructor.')
                 : 'Try adjusting your search terms or subject filter.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.textMuted),
@@ -458,15 +2056,32 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // 2. Classroom Details (Inside a Classroom)
   // ==========================================
 
-  Widget _buildClassroomDetails(ClassroomModel classroom, ClassroomProvider provider) {
+  Widget _buildClassroomDetails(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) {
+    final detailAccent = _isTeacher
+        ? AppColors.teacherPrimary
+        : _isAdmin
+        ? AppColors.adminPrimary
+        : AppColors.studentPrimary;
     final canManage = provider.canManageClass(classroom, _role, widget.userId);
     final canGrade = provider.canGrade(classroom, _role, widget.userId);
-    final canTakeAttendance = provider.canTakeAttendance(classroom, _role, widget.userId);
+    final canTakeAttendance = provider.canTakeAttendance(
+      classroom,
+      _role,
+      widget.userId,
+    );
 
-    final assignments = provider.assignmentsFor(classroom.id, includeDrafts: !_isStudent);
+    final assignments = provider.assignmentsFor(
+      classroom.id,
+      includeDrafts: !_isStudent,
+    );
     final materials = provider.materialsFor(classroom.id);
     final analytics = provider.getClassroomAnalytics(classroom.id);
-    final studentProgress = _isStudent ? provider.getStudentProgress(classroom.id, widget.userId) : null;
+    final studentProgress = _isStudent
+        ? provider.getStudentProgress(classroom.id, widget.userId)
+        : null;
 
     final tabs = [
       {'title': 'Activity', 'icon': Icons.timeline},
@@ -508,28 +2123,44 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         Flexible(
                           child: Text(
                             classroom.name,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textMain,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            classroom.section.isNotEmpty ? classroom.section : classroom.subject,
-                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary),
+                            classroom.section.isNotEmpty
+                                ? classroom.section
+                                : classroom.subject,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     Text(
                       'Instructor: ${classroom.teacherName} · Code: ${classroom.code}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -540,7 +2171,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   Clipboard.setData(ClipboardData(text: classroom.code));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Classroom Code ${classroom.code} copied to clipboard!'),
+                      content: Text(
+                        'Classroom Code ${classroom.code} copied to clipboard!',
+                      ),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
@@ -548,20 +2181,28 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 icon: const Icon(Icons.copy, size: 14),
                 label: Text('Code: ${classroom.code}'),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               if (canManage)
                 PopupMenuButton<String>(
                   tooltip: 'Classroom Settings',
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   onSelected: (val) {
-                    if (val == 'edit') _showClassroomFormDialog(existing: classroom);
+                    if (val == 'edit')
+                      _showClassroomFormDialog(existing: classroom);
                     if (val == 'regen_code') {
                       final newCode = provider.regenerateCode(classroom.id);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Regenerated new class code: $newCode')),
+                        SnackBar(
+                          content: Text('Regenerated new class code: $newCode'),
+                        ),
                       );
                     }
                     if (val == 'delete') _confirmDeleteClass(classroom);
@@ -574,10 +2215,53 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     }
                   },
                   itemBuilder: (_) => [
-                    PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 16), SizedBox(width: 8), Text('Edit Details')])),
-                    PopupMenuItem(value: 'regen_code', child: Row(children: [Icon(Icons.refresh, size: 16), SizedBox(width: 8), Text('Regenerate Code')])),
-                    PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 16, color: AppColors.error), SizedBox(width: 8), Text('Delete Classroom', style: TextStyle(color: AppColors.error))])),
-                    PopupMenuItem(value: 'archive', child: Row(children: [Icon(Icons.archive_outlined, size: 16), SizedBox(width: 8), Text(_showArchived ? 'Restore Classroom' : 'Archive Classroom')])),
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 16),
+                          SizedBox(width: 8),
+                          Text('Edit Details'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'regen_code',
+                      child: Row(
+                        children: [
+                          Icon(Icons.refresh, size: 16),
+                          SizedBox(width: 8),
+                          Text('Regenerate Code'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 16, color: AppColors.error),
+                          SizedBox(width: 8),
+                          Text(
+                            'Delete Classroom',
+                            style: TextStyle(color: AppColors.error),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'archive',
+                      child: Row(
+                        children: [
+                          Icon(Icons.archive_outlined, size: 16),
+                          SizedBox(width: 8),
+                          Text(
+                            _showArchived
+                                ? 'Restore Classroom'
+                                : 'Archive Classroom',
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
             ],
@@ -615,18 +2299,28 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               children: [
                                 Text(
                                   classroom.name,
-                                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textMain,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${classroom.subject} · ${classroom.section}${classroom.room.isNotEmpty ? " · ${classroom.room}" : ""}',
-                                  style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                                 if (classroom.description.isNotEmpty) ...[
                                   const SizedBox(height: 8),
                                   Text(
                                     classroom.description,
-                                    style: const TextStyle(fontSize: 13, color: AppColors.textMain),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textMain,
+                                    ),
                                   ),
                                 ],
                               ],
@@ -634,12 +2328,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           ),
                           // Role Badge
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: _isTeacher
-                                  ? AppColors.secondary.withValues(alpha: 0.12)
+                                  ? AppColors.teacherPrimary.withValues(
+                                      alpha: 0.12,
+                                    )
                                   : _isAdmin
-                                  ? AppColors.adminPrimary.withValues(alpha: 0.12)
+                                  ? AppColors.adminPrimary.withValues(
+                                      alpha: 0.12,
+                                    )
                                   : AppColors.primaryLight,
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -653,7 +2354,7 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: _isTeacher
-                                    ? AppColors.secondary
+                                    ? AppColors.teacherPrimary
                                     : _isAdmin
                                     ? AppColors.adminPrimary
                                     : AppColors.primary,
@@ -670,14 +2371,28 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         spacing: 24,
                         runSpacing: 10,
                         children: [
-                          _buildDetailStat(Icons.people_outline, '${classroom.studentIds.length} Students', 'Enrolled Roster'),
-                          _buildDetailStat(Icons.assignment_outlined, '${assignments.length} Assignments', 'Coursework'),
-                          _buildDetailStat(Icons.folder_outlined, '${materials.length} Resources', 'Learning Materials'),
+                          _buildDetailStat(
+                            Icons.people_outline,
+                            '${classroom.studentIds.length} Students',
+                            'Enrolled Roster',
+                          ),
+                          _buildDetailStat(
+                            Icons.assignment_outlined,
+                            '${assignments.length} Assignments',
+                            'Coursework',
+                          ),
+                          _buildDetailStat(
+                            Icons.folder_outlined,
+                            '${materials.length} Resources',
+                            'Learning Materials',
+                          ),
                           _buildDetailStat(
                             Icons.check_circle_outline,
                             '${analytics.attendanceRate.round()}% Attendance',
                             'Class Presence',
-                            analytics.attendanceRate >= 75 ? AppColors.success : AppColors.warning,
+                            analytics.attendanceRate >= 75
+                                ? AppColors.success
+                                : AppColors.warning,
                           ),
                           if (_isStudent && studentProgress != null)
                             _buildDetailStat(
@@ -693,7 +2408,7 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               Icons.insights_outlined,
                               '${analytics.averageScorePercentage.round()}% Avg Score',
                               'Class Performance',
-                              AppColors.secondary,
+                              detailAccent,
                             ),
                         ],
                       ),
@@ -726,9 +2441,14 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       onTap: () => setState(() => _activeDetailTab = idx),
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primaryLight : Colors.transparent,
+                          color: isSelected
+                              ? detailAccent.withValues(alpha: 0.1)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
@@ -736,15 +2456,21 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                             Icon(
                               item['icon'] as IconData,
                               size: 17,
-                              color: isSelected ? AppColors.primary : AppColors.textMuted,
+                              color: isSelected
+                                  ? detailAccent
+                                  : AppColors.textMuted,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               item['title'] as String,
                               style: TextStyle(
                                 fontSize: 13,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                color: isSelected ? AppColors.primary : AppColors.textMain,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? detailAccent
+                                    : AppColors.textMain,
                               ),
                             ),
                           ],
@@ -775,7 +2501,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               _buildPeopleTab(classroom, provider, canManage),
               _buildGroupsTab(classroom, provider, canManage),
               _buildProgressTab(classroom, provider, studentProgress),
-              _buildAnalyticsTab(classroom, provider, analytics, studentProgress),
+              _buildAnalyticsTab(
+                classroom,
+                provider,
+                analytics,
+                studentProgress,
+              ),
               _buildRecentlyViewedTab(provider),
             ],
           ),
@@ -784,88 +2515,161 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Widget _buildActivityTab(ClassroomModel classroom, ClassroomProvider provider) {
+  Widget _buildActivityTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) {
     final events = provider.activitiesFor(classroom.id);
-    if (events.isEmpty) return _buildSectionEmpty('Classroom activity will appear here as people post, submit, and share resources.', Icons.timeline);
+    if (events.isEmpty)
+      return _buildSectionEmpty(
+        'Classroom activity will appear here as people post, submit, and share resources.',
+        Icons.timeline,
+      );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Classroom Activity Feed', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const Text(
+          'Classroom Activity Feed',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 4),
-        const Text('Updates are derived from activity saved in this device workspace.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+        const Text(
+          'Updates are derived from activity saved in this device workspace.',
+          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
         const SizedBox(height: 12),
-        ...events.map((event) => Card(
-              elevation: 0,
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.primaryLight,
-                  child: Icon(_activityIcon(event.type), color: AppColors.primary, size: 18),
+        ...events.map(
+          (event) => Card(
+            elevation: 0,
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.primaryLight,
+                child: Icon(
+                  _activityIcon(event.type),
+                  color: AppColors.primary,
+                  size: 18,
                 ),
-                title: Text(event.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('${event.description}\n${_dateFormat.format(event.timestamp)}', maxLines: 3, overflow: TextOverflow.ellipsis),
-                isThreeLine: true,
               ),
-            )),
+              title: Text(
+                event.title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                '${event.description}\n${_dateFormat.format(event.timestamp)}',
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              isThreeLine: true,
+            ),
+          ),
+        ),
       ],
     );
   }
 
   IconData _activityIcon(String type) => switch (type) {
-        'assignment' => Icons.assignment_outlined,
-        'quiz' => Icons.quiz_outlined,
-        'poll' => Icons.poll_outlined,
-        'material' => Icons.folder_open_outlined,
-        'attendance' => Icons.how_to_reg_outlined,
-        'submission' => Icons.upload_file_outlined,
-        'grade' => Icons.grade_outlined,
-        'question' => Icons.help_outline,
-        _ => Icons.campaign_outlined,
-      };
+    'assignment' => Icons.assignment_outlined,
+    'quiz' => Icons.quiz_outlined,
+    'poll' => Icons.poll_outlined,
+    'material' => Icons.folder_open_outlined,
+    'attendance' => Icons.how_to_reg_outlined,
+    'submission' => Icons.upload_file_outlined,
+    'grade' => Icons.grade_outlined,
+    'question' => Icons.help_outline,
+    _ => Icons.campaign_outlined,
+  };
 
-  Widget _buildCalendarTab(ClassroomModel classroom, ClassroomProvider provider) {
-    final assignments = provider.assignmentsFor(classroom.id, includeDrafts: !_isStudent)
-        .where((assignment) => assignment.dueAt != null)
-        .toList()
-      ..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
-    if (assignments.isEmpty) return _buildSectionEmpty('Assignments with due dates will appear here.', Icons.calendar_month_outlined);
+  Widget _buildCalendarTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) {
+    final assignments =
+        provider
+            .assignmentsFor(classroom.id, includeDrafts: !_isStudent)
+            .where((assignment) => assignment.dueAt != null)
+            .toList()
+          ..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
+    if (assignments.isEmpty)
+      return _buildSectionEmpty(
+        'Assignments with due dates will appear here.',
+        Icons.calendar_month_outlined,
+      );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Assignment Calendar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const Text(
+          'Assignment Calendar',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 4),
-        const Text('Deadlines are shown in local time. The Notification Center creates local reminders for assignments due today or tomorrow; it does not send push alerts.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+        const Text(
+          'Deadlines are shown in local time. The Notification Center creates local reminders for assignments due today or tomorrow; it does not send push alerts.',
+          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+        ),
         const SizedBox(height: 12),
         ...assignments.map((assignment) {
-          final submission = provider.submissionFor(assignment.id, widget.userId);
+          final submission = provider.submissionFor(
+            assignment.id,
+            widget.userId,
+          );
           final now = DateTime.now();
           final dueAt = assignment.dueAt!;
-          final days = DateTime(dueAt.year, dueAt.month, dueAt.day)
-              .difference(DateTime(now.year, now.month, now.day))
-              .inDays;
+          final days = DateTime(
+            dueAt.year,
+            dueAt.month,
+            dueAt.day,
+          ).difference(DateTime(now.year, now.month, now.day)).inDays;
           final status = assignment.isDraft
               ? 'Draft'
               : submission?.marks != null
-                  ? 'Graded'
-                  : submission != null
-                      ? 'Submitted'
-                      : days < 0
-                          ? 'Past due'
-                          : days == 0
-                              ? 'Due today'
-                              : 'Due in $days day${days == 1 ? '' : 's'}';
+              ? 'Graded'
+              : submission != null
+              ? 'Submitted'
+              : days < 0
+              ? 'Past due'
+              : days == 0
+              ? 'Due today'
+              : 'Due in $days day${days == 1 ? '' : 's'}';
           return Card(
             elevation: 0,
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
-              leading: Icon(Icons.event, color: days < 0 && submission == null ? AppColors.error : AppColors.primary),
-              title: Text(assignment.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('${_dateFormat.format(assignment.dueAt!)} · $status'),
-              trailing: _isStudent && submission == null && !assignment.isDraft && provider.canSubmitAssignment(assignment, classroom, widget.userId)
-                  ? TextButton(onPressed: () => setState(() => _activeDetailTab = 3), child: const Text('Submit'))
+              leading: Icon(
+                Icons.event,
+                color: days < 0 && submission == null
+                    ? AppColors.error
+                    : AppColors.primary,
+              ),
+              title: Text(
+                assignment.title,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                '${_dateFormat.format(assignment.dueAt!)} · $status',
+              ),
+              trailing:
+                  _isStudent &&
+                      submission == null &&
+                      !assignment.isDraft &&
+                      provider.canSubmitAssignment(
+                        assignment,
+                        classroom,
+                        widget.userId,
+                      )
+                  ? TextButton(
+                      onPressed: () => setState(() => _activeDetailTab = 3),
+                      child: const Text('Submit'),
+                    )
                   : null,
               onTap: () {
-                provider.recordRecentlyViewed(widget.userId, 'assignment', assignment.id, assignment.title, classroom.id);
+                provider.recordRecentlyViewed(
+                  widget.userId,
+                  'assignment',
+                  assignment.id,
+                  assignment.title,
+                  classroom.id,
+                );
                 setState(() => _activeDetailTab = 3);
               },
             ),
@@ -875,20 +2679,37 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Widget _buildQuizzesTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
+  Widget _buildQuizzesTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
     final quizzes = provider.quizzesFor(classroom.id, includeDrafts: canManage);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            const Expanded(child: Text('Online Quizzes & Tests', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
-            if (canManage) FilledButton.icon(onPressed: () => _showQuizDialog(classroom, provider), icon: const Icon(Icons.add, size: 16), label: const Text('Create Quiz')),
+            const Expanded(
+              child: Text(
+                'Online Quizzes & Tests',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ),
+            if (canManage)
+              FilledButton.icon(
+                onPressed: () => _showQuizDialog(classroom, provider),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Create Quiz'),
+              ),
           ],
         ),
         const SizedBox(height: 12),
         if (quizzes.isEmpty)
-          _buildSectionEmpty('No quizzes are available in this classroom yet.', Icons.quiz_outlined)
+          _buildSectionEmpty(
+            'No quizzes are available in this classroom yet.',
+            Icons.quiz_outlined,
+          )
         else
           ...quizzes.map((quiz) {
             final attempt = provider.quizAttemptFor(quiz.id, widget.userId);
@@ -898,12 +2719,39 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               elevation: 0,
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
-                leading: CircleAvatar(backgroundColor: AppColors.primaryLight, child: Icon(quiz.isDraft ? Icons.edit_note : Icons.quiz_outlined, color: AppColors.primary)),
-                title: Text(quiz.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('${quiz.questions.length} questions · ${quiz.durationMinutes} min · ${quiz.isDraft ? 'Draft' : (attempt == null ? (canTake ? 'Not attempted' : 'Closed') : 'Score ${attempt.score}/${attempt.maxScore}')}${canManage ? ' · ${attempts.length} attempts' : ''}'),
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.primaryLight,
+                  child: Icon(
+                    quiz.isDraft ? Icons.edit_note : Icons.quiz_outlined,
+                    color: AppColors.primary,
+                  ),
+                ),
+                title: Text(
+                  quiz.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  '${quiz.questions.length} questions · ${quiz.durationMinutes} min · ${quiz.isDraft ? 'Draft' : (attempt == null ? (canTake ? 'Not attempted' : 'Closed') : 'Score ${attempt.score}/${attempt.maxScore}')}${canManage ? ' · ${attempts.length} attempts' : ''}',
+                ),
                 trailing: canManage
-                    ? (quiz.isDraft ? TextButton(onPressed: () => provider.publishQuiz(classroom.id, quiz.id), child: const Text('Publish')) : null)
-                    : (attempt == null ? FilledButton(onPressed: canTake ? () => _showQuizAttemptDialog(quiz, provider) : null, child: const Text('Start')) : const Icon(Icons.check_circle, color: AppColors.success)),
+                    ? (quiz.isDraft
+                          ? TextButton(
+                              onPressed: () =>
+                                  provider.publishQuiz(classroom.id, quiz.id),
+                              child: const Text('Publish'),
+                            )
+                          : null)
+                    : (attempt == null
+                          ? FilledButton(
+                              onPressed: canTake
+                                  ? () => _showQuizAttemptDialog(quiz, provider)
+                                  : null,
+                              child: const Text('Start'),
+                            )
+                          : const Icon(
+                              Icons.check_circle,
+                              color: AppColors.success,
+                            )),
                 onTap: canManage && !quiz.isDraft && attempts.isNotEmpty
                     ? () => _showQuizResultsDialog(quiz, attempts)
                     : null,
@@ -914,20 +2762,37 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Widget _buildPollsTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
+  Widget _buildPollsTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
     final polls = provider.pollsFor(classroom.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            const Expanded(child: Text('Classroom Polls', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
-            if (canManage) FilledButton.icon(onPressed: () => _showPollDialog(classroom, provider), icon: const Icon(Icons.add, size: 16), label: const Text('Create Poll')),
+            const Expanded(
+              child: Text(
+                'Classroom Polls',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ),
+            if (canManage)
+              FilledButton.icon(
+                onPressed: () => _showPollDialog(classroom, provider),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Create Poll'),
+              ),
           ],
         ),
         const SizedBox(height: 12),
         if (polls.isEmpty)
-          _buildSectionEmpty('Polls created by the classroom team will appear here.', Icons.poll_outlined)
+          _buildSectionEmpty(
+            'Polls created by the classroom team will appear here.',
+            Icons.poll_outlined,
+          )
         else
           ...polls.map((poll) {
             final selected = poll.votes[widget.userId];
@@ -940,25 +2805,87 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(children: [Expanded(child: Text(poll.question, style: const TextStyle(fontWeight: FontWeight.w700))), if (canManage && !poll.isClosed) IconButton(tooltip: 'Close poll', onPressed: () => provider.closePoll(classroom.id, poll.id), icon: const Icon(Icons.lock_outline))]),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            poll.question,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        if (canManage && !poll.isClosed)
+                          IconButton(
+                            tooltip: 'Close poll',
+                            onPressed: () =>
+                                provider.closePoll(classroom.id, poll.id),
+                            icon: const Icon(Icons.lock_outline),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     ...List.generate(poll.options.length, (index) {
-                      final count = poll.votes.values.where((vote) => vote == index).length;
-                      final percentage = totalVotes == 0 ? 0.0 : count / totalVotes;
+                      final count = poll.votes.values
+                          .where((vote) => vote == index)
+                          .length;
+                      final percentage = totalVotes == 0
+                          ? 0.0
+                          : count / totalVotes;
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: _isStudent && selected == null && !poll.isClosed
-                            ? Radio<int>(value: index, groupValue: selected, onChanged: (value) { if (value != null) provider.votePoll(classroom.id, poll.id, widget.userId, value); })
-                            : Icon(selected == index ? Icons.check_circle : Icons.circle_outlined, color: selected == index ? AppColors.primary : AppColors.textLight),
+                        leading:
+                            _isStudent && selected == null && !poll.isClosed
+                            ? Radio<int>(
+                                value: index,
+                                groupValue: selected,
+                                onChanged: (value) {
+                                  if (value != null)
+                                    provider.votePoll(
+                                      classroom.id,
+                                      poll.id,
+                                      widget.userId,
+                                      value,
+                                    );
+                                },
+                              )
+                            : Icon(
+                                selected == index
+                                    ? Icons.check_circle
+                                    : Icons.circle_outlined,
+                                color: selected == index
+                                    ? AppColors.primary
+                                    : AppColors.textLight,
+                              ),
                         title: Text(poll.options[index]),
                         subtitle: selected != null || canManage || poll.isClosed
-                            ? LinearProgressIndicator(value: percentage, minHeight: 5)
+                            ? LinearProgressIndicator(
+                                value: percentage,
+                                minHeight: 5,
+                              )
                             : null,
-                        trailing: selected != null || canManage || poll.isClosed ? Text('$count') : null,
-                        onTap: _isStudent && selected == null && !poll.isClosed ? () => provider.votePoll(classroom.id, poll.id, widget.userId, index) : null,
+                        trailing: selected != null || canManage || poll.isClosed
+                            ? Text('$count')
+                            : null,
+                        onTap: _isStudent && selected == null && !poll.isClosed
+                            ? () => provider.votePoll(
+                                classroom.id,
+                                poll.id,
+                                widget.userId,
+                                index,
+                              )
+                            : null,
                       );
                     }),
-                    Text(poll.isClosed ? 'Poll closed · $totalVotes votes' : (selected == null ? 'Select an option to vote' : 'Your vote is saved on this device · $totalVotes votes'), style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                    Text(
+                      poll.isClosed
+                          ? 'Poll closed · $totalVotes votes'
+                          : (selected == null
+                                ? 'Select an option to vote'
+                                : 'Your vote is saved on this device · $totalVotes votes'),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -968,91 +2895,227 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Widget _buildGroupsTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
+  Widget _buildGroupsTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
     final groups = provider.groupsFor(classroom.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(children: [const Expanded(child: Text('Classroom Groups', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))), if (canManage && classroom.studentIds.isNotEmpty) FilledButton.icon(onPressed: () => _showGroupDialog(classroom, provider), icon: const Icon(Icons.group_add, size: 16), label: const Text('Create Group'))]),
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Classroom Groups',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ),
+            if (canManage && classroom.studentIds.isNotEmpty)
+              FilledButton.icon(
+                onPressed: () => _showGroupDialog(classroom, provider),
+                icon: const Icon(Icons.group_add, size: 16),
+                label: const Text('Create Group'),
+              ),
+          ],
+        ),
         const SizedBox(height: 12),
         if (groups.isEmpty)
-          _buildSectionEmpty('No student groups have been created.', Icons.groups_outlined)
+          _buildSectionEmpty(
+            'No student groups have been created.',
+            Icons.groups_outlined,
+          )
         else
-          ...groups.map((group) => Card(
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.groups_outlined, color: AppColors.primary),
-                  title: Text(group.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(group.memberIds.join(', ')),
-                  trailing: Text('${group.memberIds.length} members'),
+          ...groups.map(
+            (group) => Card(
+              elevation: 0,
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const Icon(
+                  Icons.groups_outlined,
+                  color: AppColors.primary,
                 ),
-              )),
+                title: Text(
+                  group.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(group.memberIds.join(', ')),
+                trailing: Text('${group.memberIds.length} members'),
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildProgressTab(ClassroomModel classroom, ClassroomProvider provider, StudentProgressSummary? studentProgress) {
-    final scoreRows = classroom.studentIds
-        .map((id) => MapEntry(id, provider.getStudentProgress(classroom.id, id)))
-        .toList()
-      ..sort((a, b) => b.value.averageGradePercentage.compareTo(a.value.averageGradePercentage));
+  Widget _buildProgressTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    StudentProgressSummary? studentProgress,
+  ) {
+    final scoreRows =
+        classroom.studentIds
+            .map(
+              (id) =>
+                  MapEntry(id, provider.getStudentProgress(classroom.id, id)),
+            )
+            .toList()
+          ..sort(
+            (a, b) => b.value.averageGradePercentage.compareTo(
+              a.value.averageGradePercentage,
+            ),
+          );
     final earnedBadges = <(String, IconData)>[];
     if (_isStudent && studentProgress != null) {
-      if (studentProgress.submittedCount > 0) earnedBadges.add(('First submission', Icons.upload_file));
-      if (studentProgress.totalAttendanceSessions > 0 && studentProgress.attendancePercentage == 100) earnedBadges.add(('Perfect attendance', Icons.event_available));
-      if (provider.quizzesFor(classroom.id).any((quiz) => provider.quizAttemptFor(quiz.id, widget.userId) != null)) earnedBadges.add(('Quiz finisher', Icons.quiz));
-      if (provider.peerReviewsForReviewer(widget.userId).isNotEmpty) earnedBadges.add(('Peer helper', Icons.rate_review));
+      if (studentProgress.submittedCount > 0)
+        earnedBadges.add(('First submission', Icons.upload_file));
+      if (studentProgress.totalAttendanceSessions > 0 &&
+          studentProgress.attendancePercentage == 100)
+        earnedBadges.add(('Perfect attendance', Icons.event_available));
+      if (provider
+          .quizzesFor(classroom.id)
+          .any(
+            (quiz) => provider.quizAttemptFor(quiz.id, widget.userId) != null,
+          ))
+        earnedBadges.add(('Quiz finisher', Icons.quiz));
+      if (provider.peerReviewsForReviewer(widget.userId).isNotEmpty)
+        earnedBadges.add(('Peer helper', Icons.rate_review));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(_isStudent ? 'My Learning Progress' : 'Student Progress & Leaderboard', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        Text(
+          _isStudent
+              ? 'My Learning Progress'
+              : 'Student Progress & Leaderboard',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 12),
         if (_isStudent && studentProgress != null) ...[
-          Wrap(spacing: 12, runSpacing: 12, children: [
-            _buildMetricTile('Completion', '${studentProgress.completionRate.round()}%', Icons.checklist, AppColors.primary),
-            _buildMetricTile('Attendance', '${studentProgress.attendancePercentage.round()}%', Icons.event_available, AppColors.secondary),
-            _buildMetricTile('Grade', studentProgress.letterGrade, Icons.grade, AppColors.success),
-          ]),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildMetricTile(
+                'Completion',
+                '${studentProgress.completionRate.round()}%',
+                Icons.checklist,
+                AppColors.primary,
+              ),
+              _buildMetricTile(
+                'Attendance',
+                '${studentProgress.attendancePercentage.round()}%',
+                Icons.event_available,
+                AppColors.secondary,
+              ),
+              _buildMetricTile(
+                'Grade',
+                studentProgress.letterGrade,
+                Icons.grade,
+                AppColors.success,
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
-          const Text('Achievements earned from your saved activity', style: TextStyle(fontWeight: FontWeight.w700)),
+          const Text(
+            'Achievements earned from your saved activity',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 8),
-          if (earnedBadges.isEmpty) const Text('No badges earned yet. Submit work, attend sessions, or take a quiz to unlock one.', style: TextStyle(color: AppColors.textMuted))
-          else Wrap(spacing: 8, runSpacing: 8, children: earnedBadges.map((badge) => Chip(avatar: Icon(badge.$2, size: 16, color: AppColors.primary), label: Text(badge.$1))).toList()),
+          if (earnedBadges.isEmpty)
+            const Text(
+              'No badges earned yet. Submit work, attend sessions, or take a quiz to unlock one.',
+              style: TextStyle(color: AppColors.textMuted),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: earnedBadges
+                  .map(
+                    (badge) => Chip(
+                      avatar: Icon(
+                        badge.$2,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      label: Text(badge.$1),
+                    ),
+                  )
+                  .toList(),
+            ),
         ] else ...[
-          const Text('Leaderboard based on graded work saved in this classroom.', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+          const Text(
+            'Leaderboard based on graded work saved in this classroom.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
           const SizedBox(height: 10),
-          ...scoreRows.asMap().entries.map((entry) => ListTile(
-                leading: CircleAvatar(child: Text('${entry.key + 1}')),
-                title: Text(entry.value.key),
-                subtitle: LinearProgressIndicator(value: entry.value.value.averageGradePercentage / 100),
-                trailing: Text('${entry.value.value.averageGradePercentage.round()}%'),
-              )),
+          ...scoreRows.asMap().entries.map(
+            (entry) => ListTile(
+              leading: CircleAvatar(child: Text('${entry.key + 1}')),
+              title: Text(entry.value.key),
+              subtitle: LinearProgressIndicator(
+                value: entry.value.value.averageGradePercentage / 100,
+              ),
+              trailing: Text(
+                '${entry.value.value.averageGradePercentage.round()}%',
+              ),
+            ),
+          ),
         ],
       ],
     );
   }
 
   Widget _buildRecentlyViewedTab(ClassroomProvider provider) {
-    final items = provider.recentlyViewedFor(widget.userId).where((item) => item.classroomId == _selected?.id).toList();
-    if (items.isEmpty) return _buildSectionEmpty('Items you open in this classroom will appear here.', Icons.history);
+    final items = provider
+        .recentlyViewedFor(widget.userId)
+        .where((item) => item.classroomId == _selected?.id)
+        .toList();
+    if (items.isEmpty)
+      return _buildSectionEmpty(
+        'Items you open in this classroom will appear here.',
+        Icons.history,
+      );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Recently Viewed', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const Text(
+          'Recently Viewed',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 8),
-        ...items.map((item) => ListTile(
-              leading: Icon(item.type == 'material' ? Icons.folder_open : (item.type == 'assignment' ? Icons.assignment_outlined : Icons.school_outlined)),
-              title: Text(item.title),
-              subtitle: Text('${item.type} · ${_dateFormat.format(item.viewedAt)}'),
-              onTap: () => setState(() => _activeDetailTab = item.type == 'material' ? 8 : (item.type == 'assignment' ? 3 : 0)),
-            )),
+        ...items.map(
+          (item) => ListTile(
+            leading: Icon(
+              item.type == 'material'
+                  ? Icons.folder_open
+                  : (item.type == 'assignment'
+                        ? Icons.assignment_outlined
+                        : Icons.school_outlined),
+            ),
+            title: Text(item.title),
+            subtitle: Text(
+              '${item.type} · ${_dateFormat.format(item.viewedAt)}',
+            ),
+            onTap: () => setState(
+              () => _activeDetailTab = item.type == 'material'
+                  ? 8
+                  : (item.type == 'assignment' ? 3 : 0),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDetailStat(IconData icon, String title, String subtitle, [Color? iconColor]) {
+  Widget _buildDetailStat(
+    IconData icon,
+    String title,
+    String subtitle, [
+    Color? iconColor,
+  ]) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1061,8 +3124,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textMain)),
-            Text(subtitle, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textMain,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+            ),
           ],
         ),
       ],
@@ -1073,10 +3146,22 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // TAB 1: Stream (Announcements & Discussions)
   // ==========================================
 
-  Widget _buildStreamTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
+  Widget _buildStreamTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
     final posts = provider.postsFor(classroom.id);
-    final assignments = provider.assignmentsFor(classroom.id, includeDrafts: !_isStudent);
-    final upcoming = assignments.where((a) => !a.isDraft && a.dueAt != null && a.dueAt!.isAfter(DateTime.now())).toList();
+    final assignments = provider.assignmentsFor(
+      classroom.id,
+      includeDrafts: !_isStudent,
+    );
+    final upcoming = assignments
+        .where(
+          (a) =>
+              !a.isDraft && a.dueAt != null && a.dueAt!.isAfter(DateTime.now()),
+        )
+        .toList();
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1102,17 +3187,26 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         CircleAvatar(
                           backgroundColor: AppColors.primaryLight,
                           child: Text(
-                            widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'T',
-                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                            widget.userName.isNotEmpty
+                                ? widget.userName[0].toUpperCase()
+                                : 'T',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: InkWell(
-                            onTap: () => _showAnnouncementDialog(classroom, provider),
+                            onTap: () =>
+                                _showAnnouncementDialog(classroom, provider),
                             borderRadius: BorderRadius.circular(24),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.bgSurface,
                                 borderRadius: BorderRadius.circular(24),
@@ -1120,7 +3214,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               ),
                               child: const Text(
                                 'Announce something to your class...',
-                                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ),
@@ -1128,8 +3225,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         const SizedBox(width: 8),
                         IconButton(
                           tooltip: 'Post Announcement',
-                          onPressed: () => _showAnnouncementDialog(classroom, provider),
-                          icon: const Icon(Icons.send_rounded, color: AppColors.primary),
+                          onPressed: () =>
+                              _showAnnouncementDialog(classroom, provider),
+                          icon: const Icon(
+                            Icons.send_rounded,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ],
                     ),
@@ -1140,11 +3241,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 Card(
                   elevation: 0,
                   child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.help_outline)),
-                    title: const Text('Ask the class a question', style: TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: const Text('Your question is visible to enrolled classmates and the teacher.'),
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.help_outline),
+                    ),
+                    title: const Text(
+                      'Ask the class a question',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: const Text(
+                      'Your question is visible to enrolled classmates and the teacher.',
+                    ),
                     trailing: FilledButton(
-                      onPressed: () => _showAnnouncementDialog(classroom, provider),
+                      onPressed: () =>
+                          _showAnnouncementDialog(classroom, provider),
                       child: const Text('Ask'),
                     ),
                   ),
@@ -1154,9 +3263,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
 
               // Posts List
               if (posts.isEmpty)
-                _buildSectionEmpty('No announcements posted yet.', Icons.forum_outlined)
+                _buildSectionEmpty(
+                  'No announcements posted yet.',
+                  Icons.forum_outlined,
+                )
               else
-                ...posts.map((post) => _buildPostCard(post, classroom, provider, canManage)),
+                ...posts.map(
+                  (post) =>
+                      _buildPostCard(post, classroom, provider, canManage),
+                ),
             ],
           ),
         ),
@@ -1179,36 +3294,59 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.event_outlined, size: 18, color: AppColors.primary),
+                        Icon(
+                          Icons.event_outlined,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
                         SizedBox(width: 8),
-                        Text('Upcoming Deadlines', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        Text(
+                          'Upcoming Deadlines',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     if (upcoming.isEmpty)
                       const Text(
                         'Woohoo, no upcoming deadlines this week!',
-                        style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
                       )
                     else
-                      ...upcoming.take(4).map((asg) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              asg.title,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                      ...upcoming
+                          .take(4)
+                          .map(
+                            (asg) => Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    asg.title,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'Due ${_dateFormat.format(asg.dueAt!)}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.warning,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            Text(
-                              'Due ${_dateFormat.format(asg.dueAt!)}',
-                              style: const TextStyle(fontSize: 11, color: AppColors.warning),
-                            ),
-                          ],
-                        ),
-                      )),
+                          ),
                   ],
                 ),
               ),
@@ -1219,7 +3357,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Widget _buildPostCard(ClassroomPost post, ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
+  Widget _buildPostCard(
+    ClassroomPost post,
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
     final commentCtrl = _commentControllers.putIfAbsent(
       post.id,
       TextEditingController.new,
@@ -1230,7 +3373,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: post.isPinned ? AppColors.primary : AppColors.border, width: post.isPinned ? 1.5 : 1),
+        side: BorderSide(
+          color: post.isPinned ? AppColors.primary : AppColors.border,
+          width: post.isPinned ? 1.5 : 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -1241,9 +3387,20 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             if (post.isPinned) ...[
               Row(
                 children: [
-                  const Icon(Icons.push_pin, size: 14, color: AppColors.primary),
+                  const Icon(
+                    Icons.push_pin,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 4),
-                  const Text('Pinned Announcement', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                  const Text(
+                    'Pinned Announcement',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -1255,7 +3412,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   backgroundColor: AppColors.primaryLight,
                   child: Text(
                     post.author.isNotEmpty ? post.author[0].toUpperCase() : 'U',
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1265,10 +3425,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     children: [
                       Row(
                         children: [
-                          Text(post.author, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                          Text(
+                            post.author,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: post.authorRole == 'teacher'
                                   ? AppColors.secondary.withValues(alpha: 0.12)
@@ -1280,7 +3449,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
-                                color: post.authorRole == 'teacher' ? AppColors.secondary : AppColors.primary,
+                                color: post.authorRole == 'teacher'
+                                    ? AppColors.secondary
+                                    : AppColors.primary,
                               ),
                             ),
                           ),
@@ -1288,7 +3459,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       ),
                       Text(
                         _dateFormat.format(post.createdAt),
-                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -1296,17 +3470,32 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 if (canManage)
                   PopupMenuButton<String>(
                     onSelected: (val) {
-                      if (val == 'pin') provider.togglePinPost(classroom.id, post.id);
-                      if (val == 'edit') _showAnnouncementDialog(classroom, provider, existing: post);
-                      if (val == 'delete') provider.deletePost(classroom.id, post.id);
+                      if (val == 'pin')
+                        provider.togglePinPost(classroom.id, post.id);
+                      if (val == 'edit')
+                        _showAnnouncementDialog(
+                          classroom,
+                          provider,
+                          existing: post,
+                        );
+                      if (val == 'delete')
+                        provider.deletePost(classroom.id, post.id);
                     },
                     itemBuilder: (_) => [
                       PopupMenuItem(
                         value: 'pin',
-                        child: Text(post.isPinned ? 'Unpin Announcement' : 'Pin to Top'),
+                        child: Text(
+                          post.isPinned ? 'Unpin Announcement' : 'Pin to Top',
+                        ),
                       ),
                       const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                      const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.error))),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(color: AppColors.error),
+                        ),
+                      ),
                     ],
                   ),
               ],
@@ -1315,13 +3504,20 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             // Text Body
             SelectableText(
               post.text,
-              style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.textMain),
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.4,
+                color: AppColors.textMain,
+              ),
             ),
             // Attachment (if any)
             if (post.attachmentName != null || post.attachmentUrl != null) ...[
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.bgSurface,
                   borderRadius: BorderRadius.circular(8),
@@ -1330,11 +3526,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.attach_file, size: 16, color: AppColors.primary),
+                    const Icon(
+                      Icons.attach_file,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       post.attachmentName ?? 'Attached Resource',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -1345,43 +3549,73 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             const SizedBox(height: 10),
             // Comments List
             if (post.comments.isNotEmpty) ...[
-              ...post.comments.map((comm) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 12,
-                      backgroundColor: AppColors.border,
-                      child: Text(
-                        comm.authorName.isNotEmpty ? comm.authorName[0].toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 10, color: AppColors.textMain),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(comm.authorName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                              const SizedBox(width: 6),
-                              Text(_dateFormat.format(comm.createdAt), style: const TextStyle(fontSize: 10, color: AppColors.textLight)),
-                            ],
+              ...post.comments.map(
+                (comm) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: AppColors.border,
+                        child: Text(
+                          comm.authorName.isNotEmpty
+                              ? comm.authorName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textMain,
                           ),
-                          Text(comm.text, style: const TextStyle(fontSize: 12)),
-                        ],
+                        ),
                       ),
-                    ),
-                    if (canManage || comm.authorId == widget.userId)
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 14, color: AppColors.textLight),
-                        onPressed: () => provider.deleteComment(classroom.id, post.id, comm.id),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  comm.authorName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _dateFormat.format(comm.createdAt),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.textLight,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              comm.text,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
-                  ],
+                      if (canManage || comm.authorId == widget.userId)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            size: 14,
+                            color: AppColors.textLight,
+                          ),
+                          onPressed: () => provider.deleteComment(
+                            classroom.id,
+                            post.id,
+                            comm.id,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              )),
+              ),
               const SizedBox(height: 8),
             ],
             // Add Comment Input
@@ -1393,7 +3627,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     style: const TextStyle(fontSize: 12),
                     decoration: InputDecoration(
                       hintText: 'Add a class comment...',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       filled: true,
                       fillColor: AppColors.bgSurface,
                       border: OutlineInputBorder(
@@ -1405,7 +3642,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 ),
                 const SizedBox(width: 6),
                 IconButton(
-                  icon: const Icon(Icons.send, size: 16, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.send,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                   onPressed: () {
                     final text = commentCtrl.text.trim();
                     if (text.isEmpty) return;
@@ -1432,35 +3673,153 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // TAB 2: Classwork (Assignments & Submissions)
   // ==========================================
 
-  Widget _buildClassworkTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
-    final assignments = provider.assignmentsFor(classroom.id, includeDrafts: canManage);
+  Widget _buildClassworkTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
+    final assignments = provider.assignmentsFor(
+      classroom.id,
+      includeDrafts: canManage,
+    );
+    final visibleAssignments = assignments.where((assignment) {
+      final submission = provider.submissionFor(assignment.id, widget.userId);
+      final hasUngradedSubmissions = provider
+          .submissionsFor(assignment.id)
+          .any((item) => item.marks == null);
+      final queryMatches =
+          '${assignment.title} ${assignment.instructions} ${assignment.category}'
+              .toLowerCase()
+              .contains(_assignmentQuery.toLowerCase());
+      final statusMatches = canManage
+          ? switch (_assignmentStatus) {
+              'Drafts' => assignment.isDraft,
+              'Published' => !assignment.isDraft,
+              'Needs grading' => hasUngradedSubmissions,
+              _ => true,
+            }
+          : switch (_assignmentStatus) {
+              'To do' => submission == null,
+              'Submitted' => submission != null && submission.marks == null,
+              'Graded' => submission?.marks != null,
+              _ => true,
+            };
+      return queryMatches && statusMatches;
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Text(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 540;
+            final heading = Text(
               'Assignments & Coursework (${assignments.length})',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-            ),
-            const Spacer(),
-            if (canManage)
-              FilledButton.icon(
-                onPressed: () => _showAssignmentDialog(classroom, provider),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Create Assignment'),
-              ),
-          ],
+            );
+            final action = canManage
+                ? FilledButton.icon(
+                    onPressed: () => _showAssignmentDialog(classroom, provider),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Create Assignment'),
+                  )
+                : const SizedBox.shrink();
+            return compact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      heading,
+                      if (canManage)
+                        Align(alignment: Alignment.centerRight, child: action),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: heading),
+                      action,
+                    ],
+                  );
+          },
         ),
         const SizedBox(height: 14),
+        if (assignments.isNotEmpty) ...[
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 540;
+              final search = TextField(
+                onChanged: (value) => setState(() => _assignmentQuery = value),
+                decoration: InputDecoration(
+                  hintText: canManage
+                      ? 'Search assignments'
+                      : 'Search classwork',
+                  prefixIcon: Icon(Icons.search, size: 19),
+                  isDense: true,
+                ),
+              );
+              final filter = DropdownButtonFormField<String>(
+                initialValue: _assignmentStatus,
+                decoration: const InputDecoration(
+                  labelText: 'Status',
+                  isDense: true,
+                ),
+                items:
+                    (canManage
+                            ? const [
+                                'All work',
+                                'Drafts',
+                                'Published',
+                                'Needs grading',
+                              ]
+                            : const [
+                                'All work',
+                                'To do',
+                                'Submitted',
+                                'Graded',
+                              ])
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value),
+                          ),
+                        )
+                        .toList(),
+                onChanged: (value) =>
+                    setState(() => _assignmentStatus = value ?? 'All work'),
+              );
+              return compact
+                  ? Column(
+                      children: [search, const SizedBox(height: 8), filter],
+                    )
+                  : Row(
+                      children: [
+                        Expanded(flex: 2, child: search),
+                        const SizedBox(width: 12),
+                        Expanded(child: filter),
+                      ],
+                    );
+            },
+          ),
+          const SizedBox(height: 12),
+        ],
         if (assignments.isEmpty)
-          _buildSectionEmpty('No classwork assignments assigned yet.', Icons.assignment_outlined)
+          _buildSectionEmpty(
+            'No classwork assignments assigned yet.',
+            Icons.assignment_outlined,
+          )
+        else if (visibleAssignments.isEmpty)
+          _buildSectionEmpty(
+            'No assignments match these filters. Try another status or search term.',
+            Icons.search_off_rounded,
+          )
         else
-          ...assignments.map((asg) {
+          ...visibleAssignments.map((asg) {
             final subs = provider.submissionsFor(asg.id);
             final mySub = provider.submissionFor(asg.id, widget.userId);
-            final canTurnIn = provider.canSubmitAssignment(asg, classroom, widget.userId);
+            final canTurnIn = provider.canSubmitAssignment(
+              asg,
+              classroom,
+              widget.userId,
+            );
 
             return Card(
               elevation: 0,
@@ -1472,23 +3831,39 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               child: ExpansionTile(
                 onExpansionChanged: (expanded) {
                   if (expanded) {
-                    provider.recordRecentlyViewed(widget.userId, 'assignment', asg.id, asg.title, classroom.id);
+                    provider.recordRecentlyViewed(
+                      widget.userId,
+                      'assignment',
+                      asg.id,
+                      asg.title,
+                      classroom.id,
+                    );
                   }
                 },
                 leading: CircleAvatar(
                   backgroundColor: AppColors.primaryLight,
-                  child: const Icon(Icons.assignment_outlined, color: AppColors.primary, size: 20),
+                  child: const Icon(
+                    Icons.assignment_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                 ),
                 title: Row(
                   children: [
                     Expanded(
                       child: Text(
                         asg.title,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.bgSurface,
                         borderRadius: BorderRadius.circular(6),
@@ -1496,7 +3871,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       ),
                       child: Text(
                         asg.category,
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ),
                   ],
@@ -1507,7 +3886,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   '${canManage ? "${subs.length} Turned In" : (mySub == null ? "Not Submitted" : (mySub.marks != null ? "Graded: ${mySub.marks}/${asg.maxMarks}" : "Turned In"))}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: mySub?.marks != null ? AppColors.success : AppColors.textMuted,
+                    color: mySub?.marks != null
+                        ? AppColors.success
+                        : AppColors.textMuted,
                   ),
                 ),
                 children: [
@@ -1519,13 +3900,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         const Divider(height: 1, color: AppColors.border),
                         const SizedBox(height: 12),
                         SelectableText(
-                          asg.instructions.isNotEmpty ? asg.instructions : 'No additional instructions provided.',
+                          asg.instructions.isNotEmpty
+                              ? asg.instructions
+                              : 'No additional instructions provided.',
                           style: const TextStyle(fontSize: 13, height: 1.4),
                         ),
-                        if (asg.attachmentName != null || asg.attachmentUrl != null) ...[
+                        if (asg.attachmentName != null ||
+                            asg.attachmentUrl != null) ...[
                           const SizedBox(height: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.bgSurface,
                               borderRadius: BorderRadius.circular(6),
@@ -1540,11 +3927,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.download_rounded, size: 15, color: AppColors.primary),
+                                  const Icon(
+                                    Icons.download_rounded,
+                                    size: 15,
+                                    color: AppColors.primary,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     asg.attachmentName ?? asg.attachmentUrl!,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1557,21 +3952,39 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           children: [
                             if (_isStudent && mySub?.marks == null) ...[
                               FilledButton.icon(
-                                onPressed: canTurnIn ? () => _showStudentSubmissionDialog(asg, provider) : null,
-                                icon: Icon(mySub == null ? Icons.upload_file : Icons.check_circle, size: 16),
+                                onPressed: canTurnIn
+                                    ? () => _showStudentSubmissionDialog(
+                                        asg,
+                                        provider,
+                                      )
+                                    : null,
+                                icon: Icon(
+                                  mySub == null
+                                      ? Icons.upload_file
+                                      : Icons.check_circle,
+                                  size: 16,
+                                ),
                                 label: Text(
                                   !canTurnIn
                                       ? 'Submission Closed'
-                                      : (mySub == null ? 'Turn In Work' : 'View / Edit Submission'),
+                                      : (mySub == null
+                                            ? 'Turn In Work'
+                                            : 'View / Edit Submission'),
                                 ),
                               ),
-                              if (mySub != null && mySub.marks == null && canTurnIn) ...[
+                              if (mySub != null &&
+                                  mySub.marks == null &&
+                                  canTurnIn) ...[
                                 const SizedBox(width: 8),
                                 OutlinedButton(
                                   onPressed: () {
                                     provider.unsubmit(asg.id, widget.userId);
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Submission unsubmitted.')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Submission unsubmitted.',
+                                        ),
+                                      ),
                                     );
                                   },
                                   child: const Text('Unsubmit'),
@@ -1581,44 +3994,89 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                             if (canManage) ...[
                               if (asg.isDraft)
                                 OutlinedButton.icon(
-                                  onPressed: () => provider.setAssignmentDraft(classroom.id, asg.id, false),
-                                  icon: const Icon(Icons.publish_outlined, size: 16),
+                                  onPressed: () => provider.setAssignmentDraft(
+                                    classroom.id,
+                                    asg.id,
+                                    false,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.publish_outlined,
+                                    size: 16,
+                                  ),
                                   label: const Text('Publish'),
                                 ),
                               FilledButton.icon(
-                                onPressed: () => _showTeacherSubmissionsRosterDialog(asg, classroom, provider),
-                                icon: const Icon(Icons.people_outline, size: 16),
-                                label: Text('Review Submissions (${subs.length})'),
+                                onPressed: () =>
+                                    _showTeacherSubmissionsRosterDialog(
+                                      asg,
+                                      classroom,
+                                      provider,
+                                    ),
+                                icon: const Icon(
+                                  Icons.people_outline,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  'Review Submissions (${subs.length})',
+                                ),
                               ),
                               const Spacer(),
                               IconButton(
                                 tooltip: 'Edit Assignment',
                                 icon: const Icon(Icons.edit_outlined, size: 18),
-                                onPressed: () => _showAssignmentDialog(classroom, provider, existing: asg),
+                                onPressed: () => _showAssignmentDialog(
+                                  classroom,
+                                  provider,
+                                  existing: asg,
+                                ),
                               ),
                               IconButton(
                                 tooltip: 'Delete Assignment',
-                                icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-                                onPressed: () => _confirmDeleteAssignment(classroom, asg, provider),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 18,
+                                  color: AppColors.error,
+                                ),
+                                onPressed: () => _confirmDeleteAssignment(
+                                  classroom,
+                                  asg,
+                                  provider,
+                                ),
                               ),
                             ],
                           ],
                         ),
-                        if (_isStudent && asg.allowPeerReview && mySub != null) ...[
+                        if (_isStudent &&
+                            asg.allowPeerReview &&
+                            mySub != null) ...[
                           const SizedBox(height: 8),
                           OutlinedButton.icon(
-                            onPressed: () => _showPeerReviewDialog(asg, classroom, provider),
-                            icon: const Icon(Icons.rate_review_outlined, size: 16),
+                            onPressed: () =>
+                                _showPeerReviewDialog(asg, classroom, provider),
+                            icon: const Icon(
+                              Icons.rate_review_outlined,
+                              size: 16,
+                            ),
                             label: const Text('Review a classmate'),
                           ),
-                          ...provider.peerReviewsFor(asg.id)
-                              .where((review) => review.revieweeId == widget.userId)
-                              .map((review) => ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: const Icon(Icons.rate_review, color: AppColors.primary),
-                                    title: Text('Peer feedback · ${review.rating}/5'),
-                                    subtitle: Text(review.feedback),
-                                  )),
+                          ...provider
+                              .peerReviewsFor(asg.id)
+                              .where(
+                                (review) => review.revieweeId == widget.userId,
+                              )
+                              .map(
+                                (review) => ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const Icon(
+                                    Icons.rate_review,
+                                    color: AppColors.primary,
+                                  ),
+                                  title: Text(
+                                    'Peer feedback · ${review.rating}/5',
+                                  ),
+                                  subtitle: Text(review.feedback),
+                                ),
+                              ),
                         ],
                       ],
                     ),
@@ -1635,13 +4093,24 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // TAB 3: Grades & Gradebook
   // ==========================================
 
-  Widget _buildGradesTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage, bool canGrade) {
-    final assignments = provider.assignmentsFor(classroom.id, includeDrafts: false);
+  Widget _buildGradesTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+    bool canGrade,
+  ) {
+    final assignments = provider.assignmentsFor(
+      classroom.id,
+      includeDrafts: false,
+    );
 
     // TEACHER / ADMIN VIEW: Comprehensive Gradebook Table
     if (canManage || _isAdmin) {
       if (assignments.isEmpty) {
-        return _buildSectionEmpty('Create assignments in the Classwork tab to track grades.', Icons.grade_outlined);
+        return _buildSectionEmpty(
+          'Create assignments in the Classwork tab to track grades.',
+          Icons.grade_outlined,
+        );
       }
 
       return Column(
@@ -1649,11 +4118,17 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         children: [
           Row(
             children: [
-              const Text('Class Gradebook Matrix', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              const Text(
+                'Class Gradebook Matrix',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
               const Spacer(),
               Text(
                 '${classroom.studentIds.length} Students · ${assignments.length} Assignments',
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
               ),
             ],
           ),
@@ -1663,18 +4138,41 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(AppColors.bgSurface),
               columns: [
-                const DataColumn(label: Text('Student', style: TextStyle(fontWeight: FontWeight.bold))),
-                ...assignments.map((asg) => DataColumn(
+                const DataColumn(
                   label: Text(
-                    '${asg.title}\n(${asg.maxMarks} pts)',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    'Student',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                )),
-                const DataColumn(label: Text('Overall %', style: TextStyle(fontWeight: FontWeight.bold))),
-                const DataColumn(label: Text('Grade', style: TextStyle(fontWeight: FontWeight.bold))),
+                ),
+                ...assignments.map(
+                  (asg) => DataColumn(
+                    label: Text(
+                      '${asg.title}\n(${asg.maxMarks} pts)',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const DataColumn(
+                  label: Text(
+                    'Overall %',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const DataColumn(
+                  label: Text(
+                    'Grade',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
               rows: classroom.studentIds.map((sId) {
-                final studentProgress = provider.getStudentProgress(classroom.id, sId);
+                final studentProgress = provider.getStudentProgress(
+                  classroom.id,
+                  sId,
+                );
                 return DataRow(
                   cells: [
                     DataCell(
@@ -1684,10 +4182,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           CircleAvatar(
                             radius: 12,
                             backgroundColor: AppColors.primaryLight,
-                            child: Text(sId.length >= 2 ? sId.substring(sId.length - 2) : 'S', style: const TextStyle(fontSize: 10)),
+                            child: Text(
+                              sId.length >= 2
+                                  ? sId.substring(sId.length - 2)
+                                  : 'S',
+                              style: const TextStyle(fontSize: 10),
+                            ),
                           ),
                           const SizedBox(width: 8),
-                          Text(sId, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Text(
+                            sId,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ],
                       ),
                     ),
@@ -1705,7 +4211,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                                 : (sub != null ? 'Turned in' : 'â€”'),
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: marks != null ? AppColors.success : (sub != null ? AppColors.primary : AppColors.textLight),
+                              color: marks != null
+                                  ? AppColors.success
+                                  : (sub != null
+                                        ? AppColors.primary
+                                        : AppColors.textLight),
                             ),
                           ),
                         ),
@@ -1719,14 +4229,20 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     ),
                     DataCell(
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryLight,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           studentProgress.letterGrade,
-                          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                     ),
@@ -1766,7 +4282,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 ),
                 child: Text(
                   myProgress.letterGrade,
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white),
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(width: 20),
@@ -1774,11 +4294,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Overall Course Grade', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const Text(
+                      'Overall Course Grade',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '${myProgress.averageGradePercentage.toStringAsFixed(1)}%',
-                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -1794,7 +4321,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
 
         const SizedBox(height: 20),
 
-        const Text('Assignment Grade Breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const Text(
+          'Assignment Grade Breakdown',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 12),
 
         if (assignments.isEmpty)
@@ -1813,31 +4343,52 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               ),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: marks != null ? AppColors.success.withValues(alpha: 0.12) : AppColors.bgSurface,
+                  backgroundColor: marks != null
+                      ? AppColors.success.withValues(alpha: 0.12)
+                      : AppColors.bgSurface,
                   child: Icon(
                     marks != null ? Icons.check_circle : Icons.hourglass_top,
-                    color: marks != null ? AppColors.success : AppColors.textMuted,
+                    color: marks != null
+                        ? AppColors.success
+                        : AppColors.textMuted,
                   ),
                 ),
-                title: Text(asg.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                title: Text(
+                  asg.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       sub == null
                           ? 'Not submitted'
-                          : (marks != null ? 'Graded on ${_dateFormat.format(sub.gradedAt ?? DateTime.now())}' : 'Turned in · Awaiting grading'),
+                          : (marks != null
+                                ? 'Graded on ${_dateFormat.format(sub.gradedAt ?? DateTime.now())}'
+                                : 'Turned in · Awaiting grading'),
                       style: const TextStyle(fontSize: 12),
                     ),
                     if (sub?.feedback != null && sub!.feedback!.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text('Teacher Feedback: "${sub.feedback}"', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.primary)),
+                      Text(
+                        'Teacher Feedback: "${sub.feedback}"',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ],
                 ),
                 trailing: Text(
-                  marks != null ? '$marks / ${asg.maxMarks}' : 'â€” / ${asg.maxMarks}',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  marks != null
+                      ? '$marks / ${asg.maxMarks}'
+                      : 'â€” / ${asg.maxMarks}',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             );
@@ -1850,12 +4401,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // TAB 4: Attendance Tracking
   // ==========================================
 
-  Widget _buildAttendanceTab(ClassroomModel classroom, ClassroomProvider provider, bool canTakeAttendance) {
+  Widget _buildAttendanceTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canTakeAttendance,
+  ) {
     final sessions = provider.attendanceSessionsFor(classroom.id);
 
     // TEACHER VIEW: Take attendance, view session history, track students
     if (canTakeAttendance) {
-      final overallClassRate = provider.calculateClassAttendanceRate(classroom.id);
+      final overallClassRate = provider.calculateClassAttendanceRate(
+        classroom.id,
+      );
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1864,7 +4421,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             children: [
               Text(
                 'Class Attendance Records (${sessions.length} Sessions)',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const Spacer(),
               FilledButton.icon(
@@ -1889,12 +4449,22 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 _buildAttendanceMetric(
                   '${overallClassRate.round()}%',
                   'Overall Presence Rate',
-                  overallClassRate >= 75 ? AppColors.success : AppColors.warning,
+                  overallClassRate >= 75
+                      ? AppColors.success
+                      : AppColors.warning,
                 ),
                 const SizedBox(width: 24),
-                _buildAttendanceMetric('${sessions.length}', 'Sessions Conducted', AppColors.primary),
+                _buildAttendanceMetric(
+                  '${sessions.length}',
+                  'Sessions Conducted',
+                  AppColors.primary,
+                ),
                 const SizedBox(width: 24),
-                _buildAttendanceMetric('${classroom.studentIds.length}', 'Active Students', AppColors.secondary),
+                _buildAttendanceMetric(
+                  '${classroom.studentIds.length}',
+                  'Active Students',
+                  AppColors.secondary,
+                ),
               ],
             ),
           ),
@@ -1902,12 +4472,17 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           const SizedBox(height: 16),
 
           if (sessions.isEmpty)
-            _buildSectionEmpty('No attendance sessions recorded yet. Click "Take Attendance" to begin.', Icons.how_to_reg_outlined)
+            _buildSectionEmpty(
+              'No attendance sessions recorded yet. Click "Take Attendance" to begin.',
+              Icons.how_to_reg_outlined,
+            )
           else
             ...sessions.map((sess) {
               int present = 0, absent = 0, late = 0;
               sess.records.forEach((_, st) {
-                if (st == AttendanceStatus.present || st == AttendanceStatus.excused) present++;
+                if (st == AttendanceStatus.present ||
+                    st == AttendanceStatus.excused)
+                  present++;
                 if (st == AttendanceStatus.absent) absent++;
                 if (st == AttendanceStatus.late) late++;
               });
@@ -1922,9 +4497,16 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 child: ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: AppColors.primaryLight,
-                    child: Icon(Icons.calendar_today, size: 18, color: AppColors.primary),
+                    child: Icon(
+                      Icons.calendar_today,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  title: Text(sess.topic, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  title: Text(
+                    sess.topic,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                   subtitle: Text(
                     '${_dateFormat.format(sess.date)} · $present Present · $absent Absent · $late Late',
                   ),
@@ -1934,12 +4516,23 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       IconButton(
                         tooltip: 'Edit Session',
                         icon: const Icon(Icons.edit_outlined, size: 18),
-                        onPressed: () => _showTakeAttendanceDialog(classroom, provider, existing: sess),
+                        onPressed: () => _showTakeAttendanceDialog(
+                          classroom,
+                          provider,
+                          existing: sess,
+                        ),
                       ),
                       IconButton(
                         tooltip: 'Delete Session',
-                        icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-                        onPressed: () => provider.deleteAttendanceSession(classroom.id, sess.id),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: AppColors.error,
+                        ),
+                        onPressed: () => provider.deleteAttendanceSession(
+                          classroom.id,
+                          sess.id,
+                        ),
                       ),
                     ],
                   ),
@@ -1951,7 +4544,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     }
 
     // STUDENT VIEW: Personal Attendance
-    final myAttendanceRate = provider.calculateStudentAttendance(classroom.id, widget.userId);
+    final myAttendanceRate = provider.calculateStudentAttendance(
+      classroom.id,
+      widget.userId,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1970,7 +4566,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 width: 70,
                 height: 70,
                 decoration: BoxDecoration(
-                  color: myAttendanceRate >= 75 ? AppColors.success.withValues(alpha: 0.12) : AppColors.error.withValues(alpha: 0.12),
+                  color: myAttendanceRate >= 75
+                      ? AppColors.success.withValues(alpha: 0.12)
+                      : AppColors.error.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -1979,7 +4577,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
-                      color: myAttendanceRate >= 75 ? AppColors.success : AppColors.error,
+                      color: myAttendanceRate >= 75
+                          ? AppColors.success
+                          : AppColors.error,
                     ),
                   ),
                 ),
@@ -1989,7 +4589,13 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('My Attendance Record', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    const Text(
+                      'My Attendance Record',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       myAttendanceRate >= 75
@@ -1997,7 +4603,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           : 'Attention: Your attendance is below 75%. Please contact your teacher.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: myAttendanceRate >= 75 ? AppColors.textMuted : AppColors.error,
+                        color: myAttendanceRate >= 75
+                            ? AppColors.textMuted
+                            : AppColors.error,
                       ),
                     ),
                   ],
@@ -2008,11 +4616,17 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         ),
 
         const SizedBox(height: 20),
-        const Text('Attendance Session History', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const Text(
+          'Attendance Session History',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 12),
 
         if (sessions.isEmpty)
-          _buildSectionEmpty('No attendance recorded for this class yet.', Icons.how_to_reg_outlined)
+          _buildSectionEmpty(
+            'No attendance recorded for this class yet.',
+            Icons.how_to_reg_outlined,
+          )
         else
           ...sessions.map((sess) {
             final myStatus = sess.records[widget.userId];
@@ -2028,23 +4642,36 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   myStatus == AttendanceStatus.present
                       ? Icons.check_circle
                       : (myStatus == AttendanceStatus.absent
-                          ? Icons.cancel
-                          : (myStatus == null ? Icons.help_outline : Icons.access_time)),
+                            ? Icons.cancel
+                            : (myStatus == null
+                                  ? Icons.help_outline
+                                  : Icons.access_time)),
                   color: myStatus == AttendanceStatus.present
                       ? AppColors.success
                       : (myStatus == AttendanceStatus.absent
-                          ? AppColors.error
-                          : (myStatus == null ? AppColors.textMuted : AppColors.warning)),
+                            ? AppColors.error
+                            : (myStatus == null
+                                  ? AppColors.textMuted
+                                  : AppColors.warning)),
                 ),
-                title: Text(sess.topic, style: const TextStyle(fontWeight: FontWeight.w700)),
+                title: Text(
+                  sess.topic,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 subtitle: Text(_dateFormat.format(sess.date)),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: (myStatus == AttendanceStatus.present
-                            ? AppColors.success
-                            : (myStatus == AttendanceStatus.absent ? AppColors.error : AppColors.warning))
-                        .withValues(alpha: 0.12),
+                    color:
+                        (myStatus == AttendanceStatus.present
+                                ? AppColors.success
+                                : (myStatus == AttendanceStatus.absent
+                                      ? AppColors.error
+                                      : AppColors.warning))
+                            .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -2055,8 +4682,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       color: myStatus == AttendanceStatus.present
                           ? AppColors.success
                           : (myStatus == AttendanceStatus.absent
-                              ? AppColors.error
-                              : (myStatus == null ? AppColors.textMuted : AppColors.warning)),
+                                ? AppColors.error
+                                : (myStatus == null
+                                      ? AppColors.textMuted
+                                      : AppColors.warning)),
                     ),
                   ),
                 ),
@@ -2071,8 +4700,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+        ),
       ],
     );
   }
@@ -2081,9 +4720,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // TAB 5: Learning Materials
   // ==========================================
 
-  Widget _buildMaterialsTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
+  Widget _buildMaterialsTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
     final topics = provider.topicsFor(classroom.id);
-    final selectedTopic = topics.contains(_materialTopic) ? _materialTopic : 'All Topics';
+    final selectedTopic = topics.contains(_materialTopic)
+        ? _materialTopic
+        : 'All Topics';
     final materials = provider.materialsFor(classroom.id, selectedTopic);
 
     return Column(
@@ -2091,7 +4736,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       children: [
         Row(
           children: [
-            Text('Course Learning Materials (${materials.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            Text(
+              'Course Learning Materials (${materials.length})',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
             const Spacer(),
             if (canManage)
               FilledButton.icon(
@@ -2109,15 +4757,24 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             child: DropdownButtonFormField<String>(
               initialValue: selectedTopic,
               decoration: const InputDecoration(labelText: 'Filter by topic'),
-              items: topics.map((topic) => DropdownMenuItem(value: topic, child: Text(topic))).toList(),
-              onChanged: (value) => setState(() => _materialTopic = value ?? 'All Topics'),
+              items: topics
+                  .map(
+                    (topic) =>
+                        DropdownMenuItem(value: topic, child: Text(topic)),
+                  )
+                  .toList(),
+              onChanged: (value) =>
+                  setState(() => _materialTopic = value ?? 'All Topics'),
             ),
           ),
         ),
         const SizedBox(height: 12),
 
         if (materials.isEmpty)
-          _buildSectionEmpty('No learning materials uploaded yet.', Icons.folder_open_outlined)
+          _buildSectionEmpty(
+            'No learning materials uploaded yet.',
+            Icons.folder_open_outlined,
+          )
         else
           ...materials.map((mat) {
             return Card(
@@ -2142,7 +4799,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       child: Icon(
                         mat.fileType == 'pdf'
                             ? Icons.picture_as_pdf
-                            : (mat.fileType == 'link' ? Icons.link : Icons.description),
+                            : (mat.fileType == 'link'
+                                  ? Icons.link
+                                  : Icons.description),
                         color: AppColors.primary,
                       ),
                     ),
@@ -2154,33 +4813,64 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: Text(mat.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                child: Text(
+                                  mat.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.bgSurface,
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(color: AppColors.border),
                                 ),
-                                child: Text(mat.topic, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                                child: Text(
+                                  mat.topic,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(mat.description, style: const TextStyle(fontSize: 12, color: AppColors.textMain)),
+                          Text(
+                            mat.description,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMain,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Text(
                             'Uploaded by ${mat.uploadedBy} on ${_dateFormat.format(mat.uploadedAt)}',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                           if (mat.attachmentName != null ||
                               (mat.linkUrl?.trim().isNotEmpty ?? false) ||
-                              (mat.attachmentUrl?.trim().isNotEmpty ?? false)) ...[
+                              (mat.attachmentUrl?.trim().isNotEmpty ??
+                                  false)) ...[
                             const SizedBox(height: 8),
                             InkWell(
                               onTap: () {
-                                provider.recordRecentlyViewed(widget.userId, 'material', mat.id, mat.title, classroom.id);
+                                provider.recordRecentlyViewed(
+                                  widget.userId,
+                                  'material',
+                                  mat.id,
+                                  mat.title,
+                                  classroom.id,
+                                );
                                 _openResource(
                                   name: mat.attachmentName,
                                   url: mat.linkUrl ?? mat.attachmentUrl,
@@ -2190,11 +4880,22 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.download_rounded, size: 14, color: AppColors.primary),
+                                  const Icon(
+                                    Icons.download_rounded,
+                                    size: 14,
+                                    color: AppColors.primary,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    mat.attachmentName ?? mat.linkUrl ?? mat.attachmentUrl ?? 'View Asset',
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                    mat.attachmentName ??
+                                        mat.linkUrl ??
+                                        mat.attachmentUrl ??
+                                        'View Asset',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -2206,12 +4907,24 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     if (canManage)
                       PopupMenuButton<String>(
                         onSelected: (val) {
-                          if (val == 'edit') _showMaterialDialog(classroom, provider, existing: mat);
-                          if (val == 'delete') provider.deleteMaterial(classroom.id, mat.id);
+                          if (val == 'edit')
+                            _showMaterialDialog(
+                              classroom,
+                              provider,
+                              existing: mat,
+                            );
+                          if (val == 'delete')
+                            provider.deleteMaterial(classroom.id, mat.id);
                         },
                         itemBuilder: (_) => const [
                           PopupMenuItem(value: 'edit', child: Text('Edit')),
-                          PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.error))),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text(
+                              'Delete',
+                              style: TextStyle(color: AppColors.error),
+                            ),
+                          ),
                         ],
                       ),
                   ],
@@ -2227,24 +4940,47 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // TAB 6: People (Class Roster & Enrollment)
   // ==========================================
 
-  Widget _buildPeopleTab(ClassroomModel classroom, ClassroomProvider provider, bool canManage) {
+  Widget _buildPeopleTab(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+    bool canManage,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Teacher Section
-        const Text('Teacher & Instructors', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const Text(
+          'Teacher & Instructors',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 10),
         Card(
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.border)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: AppColors.border),
+          ),
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: AppColors.primaryLight,
-              child: Text(classroom.teacherName.isNotEmpty ? classroom.teacherName[0].toUpperCase() : 'T'),
+              child: Text(
+                classroom.teacherName.isNotEmpty
+                    ? classroom.teacherName[0].toUpperCase()
+                    : 'T',
+              ),
             ),
-            title: Text(classroom.teacherName, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(classroom.teacherEmail.isNotEmpty ? classroom.teacherEmail : 'Primary Faculty Member'),
-            trailing: const Chip(label: Text('Instructor', style: TextStyle(fontSize: 11))),
+            title: Text(
+              classroom.teacherName,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              classroom.teacherEmail.isNotEmpty
+                  ? classroom.teacherEmail
+                  : 'Primary Faculty Member',
+            ),
+            trailing: const Chip(
+              label: Text('Instructor', style: TextStyle(fontSize: 11)),
+            ),
           ),
         ),
 
@@ -2253,7 +4989,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         // Students Section
         Row(
           children: [
-            Text('Enrolled Classmates (${classroom.studentIds.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            Text(
+              'Enrolled Classmates (${classroom.studentIds.length})',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
             const Spacer(),
             if (canManage)
               OutlinedButton.icon(
@@ -2266,24 +5005,37 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         const SizedBox(height: 10),
 
         if (classroom.studentIds.isEmpty)
-          _buildSectionEmpty('No students have joined yet. Share the class code to invite.', Icons.people_outline)
+          _buildSectionEmpty(
+            'No students have joined yet. Share the class code to invite.',
+            Icons.people_outline,
+          )
         else
           ...classroom.studentIds.map((sId) {
             final att = provider.calculateStudentAttendance(classroom.id, sId);
             return Card(
               elevation: 0,
               margin: const EdgeInsets.only(bottom: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppColors.border)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppColors.border),
+              ),
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.bgSurface,
                   child: const Icon(Icons.person, color: AppColors.textMuted),
                 ),
-                title: Text(sId, style: const TextStyle(fontWeight: FontWeight.w700)),
+                title: Text(
+                  sId,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 subtitle: Text('Enrolled Student · ${att.round()}% Attendance'),
                 trailing: canManage
                     ? IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: AppColors.error, size: 18),
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: AppColors.error,
+                          size: 18,
+                        ),
                         tooltip: 'Remove from class',
                         onPressed: () {
                           provider.removeStudent(classroom.id, sId);
@@ -2315,27 +5067,59 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Personal Progress Analytics', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const Text(
+            'Personal Progress Analytics',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _buildMetricTile('Grade Letter', studentProgress.letterGrade, Icons.grade, AppColors.primary)),
+              Expanded(
+                child: _buildMetricTile(
+                  'Grade Letter',
+                  studentProgress.letterGrade,
+                  Icons.grade,
+                  AppColors.primary,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _buildMetricTile('Grade Avg', '${studentProgress.averageGradePercentage.round()}%', Icons.trending_up, AppColors.secondary)),
+              Expanded(
+                child: _buildMetricTile(
+                  'Grade Avg',
+                  '${studentProgress.averageGradePercentage.round()}%',
+                  Icons.trending_up,
+                  AppColors.secondary,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _buildMetricTile('Attendance', '${studentProgress.attendancePercentage.round()}%', Icons.how_to_reg, studentProgress.attendancePercentage >= 75 ? AppColors.success : AppColors.warning)),
+              Expanded(
+                child: _buildMetricTile(
+                  'Attendance',
+                  '${studentProgress.attendancePercentage.round()}%',
+                  Icons.how_to_reg,
+                  studentProgress.attendancePercentage >= 75
+                      ? AppColors.success
+                      : AppColors.warning,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Card(
             elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: AppColors.border)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppColors.border),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Assignments Completion', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  const Text(
+                    'Assignments Completion',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  ),
                   const SizedBox(height: 10),
                   LinearProgressIndicator(
                     value: studentProgress.completionRate / 100.0,
@@ -2347,7 +5131,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   const SizedBox(height: 8),
                   Text(
                     '${studentProgress.completionRate.round()}% Completed · ${studentProgress.submittedCount}/${studentProgress.totalAssignments} turned in',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -2361,39 +5148,93 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Class Performance Analytics', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        const Text(
+          'Class Performance Analytics',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 14),
         Row(
           children: [
-            Expanded(child: _buildMetricTile('Class Avg', '${analytics.averageScorePercentage.round()}%', Icons.analytics, AppColors.primary)),
+            Expanded(
+              child: _buildMetricTile(
+                'Class Avg',
+                '${analytics.averageScorePercentage.round()}%',
+                Icons.analytics,
+                AppColors.primary,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricTile('Turn In Rate', '${analytics.submissionRate.round()}%', Icons.assignment_turned_in, AppColors.secondary)),
+            Expanded(
+              child: _buildMetricTile(
+                'Turn In Rate',
+                '${analytics.submissionRate.round()}%',
+                Icons.assignment_turned_in,
+                AppColors.secondary,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricTile('Attendance', '${analytics.attendanceRate.round()}%', Icons.how_to_reg, analytics.attendanceRate >= 75 ? AppColors.success : AppColors.warning)),
+            Expanded(
+              child: _buildMetricTile(
+                'Attendance',
+                '${analytics.attendanceRate.round()}%',
+                Icons.how_to_reg,
+                analytics.attendanceRate >= 75
+                    ? AppColors.success
+                    : AppColors.warning,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricTile('At Risk', '${analytics.atRiskStudentIds.length}', Icons.warning_amber, analytics.atRiskStudentIds.isNotEmpty ? AppColors.error : AppColors.success)),
+            Expanded(
+              child: _buildMetricTile(
+                'At Risk',
+                '${analytics.atRiskStudentIds.length}',
+                Icons.warning_amber,
+                analytics.atRiskStudentIds.isNotEmpty
+                    ? AppColors.error
+                    : AppColors.success,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 18),
         // Grade Distribution
         Card(
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: AppColors.border)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: const BorderSide(color: AppColors.border),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Score & Grade Distribution', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const Text(
+                  'Score & Grade Distribution',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
                 const SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: analytics.gradeDistribution.entries.map((e) {
                     return Column(
                       children: [
-                        Text('${e.value}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                        Text(
+                          '${e.value}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text('Grade ${e.key}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        Text(
+                          'Grade ${e.key}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
                       ],
                     );
                   }).toList(),
@@ -2406,7 +5247,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Widget _buildMetricTile(String label, String value, IconData icon, Color color) {
+  Widget _buildMetricTile(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2419,8 +5265,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         children: [
           Icon(icon, size: 20, color: color),
           const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
-          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+          ),
         ],
       ),
     );
@@ -2439,7 +5295,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         children: [
           Icon(icon, size: 36, color: AppColors.textLight),
           const SizedBox(height: 8),
-          Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -2449,44 +5309,74 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   // DIALOGS & ACTION HANDLERS
   // ==========================================
 
-  Future<void> _showQuizDialog(ClassroomModel classroom, ClassroomProvider provider) async {
+  Future<void> _showQuizDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) async {
     final titleCtrl = TextEditingController();
     final instructionsCtrl = TextEditingController();
     final durationCtrl = TextEditingController(text: '15');
     final editors = <_QuizQuestionEditor>[_QuizQuestionEditor()];
     DateTime? dueAt;
-    Future<void> save(StateSetter setDialogState, BuildContext dialogCtx, {required bool draft}) async {
+    Future<void> save(
+      StateSetter setDialogState,
+      BuildContext dialogCtx, {
+      required bool draft,
+    }) async {
       final title = titleCtrl.text.trim();
       final duration = int.tryParse(durationCtrl.text.trim());
       final questions = <QuizQuestion>[];
       for (final editor in editors) {
         final prompt = editor.prompt.text.trim();
-        final options = editor.options.map((controller) => controller.text.trim()).toList();
+        final options = editor.options
+            .map((controller) => controller.text.trim())
+            .toList();
         if (prompt.isNotEmpty && options.every((option) => option.isNotEmpty)) {
-          questions.add(QuizQuestion(prompt: prompt, options: options, correctOptionIndex: editor.correctIndex));
+          questions.add(
+            QuizQuestion(
+              prompt: prompt,
+              options: options,
+              correctOptionIndex: editor.correctIndex,
+            ),
+          );
         }
       }
-      if (title.isEmpty || duration == null || duration < 1 || questions.isEmpty) {
+      if (title.isEmpty ||
+          duration == null ||
+          duration < 1 ||
+          questions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Add a title, a positive time limit, and at least one complete multiple-choice question.')),
+          const SnackBar(
+            content: Text(
+              'Add a title, a positive time limit, and at least one complete multiple-choice question.',
+            ),
+          ),
         );
         return;
       }
-      provider.addQuiz(ClassroomQuiz(
-        id: 'quiz_${DateTime.now().microsecondsSinceEpoch}',
-        classroomId: classroom.id,
-        title: title,
-        instructions: instructionsCtrl.text.trim(),
-        teacherId: widget.userId,
-        durationMinutes: duration,
-        questions: questions,
-        createdAt: DateTime.now(),
-        dueAt: dueAt,
-        isDraft: draft,
-      ));
+      provider.addQuiz(
+        ClassroomQuiz(
+          id: 'quiz_${DateTime.now().microsecondsSinceEpoch}',
+          classroomId: classroom.id,
+          title: title,
+          instructions: instructionsCtrl.text.trim(),
+          teacherId: widget.userId,
+          durationMinutes: duration,
+          questions: questions,
+          createdAt: DateTime.now(),
+          dueAt: dueAt,
+          isDraft: draft,
+        ),
+      );
       Navigator.pop(dialogCtx);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(draft ? 'Quiz draft saved on this device.' : 'Quiz published to this device workspace.')),
+        SnackBar(
+          content: Text(
+            draft
+                ? 'Quiz draft saved on this device.'
+                : 'Quiz published to this device workspace.',
+          ),
+        ),
       );
     }
 
@@ -2503,11 +5393,28 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Quiz title *')),
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Quiz title *',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: instructionsCtrl, maxLines: 2, decoration: const InputDecoration(labelText: 'Instructions')),
+                    TextField(
+                      controller: instructionsCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Instructions',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: durationCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Time limit (minutes) *')),
+                    TextField(
+                      controller: durationCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Time limit (minutes) *',
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     Align(
                       alignment: Alignment.centerLeft,
@@ -2515,14 +5422,23 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         onPressed: () async {
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: dueAt ?? DateTime.now().add(const Duration(days: 7)),
+                            initialDate:
+                                dueAt ??
+                                DateTime.now().add(const Duration(days: 7)),
                             firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
-                          if (picked != null) setDialogState(() => dueAt = picked);
+                          if (picked != null)
+                            setDialogState(() => dueAt = picked);
                         },
                         icon: const Icon(Icons.calendar_month),
-                        label: Text(dueAt == null ? 'Set optional closing date' : 'Closes ${_dateFormat.format(dueAt!)}'),
+                        label: Text(
+                          dueAt == null
+                              ? 'Set optional closing date'
+                              : 'Closes ${_dateFormat.format(dueAt!)}',
+                        ),
                       ),
                     ),
                     ...List.generate(editors.length, (index) {
@@ -2534,20 +5450,52 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text('Question ${index + 1}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                              TextField(controller: editor.prompt, decoration: const InputDecoration(labelText: 'Question *')),
-                              ...List.generate(4, (optionIndex) => Row(
-                                    children: [
-                                      Radio<int>(value: optionIndex, groupValue: editor.correctIndex, onChanged: (value) => setDialogState(() => editor.correctIndex = value ?? 0)),
-                                      Expanded(child: TextField(controller: editor.options[optionIndex], decoration: InputDecoration(labelText: 'Option ${String.fromCharCode(65 + optionIndex)} *'))),
-                                    ],
-                                  )),
-                              Text('Choose the radio button beside the correct answer.', style: Theme.of(context).textTheme.bodySmall),
+                              Text(
+                                'Question ${index + 1}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              TextField(
+                                controller: editor.prompt,
+                                decoration: const InputDecoration(
+                                  labelText: 'Question *',
+                                ),
+                              ),
+                              ...List.generate(
+                                4,
+                                (optionIndex) => Row(
+                                  children: [
+                                    Radio<int>(
+                                      value: optionIndex,
+                                      groupValue: editor.correctIndex,
+                                      onChanged: (value) => setDialogState(
+                                        () => editor.correctIndex = value ?? 0,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: editor.options[optionIndex],
+                                        decoration: InputDecoration(
+                                          labelText:
+                                              'Option ${String.fromCharCode(65 + optionIndex)} *',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                'Choose the radio button beside the correct answer.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
                               if (editors.length > 1)
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton.icon(
-                                    onPressed: () => setDialogState(() => editors.removeAt(index).dispose()),
+                                    onPressed: () => setDialogState(
+                                      () => editors.removeAt(index).dispose(),
+                                    ),
                                     icon: const Icon(Icons.delete_outline),
                                     label: const Text('Remove question'),
                                   ),
@@ -2557,15 +5505,30 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         ),
                       );
                     }),
-                    TextButton.icon(onPressed: () => setDialogState(() => editors.add(_QuizQuestionEditor())), icon: const Icon(Icons.add), label: const Text('Add question')),
+                    TextButton.icon(
+                      onPressed: () => setDialogState(
+                        () => editors.add(_QuizQuestionEditor()),
+                      ),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add question'),
+                    ),
                   ],
                 ),
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
-              OutlinedButton(onPressed: () => save(setDialogState, dialogCtx, draft: true), child: const Text('Save Draft')),
-              FilledButton(onPressed: () => save(setDialogState, dialogCtx, draft: false), child: const Text('Publish Quiz')),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
+              OutlinedButton(
+                onPressed: () => save(setDialogState, dialogCtx, draft: true),
+                child: const Text('Save Draft'),
+              ),
+              FilledButton(
+                onPressed: () => save(setDialogState, dialogCtx, draft: false),
+                child: const Text('Publish Quiz'),
+              ),
             ],
           ),
         ),
@@ -2580,7 +5543,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     }
   }
 
-  Future<void> _showQuizAttemptDialog(ClassroomQuiz quiz, ClassroomProvider provider) async {
+  Future<void> _showQuizAttemptDialog(
+    ClassroomQuiz quiz,
+    ClassroomProvider provider,
+  ) async {
     final startedAt = DateTime.now();
     var remainingSeconds = quiz.durationMinutes * 60;
     final answers = <int, int>{};
@@ -2596,7 +5562,12 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               timer.cancel();
               if (!isSubmitting && dialogCtx.mounted) {
                 isSubmitting = true;
-                final result = provider.submitQuiz(quiz: quiz, studentId: widget.userId, answers: answers, startedAt: startedAt);
+                final result = provider.submitQuiz(
+                  quiz: quiz,
+                  studentId: widget.userId,
+                  answers: answers,
+                  startedAt: startedAt,
+                );
                 if (result != null) Navigator.pop(dialogCtx, result);
               }
             } else if (dialogCtx.mounted) {
@@ -2611,8 +5582,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('${remainingSeconds ~/ 60}:${(remainingSeconds % 60).toString().padLeft(2, '0')} remaining', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.error)),
-                    if (quiz.instructions.isNotEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(quiz.instructions)),
+                    Text(
+                      '${remainingSeconds ~/ 60}:${(remainingSeconds % 60).toString().padLeft(2, '0')} remaining',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.error,
+                      ),
+                    ),
+                    if (quiz.instructions.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(quiz.instructions),
+                      ),
                     ...List.generate(quiz.questions.length, (questionIndex) {
                       final question = quiz.questions[questionIndex];
                       return Card(
@@ -2622,15 +5603,26 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${questionIndex + 1}. ${question.prompt}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                              ...List.generate(question.options.length, (optionIndex) => RadioListTile<int>(
-                                    dense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                    value: optionIndex,
-                                    groupValue: answers[questionIndex],
-                                    title: Text(question.options[optionIndex]),
-                                    onChanged: (value) => setDialogState(() { if (value != null) answers[questionIndex] = value; }),
-                                  )),
+                              Text(
+                                '${questionIndex + 1}. ${question.prompt}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              ...List.generate(
+                                question.options.length,
+                                (optionIndex) => RadioListTile<int>(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  value: optionIndex,
+                                  groupValue: answers[questionIndex],
+                                  title: Text(question.options[optionIndex]),
+                                  onChanged: (value) => setDialogState(() {
+                                    if (value != null)
+                                      answers[questionIndex] = value;
+                                  }),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -2641,13 +5633,21 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel attempt')),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel attempt'),
+              ),
               FilledButton(
                 onPressed: isSubmitting
                     ? null
                     : () {
                         isSubmitting = true;
-                        final result = provider.submitQuiz(quiz: quiz, studentId: widget.userId, answers: answers, startedAt: startedAt);
+                        final result = provider.submitQuiz(
+                          quiz: quiz,
+                          studentId: widget.userId,
+                          answers: answers,
+                          startedAt: startedAt,
+                        );
                         if (result != null) Navigator.pop(dialogCtx, result);
                       },
                 child: const Text('Submit Quiz'),
@@ -2663,21 +5663,35 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Quiz Result'),
-        content: Text('You scored ${attempt.score} / ${attempt.maxScore}. Your result is saved in this device workspace.'),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Done'))],
+        content: Text(
+          'You scored ${attempt.score} / ${attempt.maxScore}. Your result is saved in this device workspace.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Done'),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _showQuizResultsDialog(ClassroomQuiz quiz, List<QuizAttempt> attempts) async {
+  Future<void> _showQuizResultsDialog(
+    ClassroomQuiz quiz,
+    List<QuizAttempt> attempts,
+  ) async {
     final sorted = List<QuizAttempt>.from(attempts)
       ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
     final average = sorted.isEmpty
         ? 0.0
         : sorted
-                .map((attempt) => attempt.maxScore == 0 ? 0.0 : attempt.score / attempt.maxScore * 100)
-                .reduce((left, right) => left + right) /
-            sorted.length;
+                  .map(
+                    (attempt) => attempt.maxScore == 0
+                        ? 0.0
+                        : attempt.score / attempt.maxScore * 100,
+                  )
+                  .reduce((left, right) => left + right) /
+              sorted.length;
     await showDialog<void>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -2688,7 +5702,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${sorted.length} attempt${sorted.length == 1 ? '' : 's'} · class average ${average.round()}%'),
+              Text(
+                '${sorted.length} attempt${sorted.length == 1 ? '' : 's'} · class average ${average.round()}%',
+              ),
               const SizedBox(height: 10),
               SizedBox(
                 height: sorted.length > 5 ? 320 : sorted.length * 64.0,
@@ -2710,12 +5726,20 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             ],
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Close'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _showPollDialog(ClassroomModel classroom, ClassroomProvider provider) async {
+  Future<void> _showPollDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) async {
     final questionCtrl = TextEditingController();
     final optionCtrls = List.generate(4, (_) => TextEditingController());
     try {
@@ -2729,32 +5753,61 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: questionCtrl, decoration: const InputDecoration(labelText: 'Question *')),
-                  ...List.generate(optionCtrls.length, (index) => TextField(controller: optionCtrls[index], decoration: InputDecoration(labelText: 'Option ${index + 1} *'))),
+                  TextField(
+                    controller: questionCtrl,
+                    decoration: const InputDecoration(labelText: 'Question *'),
+                  ),
+                  ...List.generate(
+                    optionCtrls.length,
+                    (index) => TextField(
+                      controller: optionCtrls[index],
+                      decoration: InputDecoration(
+                        labelText: 'Option ${index + 1} *',
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () {
                 final question = questionCtrl.text.trim();
-                final options = optionCtrls.map((controller) => controller.text.trim()).where((text) => text.isNotEmpty).toList();
+                final options = optionCtrls
+                    .map((controller) => controller.text.trim())
+                    .where((text) => text.isNotEmpty)
+                    .toList();
                 if (question.isEmpty || options.length < 2) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a poll question and at least two options.')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Enter a poll question and at least two options.',
+                      ),
+                    ),
+                  );
                   return;
                 }
-                provider.addPoll(ClassroomPoll(
-                  id: 'poll_${DateTime.now().microsecondsSinceEpoch}',
-                  classroomId: classroom.id,
-                  question: question,
-                  options: options,
-                  createdBy: widget.userId,
-                  createdAt: DateTime.now(),
-                ));
+                provider.addPoll(
+                  ClassroomPoll(
+                    id: 'poll_${DateTime.now().microsecondsSinceEpoch}',
+                    classroomId: classroom.id,
+                    question: question,
+                    options: options,
+                    createdBy: widget.userId,
+                    createdAt: DateTime.now(),
+                  ),
+                );
                 Navigator.pop(dialogCtx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Poll saved to this device workspace.')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Poll saved to this device workspace.'),
+                  ),
+                );
               },
               child: const Text('Publish Poll'),
             ),
@@ -2769,7 +5822,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     }
   }
 
-  Future<void> _showGroupDialog(ClassroomModel classroom, ClassroomProvider provider) async {
+  Future<void> _showGroupDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) async {
     final nameCtrl = TextEditingController();
     final selectedIds = <String>{};
     try {
@@ -2784,25 +5840,51 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Group name *')),
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Group name *',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    ...classroom.studentIds.map((id) => CheckboxListTile(
-                          value: selectedIds.contains(id),
-                          title: Text(id),
-                          dense: true,
-                          onChanged: (value) => setDialogState(() { if (value == true) { selectedIds.add(id); } else { selectedIds.remove(id); } }),
-                        )),
+                    ...classroom.studentIds.map(
+                      (id) => CheckboxListTile(
+                        value: selectedIds.contains(id),
+                        title: Text(id),
+                        dense: true,
+                        onChanged: (value) => setDialogState(() {
+                          if (value == true) {
+                            selectedIds.add(id);
+                          } else {
+                            selectedIds.remove(id);
+                          }
+                        }),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
               FilledButton(
                 onPressed: () {
-                  final created = provider.addGroup(classroom.id, nameCtrl.text, selectedIds.toList());
+                  final created = provider.addGroup(
+                    classroom.id,
+                    nameCtrl.text,
+                    selectedIds.toList(),
+                  );
                   if (!created) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a unique group name and select enrolled students.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Enter a unique group name and select enrolled students.',
+                        ),
+                      ),
+                    );
                     return;
                   }
                   Navigator.pop(dialogCtx);
@@ -2819,7 +5901,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   }
 
   Future<void> _showClassroomFormDialog({ClassroomModel? existing}) async {
-    final instructors = _isAdmin ? context.watch<InstructorProvider>().instructors : const [];
+    final instructors = _isAdmin
+        ? context.watch<InstructorProvider>().instructors
+        : const [];
     final nameCtrl = TextEditingController(text: existing?.name ?? '');
     final subjCtrl = TextEditingController(text: existing?.subject ?? '');
     final sectCtrl = TextEditingController(text: existing?.section ?? '');
@@ -2830,8 +5914,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     String? selectedTeacherId;
     if (_isAdmin && existing != null) {
       for (final instructor in instructors) {
-        if (instructor.instructorId == existing.teacherId || instructor.id == existing.teacherId) {
-          selectedTeacherId = instructor.instructorId.isNotEmpty ? instructor.instructorId : instructor.id;
+        if (instructor.instructorId == existing.teacherId ||
+            instructor.id == existing.teacherId) {
+          selectedTeacherId = instructor.instructorId.isNotEmpty
+              ? instructor.instructorId
+              : instructor.id;
           break;
         }
       }
@@ -2851,12 +5938,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 children: [
                   TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Classroom Name *', hintText: 'e.g. Distributed Systems 401'),
+                    decoration: const InputDecoration(
+                      labelText: 'Classroom Name *',
+                      hintText: 'e.g. Distributed Systems 401',
+                    ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: subjCtrl,
-                    decoration: const InputDecoration(labelText: 'Subject / Department *', hintText: 'e.g. Computer Science'),
+                    decoration: const InputDecoration(
+                      labelText: 'Subject / Department *',
+                      hintText: 'e.g. Computer Science',
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -2864,14 +5957,20 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       Expanded(
                         child: TextField(
                           controller: sectCtrl,
-                          decoration: const InputDecoration(labelText: 'Section', hintText: 'e.g. CS-4A'),
+                          decoration: const InputDecoration(
+                            labelText: 'Section',
+                            hintText: 'e.g. CS-4A',
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: roomCtrl,
-                          decoration: const InputDecoration(labelText: 'Room / Virtual Link', hintText: 'Hall 302'),
+                          decoration: const InputDecoration(
+                            labelText: 'Room / Virtual Link',
+                            hintText: 'Hall 302',
+                          ),
                         ),
                       ),
                     ],
@@ -2880,26 +5979,48 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   TextField(
                     controller: descCtrl,
                     maxLines: 2,
-                    decoration: const InputDecoration(labelText: 'Description / Syllabus Overview'),
+                    decoration: const InputDecoration(
+                      labelText: 'Description / Syllabus Overview',
+                    ),
                   ),
                   if (_isAdmin) ...[
                     const SizedBox(height: 10),
                     if (instructors.isEmpty)
-                      const Text('No instructors are loaded. Load faculty in the Admin dashboard before assigning a classroom.', style: TextStyle(color: AppColors.warning, fontSize: 12))
+                      const Text(
+                        'No instructors are loaded. Load faculty in the Admin dashboard before assigning a classroom.',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontSize: 12,
+                        ),
+                      )
                     else
                       DropdownButtonFormField<String>(
                         initialValue: selectedTeacherId,
-                        decoration: const InputDecoration(labelText: 'Assign instructor *'),
+                        decoration: const InputDecoration(
+                          labelText: 'Assign instructor *',
+                        ),
                         hint: const Text('Select an instructor'),
                         items: instructors.map((instructor) {
-                          final value = instructor.instructorId.isNotEmpty ? instructor.instructorId : instructor.id;
-                          return DropdownMenuItem(value: value, child: Text('${instructor.name} · ${instructor.department}', overflow: TextOverflow.ellipsis));
+                          final value = instructor.instructorId.isNotEmpty
+                              ? instructor.instructorId
+                              : instructor.id;
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(
+                              '${instructor.name} · ${instructor.department}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
                         }).toList(),
-                        onChanged: (value) => setDialogState(() => selectedTeacherId = value),
+                        onChanged: (value) =>
+                            setDialogState(() => selectedTeacherId = value),
                       ),
                   ],
                   const SizedBox(height: 16),
-                  const Text('Select Theme Cover Banner:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const Text(
+                    'Select Theme Cover Banner:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -2912,7 +6033,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: bannerIdx == idx ? AppColors.primary : Colors.transparent,
+                              color: bannerIdx == idx
+                                  ? AppColors.primary
+                                  : Colors.transparent,
                               width: 2.5,
                             ),
                           ),
@@ -2929,23 +6052,39 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () {
-                if (nameCtrl.text.trim().isEmpty || subjCtrl.text.trim().isEmpty) {
+                if (nameCtrl.text.trim().isEmpty ||
+                    subjCtrl.text.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Classroom name and subject are required.')),
+                    const SnackBar(
+                      content: Text('Classroom name and subject are required.'),
+                    ),
                   );
                   return;
                 }
-                final instructor = _isAdmin && selectedTeacherId != null
-                    ? instructors.cast<InstructorModel?>().firstWhere(
-                        (item) => item!.instructorId == selectedTeacherId || item.id == selectedTeacherId,
-                        orElse: () => null,
-                      )
-                    : null;
+                InstructorModel? instructor;
+                if (_isAdmin && selectedTeacherId != null) {
+                  for (final candidate in instructors) {
+                    if (candidate.instructorId == selectedTeacherId ||
+                        candidate.id == selectedTeacherId) {
+                      instructor = candidate;
+                      break;
+                    }
+                  }
+                }
                 if (_isAdmin && instructor == null && existing == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select a loaded instructor to assign this classroom.')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Select a loaded instructor to assign this classroom.',
+                      ),
+                    ),
+                  );
                   return;
                 }
                 final provider = context.read<ClassroomProvider>();
@@ -2956,7 +6095,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     section: sectCtrl.text.trim(),
                     description: descCtrl.text.trim(),
                     room: roomCtrl.text.trim(),
-                    teacherId: instructor?.instructorId.isNotEmpty == true ? instructor!.instructorId : (instructor?.id ?? widget.userId),
+                    teacherId: instructor?.instructorId.isNotEmpty == true
+                        ? instructor!.instructorId
+                        : (instructor?.id ?? widget.userId),
                     teacherName: instructor?.name ?? widget.userName,
                     teacherEmail: instructor?.email ?? (widget.userEmail ?? ''),
                     bannerIndex: bannerIdx,
@@ -2972,7 +6113,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       room: roomCtrl.text.trim(),
                       bannerIndex: bannerIdx,
                       bannerBytes: bannerBytes,
-                      teacherId: instructor?.instructorId.isNotEmpty == true ? instructor!.instructorId : (instructor?.id ?? existing.teacherId),
+                      teacherId: instructor?.instructorId.isNotEmpty == true
+                          ? instructor!.instructorId
+                          : (instructor?.id ?? existing.teacherId),
                       teacherName: instructor?.name ?? existing.teacherName,
                       teacherEmail: instructor?.email ?? existing.teacherEmail,
                     ),
@@ -3017,22 +6160,32 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               final code = ctrl.text.trim();
               if (code.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter a classroom code to continue.')),
+                  const SnackBar(
+                    content: Text('Enter a classroom code to continue.'),
+                  ),
                 );
                 return;
               }
-              final joined = context.read<ClassroomProvider>().join(code, widget.userId);
+              final joined = context.read<ClassroomProvider>().join(
+                code,
+                widget.userId,
+              );
               Navigator.pop(dialogCtx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    joined ? 'Successfully enrolled into classroom!' : 'Invalid code or already enrolled in this class.',
+                    joined
+                        ? 'Successfully enrolled into classroom!'
+                        : 'Invalid code or already enrolled in this class.',
                   ),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -3045,7 +6198,74 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Future<void> _showAnnouncementDialog(ClassroomModel classroom, ClassroomProvider provider, {ClassroomPost? existing}) async {
+  Future<void> _showInspectClassDialog() async {
+    final codeController = TextEditingController();
+    String? errorMessage;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Open classroom by code'),
+          content: SizedBox(
+            width: 380,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Inspect an existing classroom without enrolling an administrator as a student.',
+                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: codeController,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: 'Class code',
+                    hintText: 'e.g. ECD401',
+                    prefixIcon: const Icon(Icons.key_outlined),
+                    errorText: errorMessage,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final classroom = context.read<ClassroomProvider>().byCode(
+                  codeController.text.trim(),
+                );
+                if (classroom == null) {
+                  setDialogState(
+                    () => errorMessage = 'No active classroom uses this code.',
+                  );
+                  return;
+                }
+                Navigator.pop(dialogCtx);
+                setState(() {
+                  _selected = classroom;
+                  _activeDetailTab = 0;
+                });
+              },
+              child: const Text('Open classroom'),
+            ),
+          ],
+        ),
+      ),
+    );
+    codeController.dispose();
+  }
+
+  Future<void> _showAnnouncementDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider, {
+    ClassroomPost? existing,
+  }) async {
     final textCtrl = TextEditingController(text: existing?.text ?? '');
     bool isPinned = existing?.isPinned ?? false;
 
@@ -3053,7 +6273,13 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? (_isStudent ? 'Ask a Classroom Question' : 'Post Class Announcement') : 'Edit Announcement'),
+          title: Text(
+            existing == null
+                ? (_isStudent
+                      ? 'Ask a Classroom Question'
+                      : 'Post Class Announcement')
+                : 'Edit Announcement',
+          ),
           content: SizedBox(
             width: 480,
             child: Column(
@@ -3064,15 +6290,20 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   maxLines: 4,
                   decoration: const InputDecoration(
                     labelText: 'Announcement Message',
-                    hintText: 'Share updates, reminders, or links with the entire class...',
+                    hintText:
+                        'Share updates, reminders, or links with the entire class...',
                   ),
                 ),
                 const SizedBox(height: 10),
                 if (provider.canManageClass(classroom, _role, widget.userId))
                   CheckboxListTile(
                     value: isPinned,
-                    title: const Text('Pin this announcement to top of class stream', style: TextStyle(fontSize: 13)),
-                    onChanged: (val) => setDialogState(() => isPinned = val ?? false),
+                    title: const Text(
+                      'Pin this announcement to top of class stream',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    onChanged: (val) =>
+                        setDialogState(() => isPinned = val ?? false),
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -3080,7 +6311,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () {
                 final txt = textCtrl.text.trim();
@@ -3095,11 +6329,18 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     isPinned: isPinned,
                   );
                 } else {
-                  provider.updatePost(classroom.id, existing.id, txt, isPinned: isPinned);
+                  provider.updatePost(
+                    classroom.id,
+                    existing.id,
+                    txt,
+                    isPinned: isPinned,
+                  );
                 }
                 Navigator.pop(dialogCtx);
               },
-              child: Text(_isStudent && existing == null ? 'Ask Question' : 'Post'),
+              child: Text(
+                _isStudent && existing == null ? 'Ask Question' : 'Post',
+              ),
             ),
           ],
         ),
@@ -3107,12 +6348,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Future<void> _showAssignmentDialog(ClassroomModel classroom, ClassroomProvider provider, {ClassroomAssignment? existing}) async {
+  Future<void> _showAssignmentDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider, {
+    ClassroomAssignment? existing,
+  }) async {
     final titleCtrl = TextEditingController(text: existing?.title ?? '');
     final instCtrl = TextEditingController(text: existing?.instructions ?? '');
-    final marksCtrl = TextEditingController(text: '${existing?.maxMarks ?? 100}');
+    final marksCtrl = TextEditingController(
+      text: '${existing?.maxMarks ?? 100}',
+    );
     String category = existing?.category ?? 'General';
-    DateTime? dueAt = existing?.dueAt ?? DateTime.now().add(const Duration(days: 7));
+    DateTime? dueAt =
+        existing?.dueAt ?? DateTime.now().add(const Duration(days: 7));
     String? attachName = existing?.attachmentName;
     Uint8List? attachBytes = existing?.attachmentBytes;
     bool allowLateSubmission = existing?.allowLateSubmission ?? true;
@@ -3126,7 +6374,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? 'Create Assignment' : 'Edit Assignment'),
+          title: Text(
+            existing == null ? 'Create Assignment' : 'Edit Assignment',
+          ),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
@@ -3134,20 +6384,47 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Assignment Title *')),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Assignment Title *',
+                    ),
+                  ),
                   const SizedBox(height: 10),
-                  TextField(controller: instCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Instructions')),
+                  TextField(
+                    controller: instCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Instructions',
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: category,
-                          decoration: const InputDecoration(labelText: 'Category'),
-                          items: ['General', 'Homework', 'Project', 'Lab Exercise', 'Quiz', 'Exam']
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (val) => setDialogState(() => category = val ?? 'General'),
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                          ),
+                          items:
+                              [
+                                    'General',
+                                    'Homework',
+                                    'Project',
+                                    'Lab Exercise',
+                                    'Quiz',
+                                    'Exam',
+                                  ]
+                                  .map(
+                                    (c) => DropdownMenuItem(
+                                      value: c,
+                                      child: Text(c),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (val) =>
+                              setDialogState(() => category = val ?? 'General'),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -3155,7 +6432,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                         child: TextField(
                           controller: marksCtrl,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Max Marks *'),
+                          decoration: const InputDecoration(
+                            labelText: 'Max Marks *',
+                          ),
                         ),
                       ),
                     ],
@@ -3164,8 +6443,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   if (attachName != null) ...[
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.attach_file, color: AppColors.primary),
-                      title: Text(attachName!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      leading: const Icon(
+                        Icons.attach_file,
+                        color: AppColors.primary,
+                      ),
+                      title: Text(
+                        attachName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       trailing: IconButton(
                         icon: const Icon(Icons.close),
                         onPressed: () => setDialogState(() {
@@ -3178,7 +6464,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   OutlinedButton.icon(
                     onPressed: () async {
                       try {
-                        final result = await FilePicker.pickFiles(withData: true);
+                        final result = await FilePicker.pickFiles(
+                          withData: true,
+                        );
                         if (result != null && result.files.isNotEmpty) {
                           setDialogState(() {
                             attachName = result.files.single.name;
@@ -3188,48 +6476,103 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       } catch (error) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not select file: $error')),
+                            SnackBar(
+                              content: Text('Could not select file: $error'),
+                            ),
                           );
                         }
                       }
                     },
                     icon: const Icon(Icons.attach_file, size: 16),
-                    label: Text(attachName == null ? 'Attach assignment file' : 'Replace attachment'),
+                    label: Text(
+                      attachName == null
+                          ? 'Attach assignment file'
+                          : 'Replace attachment',
+                    ),
                   ),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     value: allowLateSubmission,
-                    title: const Text('Allow late submissions', style: TextStyle(fontSize: 13)),
-                    onChanged: (value) => setDialogState(() => allowLateSubmission = value ?? false),
+                    title: const Text(
+                      'Allow late submissions',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    onChanged: (value) => setDialogState(
+                      () => allowLateSubmission = value ?? false,
+                    ),
                   ),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     value: allowPeerReview,
-                    title: const Text('Allow peer review after submission', style: TextStyle(fontSize: 13)),
-                    onChanged: (value) => setDialogState(() => allowPeerReview = value ?? false),
+                    title: const Text(
+                      'Allow peer review after submission',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    onChanged: (value) =>
+                        setDialogState(() => allowPeerReview = value ?? false),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Expanded(child: Text('Grading rubric (optional)', style: TextStyle(fontWeight: FontWeight.w700))),
-                      TextButton.icon(onPressed: () => setDialogState(() => rubricEditors.add(_RubricEditor())), icon: const Icon(Icons.add, size: 16), label: const Text('Criterion')),
+                      const Expanded(
+                        child: Text(
+                          'Grading rubric (optional)',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => setDialogState(
+                          () => rubricEditors.add(_RubricEditor()),
+                        ),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Criterion'),
+                      ),
                     ],
                   ),
-                  ...rubricEditors.asMap().entries.map((entry) => Row(
-                        children: [
-                          Expanded(child: TextField(controller: entry.value.title, decoration: InputDecoration(labelText: 'Criterion ${entry.key + 1}'))),
-                          const SizedBox(width: 8),
-                          SizedBox(width: 92, child: TextField(controller: entry.value.points, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Points'))),
-                          IconButton(tooltip: 'Remove criterion', onPressed: () => setDialogState(() => rubricEditors.removeAt(entry.key).dispose()), icon: const Icon(Icons.close)),
-                        ],
-                      )),
+                  ...rubricEditors.asMap().entries.map(
+                    (entry) => Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: entry.value.title,
+                            decoration: InputDecoration(
+                              labelText: 'Criterion ${entry.key + 1}',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 92,
+                          child: TextField(
+                            controller: entry.value.points,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Points',
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Remove criterion',
+                          onPressed: () => setDialogState(
+                            () => rubricEditors.removeAt(entry.key).dispose(),
+                          ),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          dueAt != null ? 'Due Date: ${_dateFormat.format(dueAt!)}' : 'No Deadline',
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          dueAt != null
+                              ? 'Due Date: ${_dateFormat.format(dueAt!)}'
+                              : 'No Deadline',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                       TextButton.icon(
@@ -3239,10 +6582,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: dueAt ?? DateTime.now(),
-                            firstDate: DateTime.now().subtract(const Duration(days: 3650)),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 3650),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
-                          if (picked != null) setDialogState(() => dueAt = picked);
+                          if (picked != null)
+                            setDialogState(() => dueAt = picked);
                         },
                       ),
                     ],
@@ -3252,7 +6600,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             OutlinedButton(
               onPressed: () {
                 final title = titleCtrl.text.trim();
@@ -3263,17 +6614,29 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 for (final editor in rubricEditors) {
                   final criterionTitle = editor.title.text.trim();
                   final points = int.tryParse(editor.points.text.trim());
-                  if (criterionTitle.isEmpty && (editor.points.text.trim().isEmpty)) continue;
+                  if (criterionTitle.isEmpty &&
+                      (editor.points.text.trim().isEmpty))
+                    continue;
                   if (criterionTitle.isEmpty || points == null || points <= 0) {
                     invalidRubric = true;
                     break;
                   }
-                  rubric.add(RubricCriterion(title: criterionTitle, maxPoints: points));
+                  rubric.add(
+                    RubricCriterion(title: criterionTitle, maxPoints: points),
+                  );
                   rubricTotal += points;
                 }
-                if (title.isEmpty || marks == null || marks <= 0 || invalidRubric || (rubric.isNotEmpty && rubricTotal != marks)) {
+                if (title.isEmpty ||
+                    marks == null ||
+                    marks <= 0 ||
+                    invalidRubric ||
+                    (rubric.isNotEmpty && rubricTotal != marks)) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Enter a title and positive marks. Rubric criteria must be complete and add up to max marks.')),
+                    const SnackBar(
+                      content: Text(
+                        'Enter a title and positive marks. Rubric criteria must be complete and add up to max marks.',
+                      ),
+                    ),
                   );
                   return;
                 }
@@ -3314,7 +6677,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 }
                 Navigator.pop(dialogCtx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Assignment draft saved on this device.')),
+                  const SnackBar(
+                    content: Text('Assignment draft saved on this device.'),
+                  ),
                 );
               },
               child: const Text('Save Draft'),
@@ -3328,32 +6693,87 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 for (final editor in rubricEditors) {
                   final criterionTitle = editor.title.text.trim();
                   final points = int.tryParse(editor.points.text.trim());
-                  if (criterionTitle.isEmpty && editor.points.text.trim().isEmpty) continue;
+                  if (criterionTitle.isEmpty &&
+                      editor.points.text.trim().isEmpty)
+                    continue;
                   if (criterionTitle.isEmpty || points == null || points <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Complete each rubric criterion with a positive point value.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Complete each rubric criterion with a positive point value.',
+                        ),
+                      ),
+                    );
                     return;
                   }
-                  rubric.add(RubricCriterion(title: criterionTitle, maxPoints: points));
+                  rubric.add(
+                    RubricCriterion(title: criterionTitle, maxPoints: points),
+                  );
                   rubricTotal += points;
                 }
-                if (title.isEmpty || marks == null || marks <= 0 || (rubric.isNotEmpty && rubricTotal != marks)) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a title and positive marks. Rubric points must add up to max marks.')));
+                if (title.isEmpty ||
+                    marks == null ||
+                    marks <= 0 ||
+                    (rubric.isNotEmpty && rubricTotal != marks)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Enter a title and positive marks. Rubric points must add up to max marks.',
+                      ),
+                    ),
+                  );
                   return;
                 }
                 if (existing == null) {
-                  provider.addAssignment(classroom.id, title, instCtrl.text.trim(), marks, dueAt,
-                      teacherId: widget.userId, category: category, attachmentName: attachName, attachmentBytes: attachBytes,
-                      allowLateSubmission: allowLateSubmission, isDraft: false, allowPeerReview: allowPeerReview, rubric: rubric);
+                  provider.addAssignment(
+                    classroom.id,
+                    title,
+                    instCtrl.text.trim(),
+                    marks,
+                    dueAt,
+                    teacherId: widget.userId,
+                    category: category,
+                    attachmentName: attachName,
+                    attachmentBytes: attachBytes,
+                    allowLateSubmission: allowLateSubmission,
+                    isDraft: false,
+                    allowPeerReview: allowPeerReview,
+                    rubric: rubric,
+                  );
                 } else {
-                  provider.updateAssignment(classroom.id, existing.id, title, instCtrl.text.trim(), marks, dueAt,
-                      category: category, attachmentName: attachName, attachmentBytes: attachBytes,
-                      clearAttachment: attachName == null && attachBytes == null, allowLateSubmission: allowLateSubmission,
-                      isDraft: false, allowPeerReview: allowPeerReview, rubric: rubric);
+                  provider.updateAssignment(
+                    classroom.id,
+                    existing.id,
+                    title,
+                    instCtrl.text.trim(),
+                    marks,
+                    dueAt,
+                    category: category,
+                    attachmentName: attachName,
+                    attachmentBytes: attachBytes,
+                    clearAttachment: attachName == null && attachBytes == null,
+                    allowLateSubmission: allowLateSubmission,
+                    isDraft: false,
+                    allowPeerReview: allowPeerReview,
+                    rubric: rubric,
+                  );
                 }
                 Navigator.pop(dialogCtx);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(existing?.isDraft == true ? 'Assignment published in this device workspace.' : 'Assignment saved in this device workspace.')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      existing?.isDraft == true
+                          ? 'Assignment published in this device workspace.'
+                          : 'Assignment saved in this device workspace.',
+                    ),
+                  ),
+                );
               },
-              child: Text(existing == null || saveDraft ? 'Publish Assignment' : 'Save Changes'),
+              child: Text(
+                existing == null || saveDraft
+                    ? 'Publish Assignment'
+                    : 'Save Changes',
+              ),
             ),
           ],
         ),
@@ -3361,7 +6781,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Future<void> _showStudentSubmissionDialog(ClassroomAssignment assignment, ClassroomProvider provider) async {
+  Future<void> _showStudentSubmissionDialog(
+    ClassroomAssignment assignment,
+    ClassroomProvider provider,
+  ) async {
     final prior = provider.submissionFor(assignment.id, widget.userId);
     final notesCtrl = TextEditingController(text: prior?.comment ?? '');
     String? attachName = prior?.attachmentName;
@@ -3379,7 +6802,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(assignment.instructions, style: const TextStyle(fontSize: 13, height: 1.4)),
+                  Text(
+                    assignment.instructions,
+                    style: const TextStyle(fontSize: 13, height: 1.4),
+                  ),
                   const SizedBox(height: 14),
                   TextField(
                     controller: notesCtrl,
@@ -3393,8 +6819,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   if (attachName != null) ...[
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.attach_file, color: AppColors.primary),
-                      title: Text(attachName!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      leading: const Icon(
+                        Icons.attach_file,
+                        color: AppColors.primary,
+                      ),
+                      title: Text(
+                        attachName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       trailing: IconButton(
                         icon: const Icon(Icons.close),
                         onPressed: () => setDialogState(() {
@@ -3407,7 +6840,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   OutlinedButton.icon(
                     onPressed: () async {
                       try {
-                        final picked = await FilePicker.pickFiles(withData: true);
+                        final picked = await FilePicker.pickFiles(
+                          withData: true,
+                        );
                         if (picked != null && picked.files.isNotEmpty) {
                           setDialogState(() {
                             attachName = picked.files.single.name;
@@ -3417,14 +6852,21 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       } catch (_) {}
                     },
                     icon: const Icon(Icons.upload_file, size: 16),
-                    label: Text(attachName == null ? 'Attach Document / Solution' : 'Replace File'),
+                    label: Text(
+                      attachName == null
+                          ? 'Attach Document / Solution'
+                          : 'Replace File',
+                    ),
                   ),
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () {
                 final saved = provider.submit(
@@ -3439,13 +6881,21 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 );
                 if (!saved) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('This work could not be submitted. Check the deadline and try again.')),
+                    const SnackBar(
+                      content: Text(
+                        'This work could not be submitted. Check the deadline and try again.',
+                      ),
+                    ),
                   );
                   return;
                 }
                 Navigator.pop(dialogCtx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Assignment saved on this device and available to the classroom teacher here.')),
+                  const SnackBar(
+                    content: Text(
+                      'Assignment saved on this device and available to the classroom teacher here.',
+                    ),
+                  ),
                 );
               },
               child: const Text('Turn In Work'),
@@ -3456,17 +6906,33 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Future<void> _showPeerReviewDialog(ClassroomAssignment assignment, ClassroomModel classroom, ClassroomProvider provider) async {
+  Future<void> _showPeerReviewDialog(
+    ClassroomAssignment assignment,
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) async {
     final feedbackCtrl = TextEditingController();
-    final alreadyReviewed = provider.peerReviewsFor(assignment.id)
+    final alreadyReviewed = provider
+        .peerReviewsFor(assignment.id)
         .where((review) => review.reviewerId == widget.userId)
         .map((review) => review.revieweeId)
         .toSet();
     final candidates = classroom.studentIds
-        .where((id) => id != widget.userId && provider.submissionFor(assignment.id, id) != null && !alreadyReviewed.contains(id))
+        .where(
+          (id) =>
+              id != widget.userId &&
+              provider.submissionFor(assignment.id, id) != null &&
+              !alreadyReviewed.contains(id),
+        )
         .toList();
     if (candidates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('There are no eligible classmate submissions left to review.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'There are no eligible classmate submissions left to review.',
+          ),
+        ),
+      );
       feedbackCtrl.dispose();
       return;
     }
@@ -3485,24 +6951,47 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: revieweeId,
-                    decoration: const InputDecoration(labelText: 'Classmate submission'),
-                    items: candidates.map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
-                    onChanged: (value) => setDialogState(() => revieweeId = value ?? revieweeId),
+                    decoration: const InputDecoration(
+                      labelText: 'Classmate submission',
+                    ),
+                    items: candidates
+                        .map(
+                          (id) => DropdownMenuItem(value: id, child: Text(id)),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setDialogState(() => revieweeId = value ?? revieweeId),
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<int>(
                     initialValue: rating,
                     decoration: const InputDecoration(labelText: 'Rating'),
-                    items: List.generate(5, (index) => DropdownMenuItem(value: index + 1, child: Text('${index + 1} / 5'))),
-                    onChanged: (value) => setDialogState(() => rating = value ?? 5),
+                    items: List.generate(
+                      5,
+                      (index) => DropdownMenuItem(
+                        value: index + 1,
+                        child: Text('${index + 1} / 5'),
+                      ),
+                    ),
+                    onChanged: (value) =>
+                        setDialogState(() => rating = value ?? 5),
                   ),
                   const SizedBox(height: 10),
-                  TextField(controller: feedbackCtrl, maxLines: 4, decoration: const InputDecoration(labelText: 'Constructive feedback *')),
+                  TextField(
+                    controller: feedbackCtrl,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      labelText: 'Constructive feedback *',
+                    ),
+                  ),
                 ],
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
               FilledButton(
                 onPressed: () {
                   final saved = provider.submitPeerReview(
@@ -3513,7 +7002,13 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                     feedback: feedbackCtrl.text,
                   );
                   if (!saved) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('The review needs feedback and a valid submitted classmate.')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'The review needs feedback and a valid submitted classmate.',
+                        ),
+                      ),
+                    );
                     return;
                   }
                   Navigator.pop(dialogCtx);
@@ -3548,13 +7043,23 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 return Card(
                   elevation: 0,
                   margin: const EdgeInsets.only(bottom: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: AppColors.border)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
                   child: ListTile(
                     leading: Icon(
                       sub != null ? Icons.check_circle : Icons.pending_outlined,
-                      color: sub != null ? (sub.marks != null ? AppColors.success : AppColors.primary) : AppColors.textLight,
+                      color: sub != null
+                          ? (sub.marks != null
+                                ? AppColors.success
+                                : AppColors.primary)
+                          : AppColors.textLight,
                     ),
-                    title: Text(sId, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      sId,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Text(
                       sub == null
                           ? 'Missing / Not submitted'
@@ -3566,7 +7071,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                               Navigator.pop(dialogCtx);
                               _showGradingDialog(assignment, sub, provider);
                             },
-                            child: Text(sub.marks == null ? 'Grade' : 'Edit Grade'),
+                            child: Text(
+                              sub.marks == null ? 'Grade' : 'Edit Grade',
+                            ),
                           )
                         : null,
                   ),
@@ -3576,112 +7083,203 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Close')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Close'),
+          ),
         ],
       ),
     );
   }
 
-  Future<void> _showGradingDialog(ClassroomAssignment assignment, ClassroomSubmission submission, ClassroomProvider provider) async {
-    final marksCtrl = TextEditingController(text: submission.marks != null ? '${submission.marks}' : '');
+  Future<void> _showGradingDialog(
+    ClassroomAssignment assignment,
+    ClassroomSubmission submission,
+    ClassroomProvider provider,
+  ) async {
+    final marksCtrl = TextEditingController(
+      text: submission.marks != null ? '${submission.marks}' : '',
+    );
     final feedbackCtrl = TextEditingController(text: submission.feedback ?? '');
-    final rubricCtrls = assignment.rubric.map((criterion) => TextEditingController(
-          text: submission.gradeHistory.isEmpty ? '' : '${submission.gradeHistory.last.rubricScores[criterion.title] ?? ''}',
-        )).toList();
+    final rubricCtrls = assignment.rubric
+        .map(
+          (criterion) => TextEditingController(
+            text: submission.gradeHistory.isEmpty
+                ? ''
+                : '${submission.gradeHistory.last.rubricScores[criterion.title] ?? ''}',
+          ),
+        )
+        .toList();
     try {
       await showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text('Grade: ${submission.studentName.isNotEmpty ? submission.studentName : submission.studentId}'),
-        content: SizedBox(
-          width: 400,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              Text('Assignment: ${assignment.title}', style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (submission.attachmentName != null || submission.attachmentUrl != null) ...[
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () => _openResource(
-                    name: submission.attachmentName,
-                    url: submission.attachmentUrl,
-                    bytes: submission.attachmentBytes,
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: Text(
+            'Grade: ${submission.studentName.isNotEmpty ? submission.studentName : submission.studentId}',
+          ),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Assignment: ${assignment.title}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  icon: const Icon(Icons.download_rounded, size: 16),
-                  label: Text(submission.attachmentName ?? 'Open submitted file'),
-                ),
-              ],
-              if (submission.comment.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text('Student Solution Remarks: "${submission.comment}"', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-              ],
-              const SizedBox(height: 14),
-              if (assignment.rubric.isEmpty)
-                TextField(
-                  controller: marksCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: 'Marks Awarded (out of ${assignment.maxMarks}) *'),
-                )
-              else ...[
-                Text('Rubric · total ${assignment.maxMarks} marks', style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                ...List.generate(assignment.rubric.length, (index) => TextField(
-                      controller: rubricCtrls[index],
+                  if (submission.attachmentName != null ||
+                      submission.attachmentUrl != null) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () => _openResource(
+                        name: submission.attachmentName,
+                        url: submission.attachmentUrl,
+                        bytes: submission.attachmentBytes,
+                      ),
+                      icon: const Icon(Icons.download_rounded, size: 16),
+                      label: Text(
+                        submission.attachmentName ?? 'Open submitted file',
+                      ),
+                    ),
+                  ],
+                  if (submission.comment.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Student Solution Remarks: "${submission.comment}"',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  if (assignment.rubric.isEmpty)
+                    TextField(
+                      controller: marksCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: '${assignment.rubric[index].title} (0-${assignment.rubric[index].maxPoints})'),
-                    )),
-              ],
-              const SizedBox(height: 10),
-              TextField(
-                controller: feedbackCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Qualitative Feedback', hintText: 'Enter praise, corrections, and improvement notes...'),
+                      decoration: InputDecoration(
+                        labelText:
+                            'Marks Awarded (out of ${assignment.maxMarks}) *',
+                      ),
+                    )
+                  else ...[
+                    Text(
+                      'Rubric · total ${assignment.maxMarks} marks',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 8),
+                    ...List.generate(
+                      assignment.rubric.length,
+                      (index) => TextField(
+                        controller: rubricCtrls[index],
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText:
+                              '${assignment.rubric[index].title} (0-${assignment.rubric[index].maxPoints})',
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: feedbackCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Qualitative Feedback',
+                      hintText:
+                          'Enter praise, corrections, and improvement notes...',
+                    ),
+                  ),
+                  if (submission.gradeHistory.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Grading History',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    ...submission.gradeHistory.map(
+                      (record) => Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          '${record.marks}/${assignment.maxMarks} · ${_dateFormat.format(record.gradedAt)}${record.gradedBy.isEmpty ? '' : ' · ${record.gradedBy}'}${record.feedback.isEmpty ? '' : '\n${record.feedback}'}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              if (submission.gradeHistory.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Text('Grading History', style: TextStyle(fontWeight: FontWeight.w700)),
-                ...submission.gradeHistory.map((record) => Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text('${record.marks}/${assignment.maxMarks} · ${_dateFormat.format(record.gradedAt)}${record.gradedBy.isEmpty ? '' : ' · ${record.gradedBy}'}${record.feedback.isEmpty ? '' : '\n${record.feedback}'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                    )),
-              ],
-            ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              int? marks = int.tryParse(marksCtrl.text.trim());
-              final rubricScores = <String, int>{};
-              if (assignment.rubric.isNotEmpty) {
-                var rubricTotal = 0;
-                for (var index = 0; index < assignment.rubric.length; index++) {
-                  final criterion = assignment.rubric[index];
-                  final score = int.tryParse(rubricCtrls[index].text.trim());
-                  if (score == null || score < 0 || score > criterion.maxPoints) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Enter a score from 0 to ${criterion.maxPoints} for ${criterion.title}.')));
-                    return;
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                int? marks = int.tryParse(marksCtrl.text.trim());
+                final rubricScores = <String, int>{};
+                if (assignment.rubric.isNotEmpty) {
+                  var rubricTotal = 0;
+                  for (
+                    var index = 0;
+                    index < assignment.rubric.length;
+                    index++
+                  ) {
+                    final criterion = assignment.rubric[index];
+                    final score = int.tryParse(rubricCtrls[index].text.trim());
+                    if (score == null ||
+                        score < 0 ||
+                        score > criterion.maxPoints) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Enter a score from 0 to ${criterion.maxPoints} for ${criterion.title}.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+                    rubricScores[criterion.title] = score;
+                    rubricTotal += score;
                   }
-                  rubricScores[criterion.title] = score;
-                  rubricTotal += score;
+                  marks = rubricTotal;
                 }
-                marks = rubricTotal;
-              }
-              if (marks == null || marks < 0 || marks > assignment.maxMarks) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter marks between 0 and ${assignment.maxMarks}')));
-                return;
-              }
-              provider.grade(assignment.id, submission.studentId, marks, feedbackCtrl.text.trim(), gradedBy: widget.userName, rubricScores: rubricScores);
-              Navigator.pop(dialogCtx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Grade saved on this device and shown to the student.')));
-            },
-            child: const Text('Return Grade'),
-          ),
-        ],
-      ),
+                if (marks == null || marks < 0 || marks > assignment.maxMarks) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Please enter marks between 0 and ${assignment.maxMarks}',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                provider.grade(
+                  assignment.id,
+                  submission.studentId,
+                  marks,
+                  feedbackCtrl.text.trim(),
+                  gradedBy: widget.userName,
+                  rubricScores: rubricScores,
+                );
+                Navigator.pop(dialogCtx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Grade saved on this device and shown to the student.',
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Return Grade'),
+            ),
+          ],
+        ),
       );
     } finally {
       marksCtrl.dispose();
@@ -3692,8 +7290,14 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     }
   }
 
-  Future<void> _showTakeAttendanceDialog(ClassroomModel classroom, ClassroomProvider provider, {ClassroomAttendanceSession? existing}) async {
-    final topicCtrl = TextEditingController(text: existing?.topic ?? 'Lecture Session');
+  Future<void> _showTakeAttendanceDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider, {
+    ClassroomAttendanceSession? existing,
+  }) async {
+    final topicCtrl = TextEditingController(
+      text: existing?.topic ?? 'Lecture Session',
+    );
     DateTime date = existing?.date ?? DateTime.now();
     final records = Map<String, AttendanceStatus>.from(existing?.records ?? {});
 
@@ -3708,7 +7312,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? 'Record Class Attendance' : 'Edit Attendance Session'),
+          title: Text(
+            existing == null
+                ? 'Record Class Attendance'
+                : 'Edit Attendance Session',
+          ),
           content: SizedBox(
             width: 480,
             child: SingleChildScrollView(
@@ -3716,11 +7324,22 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextField(controller: topicCtrl, decoration: const InputDecoration(labelText: 'Session Topic / Lecture Title *')),
+                  TextField(
+                    controller: topicCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Session Topic / Lecture Title *',
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Text('Session Date: ${_dateFormat.format(date)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(
+                        'Session Date: ${_dateFormat.format(date)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
                       const Spacer(),
                       TextButton.icon(
                         icon: const Icon(Icons.calendar_month, size: 16),
@@ -3729,10 +7348,15 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                           final picked = await showDatePicker(
                             context: context,
                             initialDate: date,
-                            firstDate: DateTime.now().subtract(const Duration(days: 90)),
-                            lastDate: DateTime.now().add(const Duration(days: 7)),
+                            firstDate: DateTime.now().subtract(
+                              const Duration(days: 90),
+                            ),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 7),
+                            ),
                           );
-                          if (picked != null) setDialogState(() => date = picked);
+                          if (picked != null)
+                            setDialogState(() => date = picked);
                         },
                       ),
                     ],
@@ -3760,16 +7384,37 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
                         children: [
-                          Expanded(child: Text(sId, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                          Expanded(
+                            child: Text(
+                              sId,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
                           SegmentedButton<AttendanceStatus>(
                             segments: const [
-                              ButtonSegment(value: AttendanceStatus.present, label: Text('P')),
-                              ButtonSegment(value: AttendanceStatus.absent, label: Text('A')),
-                              ButtonSegment(value: AttendanceStatus.late, label: Text('L')),
-                              ButtonSegment(value: AttendanceStatus.excused, label: Text('E')),
+                              ButtonSegment(
+                                value: AttendanceStatus.present,
+                                label: Text('P'),
+                              ),
+                              ButtonSegment(
+                                value: AttendanceStatus.absent,
+                                label: Text('A'),
+                              ),
+                              ButtonSegment(
+                                value: AttendanceStatus.late,
+                                label: Text('L'),
+                              ),
+                              ButtonSegment(
+                                value: AttendanceStatus.excused,
+                                label: Text('E'),
+                              ),
                             ],
                             selected: {current},
-                            onSelectionChanged: (val) => setDialogState(() => records[sId] = val.first),
+                            onSelectionChanged: (val) =>
+                                setDialogState(() => records[sId] = val.first),
                           ),
                         ],
                       ),
@@ -3780,25 +7425,36 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () {
                 if (existing == null) {
                   provider.recordAttendanceSession(
                     classroomId: classroom.id,
                     date: date,
-                    topic: topicCtrl.text.trim().isNotEmpty ? topicCtrl.text.trim() : 'Lecture Session',
+                    topic: topicCtrl.text.trim().isNotEmpty
+                        ? topicCtrl.text.trim()
+                        : 'Lecture Session',
                     takenByTeacherId: widget.userId,
                     records: records,
                   );
                 } else {
                   provider.updateAttendanceSession(
-                    existing.copyWith(date: date, topic: topicCtrl.text.trim(), records: records),
+                    existing.copyWith(
+                      date: date,
+                      topic: topicCtrl.text.trim(),
+                      records: records,
+                    ),
                   );
                 }
                 Navigator.pop(dialogCtx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Attendance recorded successfully!')),
+                  const SnackBar(
+                    content: Text('Attendance recorded successfully!'),
+                  ),
                 );
               },
               child: const Text('Save Attendance'),
@@ -3809,10 +7465,16 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Future<void> _showMaterialDialog(ClassroomModel classroom, ClassroomProvider provider, {ClassroomMaterial? existing}) async {
+  Future<void> _showMaterialDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider, {
+    ClassroomMaterial? existing,
+  }) async {
     final titleCtrl = TextEditingController(text: existing?.title ?? '');
     final descCtrl = TextEditingController(text: existing?.description ?? '');
-    final topicCtrl = TextEditingController(text: existing?.topic ?? 'General Resources');
+    final topicCtrl = TextEditingController(
+      text: existing?.topic ?? 'General Resources',
+    );
     final linkCtrl = TextEditingController(text: existing?.linkUrl ?? '');
     String? attachName = existing?.attachmentName;
     Uint8List? attachBytes = existing?.attachmentBytes;
@@ -3821,25 +7483,47 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? 'Upload Learning Material' : 'Edit Material'),
+          title: Text(
+            existing == null ? 'Upload Learning Material' : 'Edit Material',
+          ),
           content: SizedBox(
             width: 450,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Title *')),
+                  TextField(
+                    controller: titleCtrl,
+                    decoration: const InputDecoration(labelText: 'Title *'),
+                  ),
                   const SizedBox(height: 10),
-                  TextField(controller: topicCtrl, decoration: const InputDecoration(labelText: 'Module / Topic Grouping *')),
+                  TextField(
+                    controller: topicCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Module / Topic Grouping *',
+                    ),
+                  ),
                   const SizedBox(height: 10),
-                  TextField(controller: descCtrl, maxLines: 2, decoration: const InputDecoration(labelText: 'Description')),
+                  TextField(
+                    controller: descCtrl,
+                    maxLines: 2,
+                    decoration: const InputDecoration(labelText: 'Description'),
+                  ),
                   const SizedBox(height: 10),
-                  TextField(controller: linkCtrl, decoration: const InputDecoration(labelText: 'External URL (Optional)')),
+                  TextField(
+                    controller: linkCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'External URL (Optional)',
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   if (attachName != null) ...[
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.attach_file, color: AppColors.primary),
+                      leading: const Icon(
+                        Icons.attach_file,
+                        color: AppColors.primary,
+                      ),
                       title: Text(attachName!),
                       trailing: IconButton(
                         icon: const Icon(Icons.close),
@@ -3852,10 +7536,16 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                   ],
                   OutlinedButton.icon(
                     icon: const Icon(Icons.upload_file, size: 16),
-                    label: Text(attachName == null ? 'Attach PDF or Slides' : 'Replace File'),
+                    label: Text(
+                      attachName == null
+                          ? 'Attach PDF or Slides'
+                          : 'Replace File',
+                    ),
                     onPressed: () async {
                       try {
-                        final picked = await FilePicker.pickFiles(withData: true);
+                        final picked = await FilePicker.pickFiles(
+                          withData: true,
+                        );
                         if (picked != null && picked.files.isNotEmpty) {
                           setDialogState(() {
                             attachName = picked.files.single.name;
@@ -3865,7 +7555,9 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       } catch (error) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not select file: $error')),
+                            SnackBar(
+                              content: Text('Could not select file: $error'),
+                            ),
                           );
                         }
                       }
@@ -3876,19 +7568,30 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () {
                 final title = titleCtrl.text.trim();
                 final link = linkCtrl.text.trim();
                 final parsedLink = link.isEmpty ? null : Uri.tryParse(link);
-                final validLink = link.isEmpty ||
+                final validLink =
+                    link.isEmpty ||
                     (parsedLink != null &&
-                        (parsedLink.scheme == 'http' || parsedLink.scheme == 'https') &&
+                        (parsedLink.scheme == 'http' ||
+                            parsedLink.scheme == 'https') &&
                         parsedLink.host.isNotEmpty);
-                if (title.isEmpty || topicCtrl.text.trim().isEmpty || !validLink) {
+                if (title.isEmpty ||
+                    topicCtrl.text.trim().isEmpty ||
+                    !validLink) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Enter a material title and topic, and use a valid HTTP or HTTPS link.')),
+                    const SnackBar(
+                      content: Text(
+                        'Enter a material title and topic, and use a valid HTTP or HTTPS link.',
+                      ),
+                    ),
                   );
                   return;
                 }
@@ -3912,7 +7615,8 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
                       topic: topicCtrl.text.trim(),
                       attachmentName: attachName,
                       attachmentBytes: attachBytes,
-                      clearAttachment: attachName == null && attachBytes == null,
+                      clearAttachment:
+                          attachName == null && attachBytes == null,
                       linkUrl: linkCtrl.text.trim(),
                       fileType: _resourceFileType(attachName),
                     ),
@@ -3928,7 +7632,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     );
   }
 
-  Future<void> _showAddStudentDialog(ClassroomModel classroom, ClassroomProvider provider) async {
+  Future<void> _showAddStudentDialog(
+    ClassroomModel classroom,
+    ClassroomProvider provider,
+  ) async {
     final ctrl = TextEditingController();
     await showDialog<void>(
       context: context,
@@ -3939,30 +7646,47 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Enter student ID or roll number to enroll them into this class:', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+              const Text(
+                'Enter student ID or roll number to enroll them into this class:',
+                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              ),
               const SizedBox(height: 12),
               TextField(
                 controller: ctrl,
-                decoration: const InputDecoration(labelText: 'Student Roll / ID', hintText: 'e.g. STU-2025-005'),
+                decoration: const InputDecoration(
+                  labelText: 'Student Roll / ID',
+                  hintText: 'e.g. STU-2025-005',
+                ),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () {
               final sId = ctrl.text.trim();
               if (sId.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter a student ID or roll number.')),
+                  const SnackBar(
+                    content: Text('Enter a student ID or roll number.'),
+                  ),
                 );
                 return;
               }
               final enrolled = provider.enrollStudent(classroom.id, sId);
               Navigator.pop(dialogCtx);
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(enrolled ? 'Enrolled student $sId.' : '$sId is already enrolled or the class no longer exists.')),
+                SnackBar(
+                  content: Text(
+                    enrolled
+                        ? 'Enrolled student $sId.'
+                        : '$sId is already enrolled or the class no longer exists.',
+                  ),
+                ),
               );
             },
             child: const Text('Enroll'),
@@ -3975,20 +7699,34 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
   String _resourceFileType(String? fileName) {
     final extension = fileName?.split('.').last.toLowerCase() ?? '';
     if (extension == 'pdf') return 'pdf';
-    if (extension == 'ppt' || extension == 'pptx' || extension == 'key') return 'slides';
-    if (extension == 'zip' || extension == 'dart' || extension == 'java' || extension == 'cpp') return 'code';
+    if (extension == 'ppt' || extension == 'pptx' || extension == 'key')
+      return 'slides';
+    if (extension == 'zip' ||
+        extension == 'dart' ||
+        extension == 'java' ||
+        extension == 'cpp')
+      return 'code';
     return fileName == null ? 'link' : 'document';
   }
 
-  Future<void> _openResource({String? name, String? url, Uint8List? bytes}) async {
+  Future<void> _openResource({
+    String? name,
+    String? url,
+    Uint8List? bytes,
+  }) async {
     try {
       final cleanUrl = url?.trim() ?? '';
       if (cleanUrl.isNotEmpty) {
         final uri = Uri.tryParse(cleanUrl);
         if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
-          throw const FormatException('Only valid HTTP or HTTPS links can be opened.');
+          throw const FormatException(
+            'Only valid HTTP or HTTPS links can be opened.',
+          );
         }
-        final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        final opened = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
         if (!opened) throw Exception('The link could not be opened.');
         return;
       }
@@ -4004,7 +7742,11 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('This resource has no downloadable file or valid link.')),
+          const SnackBar(
+            content: Text(
+              'This resource has no downloadable file or valid link.',
+            ),
+          ),
         );
       }
     } catch (error) {
@@ -4021,78 +7763,115 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetCtx) => StatefulBuilder(
         builder: (ctx, setSheetState) {
           final notifications = provider.notificationsFor(widget.userId);
           return Container(
-          padding: const EdgeInsets.all(20),
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.notifications_active, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  const Text('Classroom Notifications', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      provider.markAllNotificationsAsRead(widget.userId);
-                      setSheetState(() {});
-                    },
-                    child: const Text('Mark all as read'),
-                  ),
-                ],
-              ),
-              const Divider(color: AppColors.border),
-              const SizedBox(height: 8),
-              if (notifications.isEmpty)
-                const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('No notifications yet!')))
-              else
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: notifications.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
-                    itemBuilder: (context, idx) {
-                      final notif = notifications[idx];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: notif.isRead ? AppColors.bgSurface : AppColors.primaryLight,
-                          child: Icon(
-                            notif.type == 'grade'
-                                ? Icons.grade
-                                : (notif.type == 'assignment'
-                                    ? Icons.assignment
-                                    : (notif.type == 'attendance'
-                                        ? Icons.event_available
-                                        : (notif.type == 'material' ? Icons.folder_open : Icons.campaign))),
-                            color: notif.isRead ? AppColors.textMuted : AppColors.primary,
-                            size: 18,
-                          ),
-                        ),
-                        title: Text(
-                          notif.title,
-                          style: TextStyle(fontWeight: notif.isRead ? FontWeight.normal : FontWeight.bold, fontSize: 13),
-                        ),
-                        subtitle: Text(
-                          '${notif.classroomName} · ${notif.message}\n${_dateFormat.format(notif.timestamp)}',
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        trailing: notif.isRead
-                            ? null
-                            : const Icon(Icons.circle, size: 8, color: AppColors.primary),
-                        onTap: () {
-                          provider.markNotificationAsRead(notif.id, widget.userId);
-                          setSheetState(() {});
-                        },
-                      );
-                    },
-                  ),
+            padding: const EdgeInsets.all(20),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.notifications_active,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Classroom Notifications',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () {
+                        provider.markAllNotificationsAsRead(widget.userId);
+                        setSheetState(() {});
+                      },
+                      child: const Text('Mark all as read'),
+                    ),
+                  ],
                 ),
-            ],
-          ),
+                const Divider(color: AppColors.border),
+                const SizedBox(height: 8),
+                if (notifications.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text('No notifications yet!'),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: notifications.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, color: AppColors.border),
+                      itemBuilder: (context, idx) {
+                        final notif = notifications[idx];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: notif.isRead
+                                ? AppColors.bgSurface
+                                : AppColors.primaryLight,
+                            child: Icon(
+                              notif.type == 'grade'
+                                  ? Icons.grade
+                                  : (notif.type == 'assignment'
+                                        ? Icons.assignment
+                                        : (notif.type == 'attendance'
+                                              ? Icons.event_available
+                                              : (notif.type == 'material'
+                                                    ? Icons.folder_open
+                                                    : Icons.campaign))),
+                              color: notif.isRead
+                                  ? AppColors.textMuted
+                                  : AppColors.primary,
+                              size: 18,
+                            ),
+                          ),
+                          title: Text(
+                            notif.title,
+                            style: TextStyle(
+                              fontWeight: notif.isRead
+                                  ? FontWeight.normal
+                                  : FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${notif.classroomName} · ${notif.message}\n${_dateFormat.format(notif.timestamp)}',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          trailing: notif.isRead
+                              ? null
+                              : const Icon(
+                                  Icons.circle,
+                                  size: 8,
+                                  color: AppColors.primary,
+                                ),
+                          onTap: () {
+                            provider.markNotificationAsRead(
+                              notif.id,
+                              widget.userId,
+                            );
+                            setSheetState(() {});
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),
@@ -4104,9 +7883,14 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete Classroom?'),
-        content: Text('Are you sure you want to permanently delete "${classroom.name}" and all associated coursework?'),
+        content: Text(
+          'Are you sure you want to permanently delete "${classroom.name}" and all associated coursework?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
@@ -4128,7 +7912,10 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
         title: const Text('Leave Classroom?'),
         content: Text('Are you sure you want to leave "${classroom.name}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
             child: const Text('Leave Class'),
@@ -4142,14 +7929,23 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> {
     }
   }
 
-  Future<void> _confirmDeleteAssignment(ClassroomModel classroom, ClassroomAssignment assignment, ClassroomProvider provider) async {
+  Future<void> _confirmDeleteAssignment(
+    ClassroomModel classroom,
+    ClassroomAssignment assignment,
+    ClassroomProvider provider,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: const Text('Delete Assignment?'),
-        content: Text('Delete "${assignment.title}" and all student submissions?'),
+        content: Text(
+          'Delete "${assignment.title}" and all student submissions?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogCtx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),

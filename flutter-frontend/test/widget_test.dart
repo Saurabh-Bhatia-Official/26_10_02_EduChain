@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_frontend/main.dart';
 import 'package:provider/provider.dart';
@@ -74,4 +74,52 @@ void main() {
       expect(find.text('Create Classroom'), findsOneWidget);
     },
   );
+
+  testWidgets('Classroom overview and detail tabs render at phone width for every role', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    SharedPreferences.setMockInitialValues({});
+    final provider = ClassroomProvider();
+    while (!provider.isLoaded) {
+      await tester.pump();
+    }
+    final classroom = provider.create(
+      name: 'Responsive classroom',
+      subject: 'Computer Science',
+      section: 'A',
+      description: 'Phone-sized layout smoke check',
+      teacherId: 'teacher-1',
+      teacherName: 'Teacher',
+      studentIds: ['student-1'],
+    );
+
+    for (final entry in const [
+      ('teacher', 'teacher-1'),
+      ('student', 'student-1'),
+      ('admin', 'admin-1'),
+    ]) {
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: provider,
+          child: MaterialApp(
+            home: Scaffold(
+              body: ClassroomHubScreen(
+                userRole: entry.$1,
+                userId: entry.$2,
+                userName: entry.$2,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Responsive classroom').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Activity'), findsOneWidget);
+      expect(find.text('Recently Viewed'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    }
+  });
 }

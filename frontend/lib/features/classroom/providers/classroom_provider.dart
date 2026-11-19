@@ -6,8 +6,10 @@ import '../models/classroom_model.dart';
 /// Comprehensive Google Classroom LMS Provider with Strict RBAC and Persistence
 class ClassroomProvider extends ChangeNotifier {
   ClassroomProvider() {
-    loadPersistedData();
+    _ready = loadPersistedData();
   }
+
+  late final Future<void> _ready;
 
   static const String _storageKeyClassrooms = 'educhain_lms_classrooms_v2';
   static const String _storageKeyPosts = 'educhain_lms_posts_v2';
@@ -15,13 +17,15 @@ class ClassroomProvider extends ChangeNotifier {
   static const String _storageKeySubmissions = 'educhain_lms_submissions_v2';
   static const String _storageKeyMaterials = 'educhain_lms_materials_v2';
   static const String _storageKeyAttendance = 'educhain_lms_attendance_v2';
-  static const String _storageKeyNotifications = 'educhain_lms_notifications_v2';
+  static const String _storageKeyNotifications =
+      'educhain_lms_notifications_v2';
   static const String _storageKeyQuizzes = 'educhain_lms_quizzes_v1';
   static const String _storageKeyQuizAttempts = 'educhain_lms_quiz_attempts_v1';
   static const String _storageKeyPolls = 'educhain_lms_polls_v1';
   static const String _storageKeyGroups = 'educhain_lms_groups_v1';
   static const String _storageKeyPeerReviews = 'educhain_lms_peer_reviews_v1';
-  static const String _storageKeyRecentlyViewed = 'educhain_lms_recently_viewed_v1';
+  static const String _storageKeyRecentlyViewed =
+      'educhain_lms_recently_viewed_v1';
 
   final Map<String, ClassroomModel> _classrooms = {};
   final Map<String, List<ClassroomPost>> _posts = {};
@@ -36,10 +40,12 @@ class ClassroomProvider extends ChangeNotifier {
   final Map<String, List<ClassroomGroup>> _groups = {};
   final Map<String, List<PeerReview>> _peerReviews = {};
   final Map<String, List<RecentlyViewedItem>> _recentlyViewed = {};
+  int _classroomSequence = 0;
 
   bool _isLoaded = false;
   Future<void> _pendingSave = Future<void>.value();
   bool get isLoaded => _isLoaded;
+  Future<void> get ready => _ready;
   bool get isPreviewOnly => true;
   bool get isLocalOnly => true;
   bool get isBusy => false;
@@ -103,29 +109,52 @@ class ClassroomProvider extends ChangeNotifier {
   // Permissions Guard Checkers
   // ==========================================
 
-  bool canManageClass(ClassroomModel classroom, ClassroomRole role, String userId) {
+  bool canManageClass(
+    ClassroomModel classroom,
+    ClassroomRole role,
+    String userId,
+  ) {
     if (role == ClassroomRole.admin) return true;
-    if (role == ClassroomRole.teacher && classroom.teacherId == userId) return true;
+    if (role == ClassroomRole.teacher && classroom.teacherId == userId)
+      return true;
     return false;
   }
 
-  bool canAccessClass(ClassroomModel classroom, ClassroomRole role, String userId) {
+  bool canAccessClass(
+    ClassroomModel classroom,
+    ClassroomRole role,
+    String userId,
+  ) {
     if (role == ClassroomRole.admin) return true;
-    if (role == ClassroomRole.teacher && classroom.teacherId == userId) return true;
-    if (role == ClassroomRole.student && classroom.studentIds.contains(userId)) return true;
+    if (role == ClassroomRole.teacher && classroom.teacherId == userId)
+      return true;
+    if (role == ClassroomRole.student && classroom.studentIds.contains(userId))
+      return true;
     return false;
   }
 
   bool canGrade(ClassroomModel classroom, ClassroomRole role, String userId) {
+    if (role == ClassroomRole.admin) return true;
     return role == ClassroomRole.teacher && classroom.teacherId == userId;
   }
 
-  bool canTakeAttendance(ClassroomModel classroom, ClassroomRole role, String userId) {
+  bool canTakeAttendance(
+    ClassroomModel classroom,
+    ClassroomRole role,
+    String userId,
+  ) {
+    if (role == ClassroomRole.admin) return true;
     return role == ClassroomRole.teacher && classroom.teacherId == userId;
   }
 
-  bool canSubmitWork(ClassroomModel classroom, ClassroomRole role, String userId) {
-    return role == ClassroomRole.student && classroom.studentIds.contains(userId);
+  bool canSubmitWork(
+    ClassroomModel classroom,
+    ClassroomRole role,
+    String userId,
+  ) {
+    final currentClassroom = _classrooms[classroom.id];
+    return role == ClassroomRole.student &&
+        currentClassroom?.studentIds.contains(userId) == true;
   }
 
   bool canSubmitAssignment(
@@ -134,7 +163,9 @@ class ClassroomProvider extends ChangeNotifier {
     String userId, {
     DateTime? now,
   }) {
-    if (assignment.isDraft || !canSubmitWork(classroom, ClassroomRole.student, userId)) return false;
+    if (assignment.isDraft ||
+        !canSubmitWork(classroom, ClassroomRole.student, userId))
+      return false;
     final dueAt = assignment.dueAt;
     if (assignment.allowLateSubmission || dueAt == null) return true;
     final current = now ?? DateTime.now();
@@ -145,7 +176,9 @@ class ClassroomProvider extends ChangeNotifier {
 
   bool canTakeQuiz(ClassroomQuiz quiz, String studentId, {DateTime? now}) {
     final classroom = _classrooms[quiz.classroomId];
-    if (classroom == null || quiz.isDraft || !classroom.studentIds.contains(studentId) ||
+    if (classroom == null ||
+        quiz.isDraft ||
+        !classroom.studentIds.contains(studentId) ||
         quizAttemptFor(quiz.id, studentId) != null) {
       return false;
     }
@@ -174,8 +207,9 @@ class ClassroomProvider extends ChangeNotifier {
     Uint8List? bannerBytes,
     List<String> studentIds = const [],
   }) {
-    final id = 'cls_${DateTime.now().microsecondsSinceEpoch}';
-    final code = 'EC${id.substring(id.length - 5).toUpperCase()}';
+    final id =
+        'cls_${DateTime.now().microsecondsSinceEpoch}_${_classroomSequence++}';
+    final code = _newClassroomCode();
     final classroom = ClassroomModel(
       id: id,
       name: name,
@@ -205,8 +239,24 @@ class ClassroomProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _newClassroomCode({String? excludingClassroomId}) {
+    late String code;
+    do {
+      final candidate =
+          '${DateTime.now().microsecondsSinceEpoch + _classroomSequence++}';
+      code = 'EC${candidate.substring(candidate.length - 5).toUpperCase()}';
+    } while (_classrooms.values.any(
+      (item) =>
+          !item.isArchived &&
+          item.id != excludingClassroomId &&
+          item.code.toUpperCase() == code,
+    ));
+    return code;
+  }
+
   void delete(String id) {
-    final assignments = _assignments.remove(id) ?? const <ClassroomAssignment>[];
+    final assignments =
+        _assignments.remove(id) ?? const <ClassroomAssignment>[];
     for (final assignment in assignments) {
       _submissions.remove(assignment.id);
       _peerReviews.remove(assignment.id);
@@ -235,7 +285,7 @@ class ClassroomProvider extends ChangeNotifier {
   String regenerateCode(String classroomId) {
     final existing = _classrooms[classroomId];
     if (existing == null) return '';
-    final newCode = 'EC${DateTime.now().microsecondsSinceEpoch.toString().substring(8, 13).toUpperCase()}';
+    final newCode = _newClassroomCode(excludingClassroomId: classroomId);
     _classrooms[classroomId] = existing.copyWith(code: newCode);
     _saveToPrefs();
     notifyListeners();
@@ -261,7 +311,8 @@ class ClassroomProvider extends ChangeNotifier {
       classroomId: classroom.id,
       classroomName: classroom.name,
       title: 'New Student Joined',
-      message: 'A student has joined ${classroom.name} with code ${classroom.code}.',
+      message:
+          'A student has joined ${classroom.name} with code ${classroom.code}.',
       type: 'announcement',
     );
 
@@ -272,7 +323,8 @@ class ClassroomProvider extends ChangeNotifier {
 
   bool enrollStudent(String classroomId, String studentId) {
     final classroom = _classrooms[classroomId];
-    if (classroom == null || classroom.studentIds.contains(studentId)) return false;
+    if (classroom == null || classroom.studentIds.contains(studentId))
+      return false;
     _classrooms[classroomId] = classroom.copyWith(
       studentIds: [...classroom.studentIds, studentId],
     );
@@ -282,7 +334,8 @@ class ClassroomProvider extends ChangeNotifier {
       classroomId: classroom.id,
       classroomName: classroom.name,
       title: 'Enrolled in ${classroom.name}',
-      message: 'You have been enrolled into ${classroom.name} by ${classroom.teacherName}.',
+      message:
+          'You have been enrolled into ${classroom.name} by ${classroom.teacherName}.',
       type: 'announcement',
     );
 
@@ -293,8 +346,11 @@ class ClassroomProvider extends ChangeNotifier {
 
   bool removeStudent(String classroomId, String studentId) {
     final classroom = _classrooms[classroomId];
-    if (classroom == null || !classroom.studentIds.contains(studentId)) return false;
-    final updatedList = classroom.studentIds.where((id) => id != studentId).toList();
+    if (classroom == null || !classroom.studentIds.contains(studentId))
+      return false;
+    final updatedList = classroom.studentIds
+        .where((id) => id != studentId)
+        .toList();
     _classrooms[classroomId] = classroom.copyWith(studentIds: updatedList);
     _saveToPrefs();
     notifyListeners();
@@ -349,7 +405,8 @@ class ClassroomProvider extends ChangeNotifier {
 
     // Broadcast notification to all enrolled students
     final classroom = _classrooms[classroomId];
-    if (classroom != null && (authorRole == 'teacher' || authorRole == 'admin')) {
+    if (classroom != null &&
+        (authorRole == 'teacher' || authorRole == 'admin')) {
       for (final sId in classroom.studentIds) {
         addNotification(
           recipientUserId: sId,
@@ -381,7 +438,12 @@ class ClassroomProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updatePost(String classroomId, String postId, String text, {bool? isPinned}) {
+  void updatePost(
+    String classroomId,
+    String postId,
+    String text, {
+    bool? isPinned,
+  }) {
     final posts = _posts[classroomId];
     if (posts == null) return;
     final index = posts.indexWhere((p) => p.id == postId);
@@ -451,7 +513,9 @@ class ClassroomProvider extends ChangeNotifier {
     bool includeDrafts = true,
   }) {
     final items = _assignments[classroomId] ?? const [];
-    final visible = includeDrafts ? items : items.where((item) => !item.isDraft).toList();
+    final visible = includeDrafts
+        ? items
+        : items.where((item) => !item.isDraft).toList();
     return List.unmodifiable(visible);
   }
 
@@ -501,7 +565,8 @@ class ClassroomProvider extends ChangeNotifier {
           classroomId: classroomId,
           classroomName: classroom.name,
           title: 'New Assignment: $title',
-          message: '$title has been posted. Due: ${dueAt != null ? "${dueAt.day}/${dueAt.month}/${dueAt.year}" : "No deadline"}.',
+          message:
+              '$title has been posted. Due: ${dueAt != null ? "${dueAt.day}/${dueAt.month}/${dueAt.year}" : "No deadline"}.',
           type: 'assignment',
         );
       }
@@ -569,9 +634,14 @@ class ClassroomProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool setAssignmentDraft(String classroomId, String assignmentId, bool isDraft) {
+  bool setAssignmentDraft(
+    String classroomId,
+    String assignmentId,
+    bool isDraft,
+  ) {
     final assignments = _assignments[classroomId];
-    final index = assignments?.indexWhere((item) => item.id == assignmentId) ?? -1;
+    final index =
+        assignments?.indexWhere((item) => item.id == assignmentId) ?? -1;
     if (assignments == null || index < 0) return false;
     assignments[index] = assignments[index].copyWith(isDraft: isDraft);
     final classroom = _classrooms[classroomId];
@@ -592,8 +662,14 @@ class ClassroomProvider extends ChangeNotifier {
     return true;
   }
 
-  List<ClassroomQuiz> quizzesFor(String classroomId, {bool includeDrafts = false}) =>
-      List.unmodifiable((_quizzes[classroomId] ?? const []).where((quiz) => includeDrafts || !quiz.isDraft));
+  List<ClassroomQuiz> quizzesFor(
+    String classroomId, {
+    bool includeDrafts = false,
+  }) => List.unmodifiable(
+    (_quizzes[classroomId] ?? const []).where(
+      (quiz) => includeDrafts || !quiz.isDraft,
+    ),
+  );
 
   ClassroomQuiz? quizById(String quizId) {
     for (final quizzes in _quizzes.values) {
@@ -615,7 +691,8 @@ class ClassroomProvider extends ChangeNotifier {
             classroomId: classroom.id,
             classroomName: classroom.name,
             title: 'New Quiz: ${quiz.title}',
-            message: 'A timed quiz is ready. Duration: ${quiz.durationMinutes} minutes.',
+            message:
+                'A timed quiz is ready. Duration: ${quiz.durationMinutes} minutes.',
             type: 'quiz',
           );
         }
@@ -678,16 +755,25 @@ class ClassroomProvider extends ChangeNotifier {
     DateTime? submittedAt,
   }) {
     final canonicalQuiz = quizById(quiz.id);
-    if (canonicalQuiz == null || canonicalQuiz.classroomId != quiz.classroomId ||
+    if (canonicalQuiz == null ||
+        canonicalQuiz.classroomId != quiz.classroomId ||
         !canTakeQuiz(canonicalQuiz, studentId)) {
       return null;
     }
     final classroom = _classrooms[canonicalQuiz.classroomId];
+    if (classroom == null) return null;
     final end = submittedAt ?? DateTime.now();
     final elapsed = end.difference(startedAt);
-    if (elapsed.isNegative || elapsed > Duration(minutes: canonicalQuiz.durationMinutes, seconds: 2)) return null;
+    if (elapsed.isNegative ||
+        elapsed > Duration(minutes: canonicalQuiz.durationMinutes, seconds: 2))
+      return null;
     final dueAt = canonicalQuiz.dueAt;
-    if (dueAt != null && DateTime(end.year, end.month, end.day).isAfter(DateTime(dueAt.year, dueAt.month, dueAt.day))) {
+    if (dueAt != null &&
+        DateTime(
+          end.year,
+          end.month,
+          end.day,
+        ).isAfter(DateTime(dueAt.year, dueAt.month, dueAt.day))) {
       return null;
     }
     var score = 0;
@@ -719,7 +805,8 @@ class ClassroomProvider extends ChangeNotifier {
     return attempt;
   }
 
-  List<ClassroomPoll> pollsFor(String classroomId) => List.unmodifiable(_polls[classroomId] ?? const []);
+  List<ClassroomPoll> pollsFor(String classroomId) =>
+      List.unmodifiable(_polls[classroomId] ?? const []);
 
   void addPoll(ClassroomPoll poll) {
     _polls.putIfAbsent(poll.classroomId, () => []).insert(0, poll);
@@ -740,13 +827,23 @@ class ClassroomProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool votePoll(String classroomId, String pollId, String studentId, int optionIndex) {
+  bool votePoll(
+    String classroomId,
+    String pollId,
+    String studentId,
+    int optionIndex,
+  ) {
     final classroom = _classrooms[classroomId];
     final polls = _polls[classroomId];
     final index = polls?.indexWhere((poll) => poll.id == pollId) ?? -1;
-    if (classroom == null || !classroom.studentIds.contains(studentId) || polls == null || index < 0) return false;
+    if (classroom == null ||
+        !classroom.studentIds.contains(studentId) ||
+        polls == null ||
+        index < 0)
+      return false;
     final poll = polls[index];
-    if (poll.isClosed || optionIndex < 0 || optionIndex >= poll.options.length) return false;
+    if (poll.isClosed || optionIndex < 0 || optionIndex >= poll.options.length)
+      return false;
     final votes = Map<String, int>.from(poll.votes)..[studentId] = optionIndex;
     polls[index] = poll.copyWith(votes: votes);
     _saveToPrefs();
@@ -764,23 +861,32 @@ class ClassroomProvider extends ChangeNotifier {
     return true;
   }
 
-  List<ClassroomGroup> groupsFor(String classroomId) => List.unmodifiable(_groups[classroomId] ?? const []);
+  List<ClassroomGroup> groupsFor(String classroomId) =>
+      List.unmodifiable(_groups[classroomId] ?? const []);
 
   bool addGroup(String classroomId, String name, List<String> memberIds) {
     final classroom = _classrooms[classroomId];
     final cleanName = name.trim();
     final members = memberIds.toSet().toList();
-    if (classroom == null || cleanName.isEmpty || members.isEmpty ||
+    if (classroom == null ||
+        cleanName.isEmpty ||
+        members.isEmpty ||
         members.any((id) => !classroom.studentIds.contains(id)) ||
-        groupsFor(classroomId).any((group) => group.name.toLowerCase() == cleanName.toLowerCase())) {
+        groupsFor(
+          classroomId,
+        ).any((group) => group.name.toLowerCase() == cleanName.toLowerCase())) {
       return false;
     }
-    _groups.putIfAbsent(classroomId, () => []).add(ClassroomGroup(
-          id: 'group_${DateTime.now().microsecondsSinceEpoch}',
-          classroomId: classroomId,
-          name: cleanName,
-          memberIds: members,
-        ));
+    _groups
+        .putIfAbsent(classroomId, () => [])
+        .add(
+          ClassroomGroup(
+            id: 'group_${DateTime.now().microsecondsSinceEpoch}',
+            classroomId: classroomId,
+            name: cleanName,
+            memberIds: members,
+          ),
+        );
     _saveToPrefs();
     notifyListeners();
     return true;
@@ -789,8 +895,11 @@ class ClassroomProvider extends ChangeNotifier {
   List<PeerReview> peerReviewsFor(String assignmentId) =>
       List.unmodifiable(_peerReviews[assignmentId] ?? const []);
 
-  List<PeerReview> peerReviewsForReviewer(String reviewerId) => List.unmodifiable(
-        _peerReviews.values.expand((reviews) => reviews).where((review) => review.reviewerId == reviewerId),
+  List<PeerReview> peerReviewsForReviewer(String reviewerId) =>
+      List.unmodifiable(
+        _peerReviews.values
+            .expand((reviews) => reviews)
+            .where((review) => review.reviewerId == reviewerId),
       );
 
   bool submitPeerReview({
@@ -801,22 +910,36 @@ class ClassroomProvider extends ChangeNotifier {
     required String feedback,
   }) {
     final classroom = _classrooms[assignment.classroomId];
-    if (!assignment.allowPeerReview || classroom == null || reviewerId == revieweeId ||
-        !classroom.studentIds.contains(reviewerId) || !classroom.studentIds.contains(revieweeId) ||
-        submissionFor(assignment.id, reviewerId) == null || submissionFor(assignment.id, revieweeId) == null ||
-        rating < 1 || rating > 5 || feedback.trim().isEmpty ||
-        peerReviewsFor(assignment.id).any((review) => review.reviewerId == reviewerId && review.revieweeId == revieweeId)) {
+    if (!assignment.allowPeerReview ||
+        classroom == null ||
+        reviewerId == revieweeId ||
+        !classroom.studentIds.contains(reviewerId) ||
+        !classroom.studentIds.contains(revieweeId) ||
+        submissionFor(assignment.id, reviewerId) == null ||
+        submissionFor(assignment.id, revieweeId) == null ||
+        rating < 1 ||
+        rating > 5 ||
+        feedback.trim().isEmpty ||
+        peerReviewsFor(assignment.id).any(
+          (review) =>
+              review.reviewerId == reviewerId &&
+              review.revieweeId == revieweeId,
+        )) {
       return false;
     }
-    _peerReviews.putIfAbsent(assignment.id, () => []).add(PeerReview(
-          id: 'peer_${DateTime.now().microsecondsSinceEpoch}',
-          assignmentId: assignment.id,
-          reviewerId: reviewerId,
-          revieweeId: revieweeId,
-          rating: rating,
-          feedback: feedback.trim(),
-          createdAt: DateTime.now(),
-        ));
+    _peerReviews
+        .putIfAbsent(assignment.id, () => [])
+        .add(
+          PeerReview(
+            id: 'peer_${DateTime.now().microsecondsSinceEpoch}',
+            assignmentId: assignment.id,
+            reviewerId: reviewerId,
+            revieweeId: revieweeId,
+            rating: rating,
+            feedback: feedback.trim(),
+            createdAt: DateTime.now(),
+          ),
+        );
     addNotification(
       recipientUserId: revieweeId,
       classroomId: classroom.id,
@@ -833,17 +956,26 @@ class ClassroomProvider extends ChangeNotifier {
   List<RecentlyViewedItem> recentlyViewedFor(String userId) =>
       List.unmodifiable(_recentlyViewed[userId] ?? const []);
 
-  void recordRecentlyViewed(String userId, String type, String id, String title, String classroomId) {
+  void recordRecentlyViewed(
+    String userId,
+    String type,
+    String id,
+    String title,
+    String classroomId,
+  ) {
     if (userId.isEmpty || id.isEmpty) return;
     final items = _recentlyViewed.putIfAbsent(userId, () => []);
     items.removeWhere((item) => item.type == type && item.id == id);
-    items.insert(0, RecentlyViewedItem(
-          type: type,
-          id: id,
-          title: title,
-          classroomId: classroomId,
-          viewedAt: DateTime.now(),
-        ));
+    items.insert(
+      0,
+      RecentlyViewedItem(
+        type: type,
+        id: id,
+        title: title,
+        classroomId: classroomId,
+        viewedAt: DateTime.now(),
+      ),
+    );
     if (items.length > 20) items.removeRange(20, items.length);
     _saveToPrefs();
     notifyListeners();
@@ -852,28 +984,98 @@ class ClassroomProvider extends ChangeNotifier {
   List<ClassroomActivity> activitiesFor(String classroomId) {
     final activities = <ClassroomActivity>[];
     for (final post in _posts[classroomId] ?? const <ClassroomPost>[]) {
-      activities.add(ClassroomActivity(type: post.authorRole == 'student' ? 'question' : 'announcement', title: post.isPinned ? 'Pinned announcement' : (post.authorRole == 'student' ? 'Classroom question' : 'Announcement'), description: post.text, timestamp: post.createdAt));
+      activities.add(
+        ClassroomActivity(
+          type: post.authorRole == 'student' ? 'question' : 'announcement',
+          title: post.isPinned
+              ? 'Pinned announcement'
+              : (post.authorRole == 'student'
+                    ? 'Classroom question'
+                    : 'Announcement'),
+          description: post.text,
+          timestamp: post.createdAt,
+        ),
+      );
     }
-    for (final assignment in _assignments[classroomId] ?? const <ClassroomAssignment>[]) {
-      activities.add(ClassroomActivity(type: 'assignment', title: assignment.isDraft ? 'Assignment draft' : 'Assignment published', description: assignment.title, timestamp: assignment.createdAt ?? DateTime.now()));
+    for (final assignment
+        in _assignments[classroomId] ?? const <ClassroomAssignment>[]) {
+      activities.add(
+        ClassroomActivity(
+          type: 'assignment',
+          title: assignment.isDraft
+              ? 'Assignment draft'
+              : 'Assignment published',
+          description: assignment.title,
+          timestamp: assignment.createdAt ?? DateTime.now(),
+        ),
+      );
     }
     for (final quiz in _quizzes[classroomId] ?? const <ClassroomQuiz>[]) {
-      activities.add(ClassroomActivity(type: 'quiz', title: quiz.isDraft ? 'Quiz draft' : 'Quiz published', description: quiz.title, timestamp: quiz.createdAt));
+      activities.add(
+        ClassroomActivity(
+          type: 'quiz',
+          title: quiz.isDraft ? 'Quiz draft' : 'Quiz published',
+          description: quiz.title,
+          timestamp: quiz.createdAt,
+        ),
+      );
     }
     for (final poll in _polls[classroomId] ?? const <ClassroomPoll>[]) {
-      activities.add(ClassroomActivity(type: 'poll', title: 'Classroom poll', description: poll.question, timestamp: poll.createdAt));
+      activities.add(
+        ClassroomActivity(
+          type: 'poll',
+          title: 'Classroom poll',
+          description: poll.question,
+          timestamp: poll.createdAt,
+        ),
+      );
     }
-    for (final material in _materials[classroomId] ?? const <ClassroomMaterial>[]) {
-      activities.add(ClassroomActivity(type: 'material', title: 'Learning resource added', description: material.title, timestamp: material.uploadedAt));
+    for (final material
+        in _materials[classroomId] ?? const <ClassroomMaterial>[]) {
+      activities.add(
+        ClassroomActivity(
+          type: 'material',
+          title: 'Learning resource added',
+          description: material.title,
+          timestamp: material.uploadedAt,
+        ),
+      );
     }
-    for (final session in _attendanceSessions[classroomId] ?? const <ClassroomAttendanceSession>[]) {
-      activities.add(ClassroomActivity(type: 'attendance', title: 'Attendance recorded', description: session.topic, timestamp: session.date));
+    for (final session
+        in _attendanceSessions[classroomId] ??
+            const <ClassroomAttendanceSession>[]) {
+      activities.add(
+        ClassroomActivity(
+          type: 'attendance',
+          title: 'Attendance recorded',
+          description: session.topic,
+          timestamp: session.date,
+        ),
+      );
     }
     for (final submissions in _submissions.values) {
-      for (final submission in submissions.where((item) => item.classroomId == classroomId)) {
-        activities.add(ClassroomActivity(type: 'submission', title: 'Assignment submitted', description: submission.studentName.isEmpty ? submission.studentId : submission.studentName, timestamp: submission.submittedAt));
+      for (final submission in submissions.where(
+        (item) => item.classroomId == classroomId,
+      )) {
+        activities.add(
+          ClassroomActivity(
+            type: 'submission',
+            title: 'Assignment submitted',
+            description: submission.studentName.isEmpty
+                ? submission.studentId
+                : submission.studentName,
+            timestamp: submission.submittedAt,
+          ),
+        );
         for (final grade in submission.gradeHistory) {
-          activities.add(ClassroomActivity(type: 'grade', title: 'Grade returned', description: '${grade.marks} marks · ${grade.gradedBy}', timestamp: grade.gradedAt));
+          activities.add(
+            ClassroomActivity(
+              type: 'grade',
+              title: 'Grade returned',
+              description: '${grade.marks} marks · ${grade.gradedBy}',
+              timestamp: grade.gradedAt,
+            ),
+          );
         }
       }
     }
@@ -925,15 +1127,26 @@ class ClassroomProvider extends ChangeNotifier {
       }
       if (assignment != null) break;
     }
-    if (assignment == null || classroomId.isNotEmpty && classroomId != assignment.classroomId) return false;
+    if (assignment == null ||
+        classroomId.isNotEmpty && classroomId != assignment.classroomId)
+      return false;
     final classroom = _classrooms[assignment.classroomId];
-    if (classroom == null || !canSubmitAssignment(assignment, classroom, studentId)) return false;
+    if (classroom == null ||
+        !canSubmitAssignment(assignment, classroom, studentId))
+      return false;
 
     final submissions = _submissions.putIfAbsent(assignmentId, () => []);
-    final existingIndex = submissions.indexWhere((s) => s.studentId == studentId);
-    if (existingIndex >= 0 && submissions[existingIndex].marks != null) return false;
-    final priorMarks = existingIndex >= 0 ? submissions[existingIndex].marks : null;
-    final priorFeedback = existingIndex >= 0 ? submissions[existingIndex].feedback : null;
+    final existingIndex = submissions.indexWhere(
+      (s) => s.studentId == studentId,
+    );
+    if (existingIndex >= 0 && submissions[existingIndex].marks != null)
+      return false;
+    final priorMarks = existingIndex >= 0
+        ? submissions[existingIndex].marks
+        : null;
+    final priorFeedback = existingIndex >= 0
+        ? submissions[existingIndex].feedback
+        : null;
 
     final submission = ClassroomSubmission(
       id: 'sub_${DateTime.now().microsecondsSinceEpoch}',
@@ -949,7 +1162,9 @@ class ClassroomProvider extends ChangeNotifier {
       attachmentBytes: attachmentBytes,
       marks: priorMarks,
       feedback: priorFeedback,
-      status: priorMarks != null ? SubmissionStatus.graded : SubmissionStatus.submitted,
+      status: priorMarks != null
+          ? SubmissionStatus.graded
+          : SubmissionStatus.submitted,
     );
 
     submissions.removeWhere((s) => s.studentId == studentId);
@@ -961,7 +1176,8 @@ class ClassroomProvider extends ChangeNotifier {
       classroomId: classroom.id,
       classroomName: classroom.name,
       title: 'Assignment Submitted',
-      message: '${studentName.isNotEmpty ? studentName : "A student"} submitted their assignment.',
+      message:
+          '${studentName.isNotEmpty ? studentName : "A student"} submitted their assignment.',
       type: 'assignment',
     );
 
@@ -1014,7 +1230,8 @@ class ClassroomProvider extends ChangeNotifier {
       classroomId: prior.classroomId,
       classroomName: classroom?.name ?? 'Classroom',
       title: 'Assignment Graded: $marks marks',
-      message: 'Your work has been graded with score $marks. Feedback: $feedback',
+      message:
+          'Your work has been graded with score $marks. Feedback: $feedback',
       type: 'grade',
     );
 
@@ -1056,13 +1273,15 @@ class ClassroomProvider extends ChangeNotifier {
     // Notify absent / late students
     final classroom = _classrooms[classroomId];
     records.forEach((sId, status) {
-      if (status == AttendanceStatus.absent || status == AttendanceStatus.late) {
+      if (status == AttendanceStatus.absent ||
+          status == AttendanceStatus.late) {
         addNotification(
           recipientUserId: sId,
           classroomId: classroomId,
           classroomName: classroom?.name ?? 'Classroom',
           title: 'Attendance Marked: ${status.label}',
-          message: 'You were marked ${status.label} for session "$topic" on ${date.day}/${date.month}/${date.year}.',
+          message:
+              'You were marked ${status.label} for session "$topic" on ${date.day}/${date.month}/${date.year}.',
           type: 'attendance',
         );
       }
@@ -1098,7 +1317,8 @@ class ClassroomProvider extends ChangeNotifier {
       if (s.records.containsKey(studentId)) {
         totalCount++;
         final status = s.records[studentId];
-        if (status == AttendanceStatus.present || status == AttendanceStatus.excused) {
+        if (status == AttendanceStatus.present ||
+            status == AttendanceStatus.excused) {
           presentCount++;
         } else if (status == AttendanceStatus.late) {
           presentCount += 1; // Counted with late penalty or full
@@ -1117,7 +1337,9 @@ class ClassroomProvider extends ChangeNotifier {
     for (final s in sessions) {
       s.records.forEach((_, status) {
         totalSum++;
-        if (status == AttendanceStatus.present || status == AttendanceStatus.excused || status == AttendanceStatus.late) {
+        if (status == AttendanceStatus.present ||
+            status == AttendanceStatus.excused ||
+            status == AttendanceStatus.late) {
           presentSum++;
         }
       });
@@ -1134,7 +1356,9 @@ class ClassroomProvider extends ChangeNotifier {
     if (topic == null || topic.isEmpty || topic == 'All Topics') {
       return List.unmodifiable(items);
     }
-    return items.where((m) => m.topic.toLowerCase() == topic.toLowerCase()).toList();
+    return items
+        .where((m) => m.topic.toLowerCase() == topic.toLowerCase())
+        .toList();
   }
 
   List<String> topicsFor(String classroomId) {
@@ -1224,11 +1448,14 @@ class ClassroomProvider extends ChangeNotifier {
     final userNotifications = _notifications.putIfAbsent(userId, () => []);
     final existingIds = userNotifications.map((item) => item.id).toSet();
 
-    for (final classroom in _classrooms.values.where((item) => !item.isArchived)) {
+    for (final classroom in _classrooms.values.where(
+      (item) => !item.isArchived,
+    )) {
       final isStudent = classroom.studentIds.contains(userId);
       final isTeacher = classroom.teacherId == userId;
       if (!isStudent && !isTeacher) continue;
-      for (final assignment in _assignments[classroom.id] ?? const <ClassroomAssignment>[]) {
+      for (final assignment
+          in _assignments[classroom.id] ?? const <ClassroomAssignment>[]) {
         final dueAt = assignment.dueAt;
         if (assignment.isDraft || dueAt == null) continue;
         final dueDay = DateTime(dueAt.year, dueAt.month, dueAt.day);
@@ -1243,26 +1470,31 @@ class ClassroomProvider extends ChangeNotifier {
               : '${assignment.title} is due tomorrow.';
         } else {
           final pendingCount = classroom.studentIds
-              .where((studentId) => submissionFor(assignment.id, studentId) == null)
+              .where(
+                (studentId) => submissionFor(assignment.id, studentId) == null,
+              )
               .length;
           if (pendingCount == 0) continue;
-          message = '${assignment.title} is due ${daysUntilDue == 0 ? 'today' : 'tomorrow'}; $pendingCount student${pendingCount == 1 ? '' : 's'} have not submitted.';
+          message =
+              '${assignment.title} is due ${daysUntilDue == 0 ? 'today' : 'tomorrow'}; $pendingCount student${pendingCount == 1 ? '' : 's'} have not submitted.';
         }
 
         final dateKey = '${dueAt.year}-${dueAt.month}-${dueAt.day}';
         final id = 'deadline_${userId}_${assignment.id}_$dateKey';
         if (existingIds.contains(id)) continue;
         existingIds.add(id);
-        created.add(ClassroomNotification(
-          id: id,
-          recipientUserId: userId,
-          classroomId: classroom.id,
-          classroomName: classroom.name,
-          title: 'Assignment deadline reminder',
-          message: message,
-          type: 'assignment',
-          timestamp: current,
-        ));
+        created.add(
+          ClassroomNotification(
+            id: id,
+            recipientUserId: userId,
+            classroomId: classroom.id,
+            classroomName: classroom.name,
+            title: 'Assignment deadline reminder',
+            message: message,
+            type: 'assignment',
+            timestamp: current,
+          ),
+        );
       }
     }
 
@@ -1366,7 +1598,13 @@ class ClassroomProvider extends ChangeNotifier {
     int totalSubmissions = 0;
     double totalScoresPercentSum = 0;
     int gradedCount = 0;
-    final gradeDistribution = <String, int>{'A': 0, 'B': 0, 'C': 0, 'D': 0, 'F': 0};
+    final gradeDistribution = <String, int>{
+      'A': 0,
+      'B': 0,
+      'C': 0,
+      'D': 0,
+      'F': 0,
+    };
 
     final studentScores = <String, List<double>>{};
     for (final a in assignments) {
@@ -1398,7 +1636,9 @@ class ClassroomProvider extends ChangeNotifier {
     final submissionRate = expectedSubmissions > 0
         ? (totalSubmissions / expectedSubmissions) * 100.0
         : 100.0;
-    final averageScore = gradedCount > 0 ? (totalScoresPercentSum / gradedCount) : 0.0;
+    final averageScore = gradedCount > 0
+        ? (totalScoresPercentSum / gradedCount)
+        : 0.0;
     final attendanceRate = calculateClassAttendanceRate(classroomId);
 
     // Identify at-risk students (<75% attendance or average score < 50%)
@@ -1426,7 +1666,10 @@ class ClassroomProvider extends ChangeNotifier {
     );
   }
 
-  StudentProgressSummary getStudentProgress(String classroomId, String studentId) {
+  StudentProgressSummary getStudentProgress(
+    String classroomId,
+    String studentId,
+  ) {
     final assignments = (_assignments[classroomId] ?? const [])
         .where((assignment) => !assignment.isDraft)
         .toList();
@@ -1454,7 +1697,9 @@ class ClassroomProvider extends ChangeNotifier {
       }
     }
 
-    final avgPercent = gradedPoints > 0 ? (scoreSum / gradedPoints) * 100.0 : 0.0;
+    final avgPercent = gradedPoints > 0
+        ? (scoreSum / gradedPoints) * 100.0
+        : 0.0;
     final letterGrade = avgPercent >= 90
         ? 'A+'
         : avgPercent >= 80
@@ -1474,13 +1719,17 @@ class ClassroomProvider extends ChangeNotifier {
       if (s.records.containsKey(studentId)) {
         totalSessions++;
         final status = s.records[studentId];
-        if (status == AttendanceStatus.present || status == AttendanceStatus.excused || status == AttendanceStatus.late) {
+        if (status == AttendanceStatus.present ||
+            status == AttendanceStatus.excused ||
+            status == AttendanceStatus.late) {
           presentCount++;
         }
       }
     }
 
-    final attPercent = totalSessions == 0 ? 100.0 : (presentCount / totalSessions) * 100.0;
+    final attPercent = totalSessions == 0
+        ? 100.0
+        : (presentCount / totalSessions) * 100.0;
 
     return StudentProgressSummary(
       studentId: studentId,
@@ -1535,7 +1784,9 @@ class ClassroomProvider extends ChangeNotifier {
         _assignments.clear();
         map.forEach((k, v) {
           _assignments[k] = (v as List<dynamic>)
-              .map((a) => ClassroomAssignment.fromJson(a as Map<String, dynamic>))
+              .map(
+                (a) => ClassroomAssignment.fromJson(a as Map<String, dynamic>),
+              )
               .toList();
         });
       }
@@ -1547,7 +1798,9 @@ class ClassroomProvider extends ChangeNotifier {
         _submissions.clear();
         map.forEach((k, v) {
           _submissions[k] = (v as List<dynamic>)
-              .map((s) => ClassroomSubmission.fromJson(s as Map<String, dynamic>))
+              .map(
+                (s) => ClassroomSubmission.fromJson(s as Map<String, dynamic>),
+              )
               .toList();
         });
       }
@@ -1571,7 +1824,11 @@ class ClassroomProvider extends ChangeNotifier {
         _attendanceSessions.clear();
         map.forEach((k, v) {
           _attendanceSessions[k] = (v as List<dynamic>)
-              .map((a) => ClassroomAttendanceSession.fromJson(a as Map<String, dynamic>))
+              .map(
+                (a) => ClassroomAttendanceSession.fromJson(
+                  a as Map<String, dynamic>,
+                ),
+              )
               .toList();
         });
       }
@@ -1583,7 +1840,10 @@ class ClassroomProvider extends ChangeNotifier {
         _notifications.clear();
         map.forEach((k, v) {
           _notifications[k] = (v as List<dynamic>)
-              .map((n) => ClassroomNotification.fromJson(n as Map<String, dynamic>))
+              .map(
+                (n) =>
+                    ClassroomNotification.fromJson(n as Map<String, dynamic>),
+              )
               .toList();
         });
       }
@@ -1593,67 +1853,124 @@ class ClassroomProvider extends ChangeNotifier {
         final Map<String, dynamic> map = jsonDecode(quizJson);
         _quizzes
           ..clear()
-          ..addAll(map.map((key, value) => MapEntry(
+          ..addAll(
+            map.map(
+              (key, value) => MapEntry(
                 key,
-                (value as List<dynamic>).map((item) => ClassroomQuiz.fromJson(item as Map<String, dynamic>)).toList(),
-              )));
+                (value as List<dynamic>)
+                    .map(
+                      (item) =>
+                          ClassroomQuiz.fromJson(item as Map<String, dynamic>),
+                    )
+                    .toList(),
+              ),
+            ),
+          );
       }
       final attemptsJson = prefs.getString(_storageKeyQuizAttempts);
       if (attemptsJson != null && attemptsJson.isNotEmpty) {
         final Map<String, dynamic> map = jsonDecode(attemptsJson);
         _quizAttempts
           ..clear()
-          ..addAll(map.map((key, value) => MapEntry(
+          ..addAll(
+            map.map(
+              (key, value) => MapEntry(
                 key,
-                (value as List<dynamic>).map((item) => QuizAttempt.fromJson(item as Map<String, dynamic>)).toList(),
-              )));
+                (value as List<dynamic>)
+                    .map(
+                      (item) =>
+                          QuizAttempt.fromJson(item as Map<String, dynamic>),
+                    )
+                    .toList(),
+              ),
+            ),
+          );
       }
       final pollsJson = prefs.getString(_storageKeyPolls);
       if (pollsJson != null && pollsJson.isNotEmpty) {
         final Map<String, dynamic> map = jsonDecode(pollsJson);
         _polls
           ..clear()
-          ..addAll(map.map((key, value) => MapEntry(
+          ..addAll(
+            map.map(
+              (key, value) => MapEntry(
                 key,
-                (value as List<dynamic>).map((item) => ClassroomPoll.fromJson(item as Map<String, dynamic>)).toList(),
-              )));
+                (value as List<dynamic>)
+                    .map(
+                      (item) =>
+                          ClassroomPoll.fromJson(item as Map<String, dynamic>),
+                    )
+                    .toList(),
+              ),
+            ),
+          );
       }
       final groupsJson = prefs.getString(_storageKeyGroups);
       if (groupsJson != null && groupsJson.isNotEmpty) {
         final Map<String, dynamic> map = jsonDecode(groupsJson);
         _groups
           ..clear()
-          ..addAll(map.map((key, value) => MapEntry(
+          ..addAll(
+            map.map(
+              (key, value) => MapEntry(
                 key,
-                (value as List<dynamic>).map((item) => ClassroomGroup.fromJson(item as Map<String, dynamic>)).toList(),
-              )));
+                (value as List<dynamic>)
+                    .map(
+                      (item) =>
+                          ClassroomGroup.fromJson(item as Map<String, dynamic>),
+                    )
+                    .toList(),
+              ),
+            ),
+          );
       }
       final reviewsJson = prefs.getString(_storageKeyPeerReviews);
       if (reviewsJson != null && reviewsJson.isNotEmpty) {
         final Map<String, dynamic> map = jsonDecode(reviewsJson);
         _peerReviews
           ..clear()
-          ..addAll(map.map((key, value) => MapEntry(
+          ..addAll(
+            map.map(
+              (key, value) => MapEntry(
                 key,
-                (value as List<dynamic>).map((item) => PeerReview.fromJson(item as Map<String, dynamic>)).toList(),
-              )));
+                (value as List<dynamic>)
+                    .map(
+                      (item) =>
+                          PeerReview.fromJson(item as Map<String, dynamic>),
+                    )
+                    .toList(),
+              ),
+            ),
+          );
       }
       final recentJson = prefs.getString(_storageKeyRecentlyViewed);
       if (recentJson != null && recentJson.isNotEmpty) {
         final Map<String, dynamic> map = jsonDecode(recentJson);
         _recentlyViewed
           ..clear()
-          ..addAll(map.map((key, value) => MapEntry(
+          ..addAll(
+            map.map(
+              (key, value) => MapEntry(
                 key,
-                (value as List<dynamic>).map((item) => RecentlyViewedItem.fromJson(item as Map<String, dynamic>)).toList(),
-              )));
+                (value as List<dynamic>)
+                    .map(
+                      (item) => RecentlyViewedItem.fromJson(
+                        item as Map<String, dynamic>,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          );
       }
     } catch (_) {}
 
     // Remove the original bundled demo classrooms and their sample activity.
     // Newly opened accounts should start empty; only user-created records remain.
     const legacyDemoIds = {'cls_ds_401', 'cls_db_303', 'cls_ai_502'};
-    final removedClassIds = legacyDemoIds.where(_classrooms.containsKey).toSet();
+    final removedClassIds = legacyDemoIds
+        .where(_classrooms.containsKey)
+        .toSet();
     if (removedClassIds.isNotEmpty) {
       _classrooms.removeWhere((id, _) => removedClassIds.contains(id));
       for (final id in removedClassIds) {
@@ -1662,7 +1979,8 @@ class ClassroomProvider extends ChangeNotifier {
         _attendanceSessions.remove(id);
         _polls.remove(id);
         _groups.remove(id);
-        for (final assignment in _assignments.remove(id) ?? const <ClassroomAssignment>[]) {
+        for (final assignment
+            in _assignments.remove(id) ?? const <ClassroomAssignment>[]) {
           _submissions.remove(assignment.id);
           _peerReviews.remove(assignment.id);
         }
@@ -1671,7 +1989,9 @@ class ClassroomProvider extends ChangeNotifier {
         }
       }
       for (final notifications in _notifications.values) {
-        notifications.removeWhere((notification) => removedClassIds.contains(notification.classroomId));
+        notifications.removeWhere(
+          (notification) => removedClassIds.contains(notification.classroomId),
+        );
       }
       _saveToPrefs();
     }
@@ -1685,34 +2005,65 @@ class ClassroomProvider extends ChangeNotifier {
     _pendingSave = _pendingSave.then((_) async {
       try {
         final prefs = await SharedPreferences.getInstance();
-        final classroomsList = _classrooms.values.map((c) => c.toJson()).toList();
-        await prefs.setString(_storageKeyClassrooms, jsonEncode(classroomsList));
-        final postsMap = _posts.map((k, v) => MapEntry(k, v.map((p) => p.toJson()).toList()));
+        final classroomsList = _classrooms.values
+            .map((c) => c.toJson())
+            .toList();
+        await prefs.setString(
+          _storageKeyClassrooms,
+          jsonEncode(classroomsList),
+        );
+        final postsMap = _posts.map(
+          (k, v) => MapEntry(k, v.map((p) => p.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyPosts, jsonEncode(postsMap));
-        final asgMap = _assignments.map((k, v) => MapEntry(k, v.map((a) => a.toJson()).toList()));
+        final asgMap = _assignments.map(
+          (k, v) => MapEntry(k, v.map((a) => a.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyAssignments, jsonEncode(asgMap));
-        final subMap = _submissions.map((k, v) => MapEntry(k, v.map((s) => s.toJson()).toList()));
+        final subMap = _submissions.map(
+          (k, v) => MapEntry(k, v.map((s) => s.toJson()).toList()),
+        );
         await prefs.setString(_storageKeySubmissions, jsonEncode(subMap));
-        final matMap = _materials.map((k, v) => MapEntry(k, v.map((m) => m.toJson()).toList()));
+        final matMap = _materials.map(
+          (k, v) => MapEntry(k, v.map((m) => m.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyMaterials, jsonEncode(matMap));
-        final attMap = _attendanceSessions.map((k, v) => MapEntry(k, v.map((a) => a.toJson()).toList()));
+        final attMap = _attendanceSessions.map(
+          (k, v) => MapEntry(k, v.map((a) => a.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyAttendance, jsonEncode(attMap));
-        final notifMap = _notifications.map((k, v) => MapEntry(k, v.map((n) => n.toJson()).toList()));
+        final notifMap = _notifications.map(
+          (k, v) => MapEntry(k, v.map((n) => n.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyNotifications, jsonEncode(notifMap));
-        final quizMap = _quizzes.map((k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()));
+        final quizMap = _quizzes.map(
+          (k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyQuizzes, jsonEncode(quizMap));
-        final attemptMap = _quizAttempts.map((k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()));
+        final attemptMap = _quizAttempts.map(
+          (k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyQuizAttempts, jsonEncode(attemptMap));
-        final pollMap = _polls.map((k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()));
+        final pollMap = _polls.map(
+          (k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyPolls, jsonEncode(pollMap));
-        final groupMap = _groups.map((k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()));
+        final groupMap = _groups.map(
+          (k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyGroups, jsonEncode(groupMap));
-        final reviewMap = _peerReviews.map((k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()));
+        final reviewMap = _peerReviews.map(
+          (k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyPeerReviews, jsonEncode(reviewMap));
-        final recentMap = _recentlyViewed.map((k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()));
+        final recentMap = _recentlyViewed.map(
+          (k, v) => MapEntry(k, v.map((item) => item.toJson()).toList()),
+        );
         await prefs.setString(_storageKeyRecentlyViewed, jsonEncode(recentMap));
       } catch (_) {}
     });
     return _pendingSave;
   }
+
+  Future<void> flushPendingSaves() => _pendingSave;
 }

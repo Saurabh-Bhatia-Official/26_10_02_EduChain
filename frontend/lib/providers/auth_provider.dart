@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
@@ -168,7 +168,10 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<String> forgotPassword({required String email, required String role}) async {
+  Future<String> forgotPassword({
+    required String email,
+    required String role,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -190,4 +193,3 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-

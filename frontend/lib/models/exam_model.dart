@@ -32,14 +32,17 @@ class ExamModel {
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? 'Examination',
       courseCode: json['courseCode']?.toString() ?? 'CS-301',
-      courseName: json['courseName']?.toString() ?? 'Database Management Systems',
+      courseName:
+          json['courseName']?.toString() ?? 'Database Management Systems',
       date: json['date']?.toString() ?? 'May 10, 2025',
       time: json['time']?.toString() ?? '09:00 AM - 12:00 PM',
       room: json['room']?.toString() ?? 'Hall 101',
       durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 180,
       totalMarks: (json['totalMarks'] as num?)?.toInt() ?? 100,
       status: json['status']?.toString() ?? 'Upcoming',
-      syllabus: json['syllabus']?.toString() ?? 'Units 1 to 4: ER Diagrams, SQL, Relational Algebra, Normalization',
+      syllabus:
+          json['syllabus']?.toString() ??
+          'Units 1 to 4: ER Diagrams, SQL, Relational Algebra, Normalization',
       score: (json['score'] as num?)?.toInt(),
     );
   }
@@ -61,4 +64,3 @@ class ExamModel {
     };
   }
 }
-

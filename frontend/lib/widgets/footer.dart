@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/navigation_provider.dart';
@@ -53,7 +53,8 @@ class Footer extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 10),
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       RichText(
@@ -97,7 +98,11 @@ class Footer extends StatelessWidget {
                             const SizedBox(height: 12),
                             const Text(
                               'One Platform, Endless Possibilities. A smart and modern solution for academic management, connecting institutes, educators, and students.',
-                              style: TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.5),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textMuted,
+                                height: 1.5,
+                              ),
                             ),
                           ],
                         ),
@@ -112,13 +117,29 @@ class Footer extends StatelessWidget {
                           children: [
                             const Text(
                               'Navigation',
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: AppColors.textMain,
+                              ),
                             ),
                             const SizedBox(height: 12),
-                            _FooterLink(title: 'Home', onTap: () => nav.navigateTo('home')),
-                            _FooterLink(title: 'About Platform', onTap: () => onScrollToSection?.call('about')),
-                            _FooterLink(title: 'Management Features', onTap: () => onScrollToSection?.call('features')),
-                            _FooterLink(title: 'Contact Us', onTap: () => onScrollToSection?.call('contact')),
+                            _FooterLink(
+                              title: 'Home',
+                              onTap: () => nav.navigateTo('home'),
+                            ),
+                            _FooterLink(
+                              title: 'About Platform',
+                              onTap: () => onScrollToSection?.call('about'),
+                            ),
+                            _FooterLink(
+                              title: 'Management Features',
+                              onTap: () => onScrollToSection?.call('features'),
+                            ),
+                            _FooterLink(
+                              title: 'Contact Us',
+                              onTap: () => onScrollToSection?.call('contact'),
+                            ),
                           ],
                         ),
                       ),
@@ -131,14 +152,26 @@ class Footer extends StatelessWidget {
                           children: [
                             const Text(
                               'Institute Access',
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: AppColors.textMain,
+                              ),
                             ),
                             const SizedBox(height: 12),
-                            _FooterLink(title: 'INSTITUTE Login', onTap: () => nav.navigateTo('institute-login')),
-                            _FooterLink(title: 'Register Institute', onTap: () => nav.navigateTo('institute-register')),
+                            _FooterLink(
+                              title: 'INSTITUTE Login',
+                              onTap: () => nav.navigateTo('institute-login'),
+                            ),
+                            _FooterLink(
+                              title: 'Register Institute',
+                              onTap: () => nav.navigateTo('institute-register'),
+                            ),
                             _FooterLink(
                               title: 'Reset Password',
-                              onTap: () => nav.navigateTo('forgot-password', {'role': 'institute'}),
+                              onTap: () => nav.navigateTo('forgot-password', {
+                                'role': 'institute',
+                              }),
                             ),
                           ],
                         ),
@@ -152,12 +185,20 @@ class Footer extends StatelessWidget {
                           children: [
                             const Text(
                               'Role Portals',
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                                color: AppColors.textMain,
+                              ),
                             ),
                             const SizedBox(height: 12),
                             const Text(
                               'Admin, Teacher & Student dashboards are accessible after institute verification.',
-                              style: TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                                height: 1.4,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             InkWell(
@@ -220,16 +261,29 @@ class Footer extends StatelessWidget {
                       const SizedBox(height: 8),
                       const Text(
                         'One Platform, Endless Possibilities.',
-                        style: TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Wrap(
                         spacing: 16,
                         runSpacing: 8,
                         children: [
-                          _FooterLink(title: 'Home', onTap: () => nav.navigateTo('home')),
-                          _FooterLink(title: 'Institute Login', onTap: () => nav.navigateTo('institute-login')),
-                          _FooterLink(title: 'Register', onTap: () => nav.navigateTo('institute-register')),
+                          _FooterLink(
+                            title: 'Home',
+                            onTap: () => nav.navigateTo('home'),
+                          ),
+                          _FooterLink(
+                            title: 'Institute Login',
+                            onTap: () => nav.navigateTo('institute-login'),
+                          ),
+                          _FooterLink(
+                            title: 'Register',
+                            onTap: () => nav.navigateTo('institute-register'),
+                          ),
                         ],
                       ),
                     ],
@@ -248,28 +302,61 @@ class Footer extends StatelessWidget {
                   children: [
                     const Text(
                       '© 2026 EduChain. All rights reserved.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textLight),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textLight,
+                      ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         InkWell(
                           onTap: () => nav.navigateTo('home'),
-                          child: const Text('Home', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          child: const Text(
+                            'Home',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 12),
-                        const Text('•', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                        const Text(
+                          '•',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textLight,
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         InkWell(
                           onTap: () => onScrollToSection?.call('about'),
-                          child: const Text('About', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          child: const Text(
+                            'About',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 12),
-                        const Text('•', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                        const Text(
+                          '•',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textLight,
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         InkWell(
                           onTap: () => onScrollToSection?.call('contact'),
-                          child: const Text('Contact', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          child: const Text(
+                            'Contact',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                         ),
                       ],
                     ),

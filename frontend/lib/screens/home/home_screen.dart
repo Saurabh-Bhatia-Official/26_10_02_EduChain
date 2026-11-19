@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -228,7 +228,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(999),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0284C7).withValues(alpha: 0.25),
+                          color: const Color(
+                            0xFF0284C7,
+                          ).withValues(alpha: 0.25),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -320,11 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
         gradient: RadialGradient(
           center: Alignment(0.6, -0.6),
           radius: 1.2,
-          colors: [
-            Color(0xFFE0F2FE),
-            Color(0xFFF0F9FF),
-            Color(0xFFF8FAFC),
-          ],
+          colors: [Color(0xFFE0F2FE), Color(0xFFF0F9FF), Color(0xFFF8FAFC)],
           stops: [0.0, 0.45, 1.0],
         ),
       ),
@@ -352,10 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 52),
                     // Right Column: Clean Architectural Campus Art
-                    Expanded(
-                      flex: 5,
-                      child: _buildHeroIllustration(),
-                    ),
+                    Expanded(flex: 5, child: _buildHeroIllustration()),
                   ],
                 )
               else
@@ -1027,10 +1022,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 48),
                       // Right visual card preview
-                      Expanded(
-                        flex: 5,
-                        child: _buildAboutVisualPanel(),
-                      ),
+                      Expanded(flex: 5, child: _buildAboutVisualPanel()),
                     ],
                   )
                 : Column(
@@ -1157,12 +1149,14 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: 10),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E293B),
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
             ),
           ),
         ],
@@ -1342,9 +1336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: _buildCtaText(),
-                      ),
+                      Expanded(child: _buildCtaText()),
                       const SizedBox(width: 32),
                       _buildCtaButtons(nav, isInstituteLoggedIn),
                     ],
@@ -1662,7 +1654,9 @@ class _FeatureCardState extends State<_FeatureCard> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: _isHovered ? color.withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
+            color: _isHovered
+                ? color.withValues(alpha: 0.5)
+                : const Color(0xFFE2E8F0),
             width: _isHovered ? 1.5 : 1.0,
           ),
           boxShadow: [
@@ -1771,7 +1765,9 @@ class _WhyChooseCardState extends State<_WhyChooseCard> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: _isHovered ? const Color(0xFF38BDF8) : const Color(0xFFE2E8F0),
+            color: _isHovered
+                ? const Color(0xFF38BDF8)
+                : const Color(0xFFE2E8F0),
             width: _isHovered ? 1.4 : 1.0,
           ),
           boxShadow: [
@@ -1865,7 +1861,9 @@ class _ContactCardState extends State<_ContactCard> {
             color: const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: _isHovered ? const Color(0xFF38BDF8) : const Color(0xFFE2E8F0),
+              color: _isHovered
+                  ? const Color(0xFF38BDF8)
+                  : const Color(0xFFE2E8F0),
               width: _isHovered ? 1.5 : 1.0,
             ),
             boxShadow: [
@@ -1923,8 +1921,8 @@ class _ContactCardState extends State<_ContactCard> {
                         fontWeight: FontWeight.w600,
                         color: isClickable
                             ? (_isHovered
-                                ? const Color(0xFF0369A1)
-                                : const Color(0xFF0284C7))
+                                  ? const Color(0xFF0369A1)
+                                  : const Color(0xFF0284C7))
                             : const Color(0xFF0F172A),
                         decoration: (isClickable && _isHovered)
                             ? TextDecoration.underline
@@ -2002,9 +2000,7 @@ class _AcademicCampusCanvasArt extends StatelessWidget {
           stops: [0.0, 0.55, 1.0],
         ),
       ),
-      child: CustomPaint(
-        painter: _CampusArchitecturalPainter(),
-      ),
+      child: CustomPaint(painter: _CampusArchitecturalPainter()),
     );
   }
 }
@@ -2017,10 +2013,13 @@ class _CampusArchitecturalPainter extends CustomPainter {
 
     // 1. Sun & Radiant Ambient Glow
     final sunPaint = Paint()
-      ..shader = const RadialGradient(
-        colors: [Color(0xFFFDE047), Color(0xFFF59E0B), Colors.transparent],
-        stops: [0.0, 0.6, 1.0],
-      ).createShader(Rect.fromCircle(center: Offset(w * 0.85, h * 0.22), radius: 60));
+      ..shader =
+          const RadialGradient(
+            colors: [Color(0xFFFDE047), Color(0xFFF59E0B), Colors.transparent],
+            stops: [0.0, 0.6, 1.0],
+          ).createShader(
+            Rect.fromCircle(center: Offset(w * 0.85, h * 0.22), radius: 60),
+          );
     canvas.drawCircle(Offset(w * 0.85, h * 0.22), 50, sunPaint);
 
     // 2. Soft Background Clouds
@@ -2051,13 +2050,19 @@ class _CampusArchitecturalPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
       ).createShader(wallRect);
-    canvas.drawRRect(RRect.fromRectAndRadius(wallRect, const Radius.circular(6)), wallPaint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(wallRect, const Radius.circular(6)),
+      wallPaint,
+    );
 
     final wallBorderPaint = Paint()
       ..color = const Color(0xFF94A3B8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    canvas.drawRRect(RRect.fromRectAndRadius(wallRect, const Radius.circular(6)), wallBorderPaint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(wallRect, const Radius.circular(6)),
+      wallBorderPaint,
+    );
 
     // 5. Neoclassical Classical Pediment (Triangle Roof)
     final pedimentPath = Path()
@@ -2082,12 +2087,7 @@ class _CampusArchitecturalPainter extends CustomPainter {
     canvas.drawPath(pedimentPath, pedimentBorderPaint);
 
     // 6. Central Dome over pediment
-    final domeRect = Rect.fromLTWH(
-      w / 2 - 28,
-      buildingY - (h * 0.26),
-      56,
-      44,
-    );
+    final domeRect = Rect.fromLTWH(w / 2 - 28, buildingY - (h * 0.26), 56, 44);
     final domePaint = Paint()
       ..shader = const LinearGradient(
         colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
@@ -2128,8 +2128,16 @@ class _CampusArchitecturalPainter extends CustomPainter {
       ..color = const Color(0xFF0F172A)
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(clockCenter, Offset(clockCenter.dx, clockCenter.dy - 10), handPaint);
-    canvas.drawLine(clockCenter, Offset(clockCenter.dx + 7, clockCenter.dy), handPaint);
+    canvas.drawLine(
+      clockCenter,
+      Offset(clockCenter.dx, clockCenter.dy - 10),
+      handPaint,
+    );
+    canvas.drawLine(
+      clockCenter,
+      Offset(clockCenter.dx + 7, clockCenter.dy),
+      handPaint,
+    );
 
     // 8. Pillars / Columns
     final columnPositions = [
@@ -2142,7 +2150,12 @@ class _CampusArchitecturalPainter extends CustomPainter {
     ];
 
     for (final colX in columnPositions) {
-      final colRect = Rect.fromLTWH(colX - 6, buildingY + 6, 12, buildingH - 12);
+      final colRect = Rect.fromLTWH(
+        colX - 6,
+        buildingY + 6,
+        12,
+        buildingH - 12,
+      );
       final colPaint = Paint()..color = const Color(0xFFF8FAFC);
       final colStroke = Paint()
         ..color = const Color(0xFFCBD5E1)
@@ -2154,7 +2167,10 @@ class _CampusArchitecturalPainter extends CustomPainter {
       // Capital & Base
       final capPaint = Paint()..color = const Color(0xFF94A3B8);
       canvas.drawRect(Rect.fromLTWH(colX - 8, buildingY + 2, 16, 5), capPaint);
-      canvas.drawRect(Rect.fromLTWH(colX - 8, buildingY + buildingH - 8, 16, 6), capPaint);
+      canvas.drawRect(
+        Rect.fromLTWH(colX - 8, buildingY + buildingH - 8, 16, 6),
+        capPaint,
+      );
     }
 
     // 9. Central Entrance Door
@@ -2182,7 +2198,8 @@ class _CampusArchitecturalPainter extends CustomPainter {
     );
 
     // 10. Symmetric Glazed Windows
-    final windowPaint = Paint()..color = const Color(0xFF38BDF8).withValues(alpha: 0.85);
+    final windowPaint = Paint()
+      ..color = const Color(0xFF38BDF8).withValues(alpha: 0.85);
     final windowPositions = [
       Offset(buildingX + (buildingW * 0.19), buildingY + 28),
       Offset(buildingX + (buildingW * 0.19), buildingY + 64),
@@ -2192,7 +2209,10 @@ class _CampusArchitecturalPainter extends CustomPainter {
 
     for (final wp in windowPositions) {
       final winRect = Rect.fromLTWH(wp.dx - 10, wp.dy, 20, 26);
-      canvas.drawRRect(RRect.fromRectAndRadius(winRect, const Radius.circular(4)), windowPaint);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(winRect, const Radius.circular(4)),
+        windowPaint,
+      );
     }
 
     // 11. Landscape Trees on flanks
@@ -2202,20 +2222,35 @@ class _CampusArchitecturalPainter extends CustomPainter {
 
   void _drawCloud(Canvas canvas, Offset center, double radius, Paint paint) {
     canvas.drawCircle(center, radius, paint);
-    canvas.drawCircle(Offset(center.dx - (radius * 0.8), center.dy + 4), radius * 0.7, paint);
-    canvas.drawCircle(Offset(center.dx + (radius * 0.8), center.dy + 4), radius * 0.75, paint);
+    canvas.drawCircle(
+      Offset(center.dx - (radius * 0.8), center.dy + 4),
+      radius * 0.7,
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx + (radius * 0.8), center.dy + 4),
+      radius * 0.75,
+      paint,
+    );
   }
 
   void _drawTree(Canvas canvas, Offset base, double crownRadius) {
     // Trunk
     final trunkPaint = Paint()..color = const Color(0xFF78350F);
-    canvas.drawRect(Rect.fromLTWH(base.dx - 4, base.dy - 20, 8, 20), trunkPaint);
+    canvas.drawRect(
+      Rect.fromLTWH(base.dx - 4, base.dy - 20, 8, 20),
+      trunkPaint,
+    );
 
     // Foliage
     final foliagePaint = Paint()..color = const Color(0xFF10B981);
     canvas.drawCircle(Offset(base.dx, base.dy - 26), crownRadius, foliagePaint);
     final foliageHighlight = Paint()..color = const Color(0xFF34D399);
-    canvas.drawCircle(Offset(base.dx - 4, base.dy - 30), crownRadius * 0.5, foliageHighlight);
+    canvas.drawCircle(
+      Offset(base.dx - 4, base.dy - 30),
+      crownRadius * 0.5,
+      foliageHighlight,
+    );
   }
 
   @override

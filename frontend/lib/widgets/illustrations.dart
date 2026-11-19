@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../constants/app_colors.dart';
 
 class InstituteIllustration extends StatelessWidget {
@@ -26,7 +26,10 @@ class InstituteIllustration extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 2),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              width: 2,
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.primary.withValues(alpha: 0.15),
@@ -76,7 +79,10 @@ class StudentIllustrationWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.studentPrimary.withValues(alpha: 0.25), width: 2),
+            border: Border.all(
+              color: AppColors.studentPrimary.withValues(alpha: 0.25),
+              width: 2,
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.studentPrimary.withValues(alpha: 0.18),
@@ -97,9 +103,16 @@ class StudentIllustrationWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF3E8FF),
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.studentPrimary.withValues(alpha: 0.35), width: 2),
+                      border: Border.all(
+                        color: AppColors.studentPrimary.withValues(alpha: 0.35),
+                        width: 2,
+                      ),
                     ),
-                    child: const Icon(Icons.school, size: 52, color: AppColors.studentPrimary),
+                    child: const Icon(
+                      Icons.school,
+                      size: 52,
+                      color: AppColors.studentPrimary,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -151,7 +164,10 @@ class TeacherIllustrationWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.teacherPrimary.withValues(alpha: 0.25), width: 2),
+            border: Border.all(
+              color: AppColors.teacherPrimary.withValues(alpha: 0.25),
+              width: 2,
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.teacherPrimary.withValues(alpha: 0.18),
@@ -172,9 +188,16 @@ class TeacherIllustrationWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: const Color(0xFFE0F2FE),
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.teacherPrimary.withValues(alpha: 0.35), width: 2),
+                      border: Border.all(
+                        color: AppColors.teacherPrimary.withValues(alpha: 0.35),
+                        width: 2,
+                      ),
                     ),
-                    child: const Icon(Icons.cast_for_education, size: 52, color: AppColors.teacherPrimary),
+                    child: const Icon(
+                      Icons.cast_for_education,
+                      size: 52,
+                      color: AppColors.teacherPrimary,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(

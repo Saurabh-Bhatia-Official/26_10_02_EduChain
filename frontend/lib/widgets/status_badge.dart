@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../constants/app_colors.dart';
 
 class StatusBadge extends StatelessWidget {
@@ -62,7 +62,11 @@ class StatusBadge extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: fg,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

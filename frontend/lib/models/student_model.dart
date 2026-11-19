@@ -48,10 +48,12 @@ class StudentModel {
   factory StudentModel.fromJson(Map<String, dynamic> json) {
     return StudentModel(
       id: json['id']?.toString() ?? json['userId']?.toString() ?? '',
-      name: json['name']?.toString() ?? json['fullName']?.toString() ?? 'Student',
+      name:
+          json['name']?.toString() ?? json['fullName']?.toString() ?? 'Student',
       email: json['email']?.toString() ?? '',
       rollNumber: json['rollNumber']?.toString() ?? '',
-      className: json['className']?.toString() ?? json['course']?.toString() ?? '',
+      className:
+          json['className']?.toString() ?? json['course']?.toString() ?? '',
       course: json['course']?.toString() ?? json['className']?.toString() ?? '',
       department: json['department']?.toString(),
       semester: json['semester']?.toString() ?? '1',
@@ -99,4 +101,3 @@ class StudentModel {
     };
   }
 }
-

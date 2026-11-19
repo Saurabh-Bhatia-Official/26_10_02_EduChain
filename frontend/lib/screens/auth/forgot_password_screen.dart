@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/navigation_provider.dart';
@@ -91,7 +91,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           Expanded(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 36,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 580),
                   child: Container(
@@ -120,21 +123,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 color: roleColor.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.key, color: roleColor, size: 32),
+                              child: Icon(
+                                Icons.key,
+                                color: roleColor,
+                                size: 32,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
                           const Center(
                             child: Text(
                               'Reset Password',
-                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textMain,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 6),
                           const Center(
                             child: Text(
                               'Select your account role and enter your registered email address.',
-                              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textMuted,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -165,16 +179,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.successBg,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                                border: Border.all(
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.success,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
                                       _successMessage!,
-                                      style: const TextStyle(color: Color(0xFF065F46), fontSize: 13, height: 1.4),
+                                      style: const TextStyle(
+                                        color: Color(0xFF065F46),
+                                        fontSize: 13,
+                                        height: 1.4,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -190,12 +216,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                 color: AppColors.errorBg,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(auth.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                              child: Text(
+                                auth.errorMessage!,
+                                style: const TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 16),
                           ],
 
-                          const Text('Registered Email Address', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          const Text(
+                            'Registered Email Address',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           TextFormField(
                             controller: _emailController,
@@ -204,7 +242,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               hintText: 'e.g. user@institute.com',
                               prefixIcon: Icon(Icons.email_outlined, size: 18),
                             ),
-                            validator: (v) => v == null || !v.contains('@') ? 'Valid email required' : null,
+                            validator: (v) => v == null || !v.contains('@')
+                                ? 'Valid email required'
+                                : null,
                           ),
                           const SizedBox(height: 24),
 
@@ -214,17 +254,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             child: ElevatedButton.icon(
                               onPressed: auth.isLoading ? null : _handleSubmit,
                               icon: auth.isLoading
-                                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
                                   : const Icon(Icons.send, size: 16),
                               label: const Text('Send Password Reset Link'),
-                              style: ElevatedButton.styleFrom(backgroundColor: roleColor),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: roleColor,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
 
                           Center(
                             child: OutlinedButton.icon(
-                              onPressed: () => nav.navigateTo(_getBackLoginRoute()),
+                              onPressed: () =>
+                                  nav.navigateTo(_getBackLoginRoute()),
                               icon: const Icon(Icons.arrow_back, size: 16),
                               label: const Text('Back to Login'),
                               style: OutlinedButton.styleFrom(
@@ -275,4 +325,3 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 }
-

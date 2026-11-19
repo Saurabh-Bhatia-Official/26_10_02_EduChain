@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class NavigationProvider with ChangeNotifier {
   String _currentPage = 'home';
@@ -68,10 +68,13 @@ class NavigationProvider with ChangeNotifier {
         targetPage != 'student-register') {
       _currentTab = targetPage.replaceFirst('student-', '');
       _currentPage = 'student-portal';
-    } else if ((targetPage.startsWith('teacher-') || targetPage.startsWith('instructor-')) &&
+    } else if ((targetPage.startsWith('teacher-') ||
+            targetPage.startsWith('instructor-')) &&
         targetPage != 'teacher-login' &&
         targetPage != 'teacher-register') {
-      _currentTab = targetPage.replaceFirst('teacher-', '').replaceFirst('instructor-', '');
+      _currentTab = targetPage
+          .replaceFirst('teacher-', '')
+          .replaceFirst('instructor-', '');
       _currentPage = 'teacher-portal';
     } else if (targetPage.startsWith('admin-') && targetPage != 'admin-login') {
       _currentTab = targetPage.replaceFirst('admin-', '');

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
@@ -10,10 +10,12 @@ class InstituteRegistrationScreen extends StatefulWidget {
   const InstituteRegistrationScreen({super.key});
 
   @override
-  State<InstituteRegistrationScreen> createState() => _InstituteRegistrationScreenState();
+  State<InstituteRegistrationScreen> createState() =>
+      _InstituteRegistrationScreenState();
 }
 
-class _InstituteRegistrationScreenState extends State<InstituteRegistrationScreen> {
+class _InstituteRegistrationScreenState
+    extends State<InstituteRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -75,7 +77,10 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
     if (!_formKey.currentState!.validate()) return;
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please agree to terms and conditions'), backgroundColor: AppColors.error),
+        const SnackBar(
+          content: Text('Please agree to terms and conditions'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
@@ -111,8 +116,15 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: AppColors.successBg, shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle, color: AppColors.success, size: 28),
+              decoration: BoxDecoration(
+                color: AppColors.successBg,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle,
+                color: AppColors.success,
+                size: 28,
+              ),
             ),
             const SizedBox(width: 12),
             const Text('Institute Registered!'),
@@ -140,19 +152,36 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Your Institute Code:', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
+                      const Text(
+                        'Your Institute Code:',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
+                      ),
                       Text(
                         code,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.primary),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.copy, size: 20, color: AppColors.primary),
+                    icon: const Icon(
+                      Icons.copy,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: code));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Code copied!'), duration: Duration(seconds: 1)),
+                        const SnackBar(
+                          content: Text('Code copied!'),
+                          duration: Duration(seconds: 1),
+                        ),
                       );
                     },
                   ),
@@ -242,22 +271,37 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
             decoration: BoxDecoration(
               color: AppColors.secondary.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.secondary.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.4),
+              ),
             ),
             child: const Text(
               'CAMPUS ONBOARDING',
-              style: TextStyle(color: AppColors.secondary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
+              style: TextStyle(
+                color: AppColors.secondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1,
+              ),
             ),
           ),
           const SizedBox(height: 16),
           const Text(
             'Register Your Institute',
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 10),
           const Text(
             'Create your verified institution account to manage students, faculty, exams, and curriculum in one unified hub.',
-            style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8), height: 1.5),
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF94A3B8),
+              height: 1.5,
+            ),
           ),
           if (!compact) ...[
             const SizedBox(height: 36),
@@ -278,7 +322,11 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.shield_outlined, color: AppColors.accentGreen, size: 24),
+                  Icon(
+                    Icons.shield_outlined,
+                    color: AppColors.accentGreen,
+                    size: 24,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -302,7 +350,10 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
         const Icon(Icons.check_circle, color: AppColors.accentGreen, size: 16),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 13)),
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
         ),
       ],
     );
@@ -321,21 +372,29 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
               children: [
                 const Text(
                   'Campus Profile Setup',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _handleDemoFill,
                   icon: Icon(
                     _autoFilled ? Icons.check : Icons.bolt,
                     size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
+                    color: _autoFilled
+                        ? AppColors.accentGreen
+                        : AppColors.primary,
                   ),
                   label: Text(
                     _autoFilled ? 'Filled!' : 'Demo Fill',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
+                      color: _autoFilled
+                          ? AppColors.accentGreen
+                          : AppColors.primary,
                     ),
                   ),
                 ),
@@ -355,25 +414,45 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                   color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(auth.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                child: Text(
+                  auth.errorMessage!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                ),
               ),
               const SizedBox(height: 16),
             ],
 
             // Section 1: Institution Details
-            const Text('1. INSTITUTION DETAILS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primary, letterSpacing: 1)),
+            const Text(
+              '1. INSTITUTION DETAILS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+                letterSpacing: 1,
+              ),
+            ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Official Institute Name', hintText: 'e.g. Apex Institute of Technology'),
-              validator: (v) => v == null || v.trim().isEmpty ? 'Please enter institute name' : null,
+              decoration: const InputDecoration(
+                labelText: 'Official Institute Name',
+                hintText: 'e.g. Apex Institute of Technology',
+              ),
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? 'Please enter institute name'
+                  : null,
             ),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               initialValue: _instituteType,
-              items: _instituteTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+              items: _instituteTypes
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                  .toList(),
               onChanged: (v) => setState(() => _instituteType = v ?? 'College'),
-              decoration: const InputDecoration(labelText: 'Classification / Type'),
+              decoration: const InputDecoration(
+                labelText: 'Classification / Type',
+              ),
             ),
             const SizedBox(height: 14),
             Row(
@@ -382,8 +461,13 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                   child: TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Institute Email', hintText: 'info@institute.edu'),
-                    validator: (v) => v == null || !v.contains('@') ? 'Valid email required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Institute Email',
+                      hintText: 'info@institute.edu',
+                    ),
+                    validator: (v) => v == null || !v.contains('@')
+                        ? 'Valid email required'
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -391,7 +475,10 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                   child: TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'Phone Number', hintText: '+91 98765 00000'),
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      hintText: '+91 98765 00000',
+                    ),
                   ),
                 ),
               ],
@@ -399,20 +486,36 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
             const SizedBox(height: 14),
             TextFormField(
               controller: _addressController,
-              decoration: const InputDecoration(labelText: 'Campus Address', hintText: 'City, State, Country'),
+              decoration: const InputDecoration(
+                labelText: 'Campus Address',
+                hintText: 'City, State, Country',
+              ),
             ),
             const SizedBox(height: 24),
 
             // Section 2: Administrator Details
-            const Text('2. LEAD ADMINISTRATOR ACCOUNT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primary, letterSpacing: 1)),
+            const Text(
+              '2. LEAD ADMINISTRATOR ACCOUNT',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+                letterSpacing: 1,
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: _adminNameController,
-                    decoration: const InputDecoration(labelText: 'Admin Full Name', hintText: 'Dr. John Doe (Dean)'),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Admin name required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Admin Full Name',
+                      hintText: 'Dr. John Doe (Dean)',
+                    ),
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Admin name required'
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -420,8 +523,13 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                   child: TextFormField(
                     controller: _adminEmailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Admin Official Email', hintText: 'admin@institute.edu'),
-                    validator: (v) => v == null || !v.contains('@') ? 'Valid admin email required' : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Admin Official Email',
+                      hintText: 'admin@institute.edu',
+                    ),
+                    validator: (v) => v == null || !v.contains('@')
+                        ? 'Valid admin email required'
+                        : null,
                   ),
                 ),
               ],
@@ -436,11 +544,19 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                     decoration: InputDecoration(
                       labelText: 'Master Password',
                       suffixIcon: IconButton(
-                        icon: Icon(_showInstPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-                        onPressed: () => setState(() => _showInstPassword = !_showInstPassword),
+                        icon: Icon(
+                          _showInstPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: 18,
+                        ),
+                        onPressed: () => setState(
+                          () => _showInstPassword = !_showInstPassword,
+                        ),
                       ),
                     ),
-                    validator: (v) => v == null || v.length < 6 ? 'Min 6 characters' : null,
+                    validator: (v) =>
+                        v == null || v.length < 6 ? 'Min 6 characters' : null,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -451,11 +567,19 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                     decoration: InputDecoration(
                       labelText: 'Admin Password',
                       suffixIcon: IconButton(
-                        icon: Icon(_showAdminPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-                        onPressed: () => setState(() => _showAdminPassword = !_showAdminPassword),
+                        icon: Icon(
+                          _showAdminPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: 18,
+                        ),
+                        onPressed: () => setState(
+                          () => _showAdminPassword = !_showAdminPassword,
+                        ),
                       ),
                     ),
-                    validator: (v) => v == null || v.length < 6 ? 'Min 6 characters' : null,
+                    validator: (v) =>
+                        v == null || v.length < 6 ? 'Min 6 characters' : null,
                   ),
                 ),
               ],
@@ -485,9 +609,18 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
               height: 48,
               child: ElevatedButton(
                 onPressed: auth.isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
                 child: auth.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Complete Registration & Generate Code'),
               ),
             ),
@@ -496,10 +629,20 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
             Center(
               child: Wrap(
                 children: [
-                  const Text('Already have an institute account? ', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  const Text(
+                    'Already have an institute account? ',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
                   InkWell(
                     onTap: () => nav.navigateTo('institute-login'),
-                    child: const Text('Sign in here', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    child: const Text(
+                      'Sign in here',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
                 ],
               ),

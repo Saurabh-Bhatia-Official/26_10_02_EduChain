@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../constants/app_colors.dart';
 import '../../models/student_model.dart';
 import '../../services/api_service.dart';
@@ -102,7 +102,9 @@ class _StudentsCrudScreenState extends State<StudentsCrudScreen> {
       await _loadStudents();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -113,7 +115,9 @@ class _StudentsCrudScreenState extends State<StudentsCrudScreen> {
       await _loadStudents();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
       }
     }
   }
@@ -148,33 +152,83 @@ class _StudentsCrudScreenState extends State<StudentsCrudScreen> {
             // Form
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_editingId != null ? 'Edit Student' : 'Add Student', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(
+                    _editingId != null ? 'Edit Student' : 'Add Student',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(child: TextFormField(controller: _nameController, decoration: const InputDecoration(labelText: 'Name *'))),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Name *',
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: TextFormField(controller: _emailController, decoration: const InputDecoration(labelText: 'Email *'))),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Email *',
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: TextFormField(controller: _rollController, decoration: const InputDecoration(labelText: 'Roll Number'))),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _rollController,
+                          decoration: const InputDecoration(
+                            labelText: 'Roll Number',
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: TextFormField(controller: _classController, decoration: const InputDecoration(labelText: 'Class / Course'))),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _classController,
+                          decoration: const InputDecoration(
+                            labelText: 'Class / Course',
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: TextFormField(controller: _phoneController, decoration: const InputDecoration(labelText: 'Phone'))),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _phoneController,
+                          decoration: const InputDecoration(labelText: 'Phone'),
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: TextFormField(controller: _addressController, decoration: const InputDecoration(labelText: 'Address'))),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _addressController,
+                          decoration: const InputDecoration(
+                            labelText: 'Address',
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -182,12 +236,21 @@ class _StudentsCrudScreenState extends State<StudentsCrudScreen> {
                     children: [
                       ElevatedButton(
                         onPressed: _handleSubmit,
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                        child: Text(_editingId != null ? 'Update Student' : 'Save Student'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                        ),
+                        child: Text(
+                          _editingId != null
+                              ? 'Update Student'
+                              : 'Save Student',
+                        ),
                       ),
                       if (_editingId != null) ...[
                         const SizedBox(width: 10),
-                        OutlinedButton(onPressed: _clearForm, child: const Text('Cancel Edit')),
+                        OutlinedButton(
+                          onPressed: _clearForm,
+                          child: const Text('Cancel Edit'),
+                        ),
                       ],
                     ],
                   ),
@@ -212,22 +275,44 @@ class _StudentsCrudScreenState extends State<StudentsCrudScreen> {
             if (_loading)
               const Center(child: CircularProgressIndicator())
             else if (_error.isNotEmpty)
-              Text('Error: $_error', style: const TextStyle(color: AppColors.error))
+              Text(
+                'Error: $_error',
+                style: const TextStyle(color: AppColors.error),
+              )
             else
-              ..._students.map((s) => Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text('Roll: ${s.rollNumber} • ${s.className} • ${s.email}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(icon: const Icon(Icons.edit, color: AppColors.primary), onPressed: () => _startEdit(s)),
-                          IconButton(icon: const Icon(Icons.delete, color: AppColors.error), onPressed: () => _delete(s.id)),
-                        ],
-                      ),
+              ..._students.map(
+                (s) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    title: Text(
+                      s.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                  )),
+                    subtitle: Text(
+                      'Roll: ${s.rollNumber} • ${s.className} • ${s.email}',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.edit,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: () => _startEdit(s),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete,
+                            color: AppColors.error,
+                          ),
+                          onPressed: () => _delete(s.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

@@ -32,11 +32,20 @@ class InstructorModel {
   factory InstructorModel.fromJson(Map<String, dynamic> json) {
     return InstructorModel(
       id: json['id']?.toString() ?? json['userId']?.toString() ?? '',
-      name: json['name']?.toString() ?? json['fullName']?.toString() ?? 'Faculty Member',
+      name:
+          json['name']?.toString() ??
+          json['fullName']?.toString() ??
+          'Faculty Member',
       email: json['email']?.toString() ?? '',
-      instructorId: json['instructorId']?.toString() ?? json['employeeId']?.toString() ?? '',
+      instructorId:
+          json['instructorId']?.toString() ??
+          json['employeeId']?.toString() ??
+          '',
       department: json['department']?.toString() ?? 'Computer Science',
-      designation: json['designation']?.toString() ?? json['title']?.toString() ?? 'Assistant Professor',
+      designation:
+          json['designation']?.toString() ??
+          json['title']?.toString() ??
+          'Assistant Professor',
       phone: json['phone']?.toString() ?? json['phoneNumber']?.toString(),
       qualification: json['qualification']?.toString(),
       experience: json['experience']?.toString(),
@@ -67,4 +76,3 @@ class InstructorModel {
     };
   }
 }
-

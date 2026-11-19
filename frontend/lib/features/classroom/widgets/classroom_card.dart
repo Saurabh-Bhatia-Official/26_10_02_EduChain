@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import '../../../constants/app_colors.dart';
 import '../models/classroom_model.dart';
@@ -146,11 +145,16 @@ class ClassroomCard extends StatelessWidget {
                     children: [
                       // Role Pill
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.25),
+                          ),
                         ),
                         child: Text(
                           isTeacher
@@ -176,16 +180,22 @@ class ClassroomCard extends StatelessWidget {
                           child: PopupMenuButton<String>(
                             iconColor: Colors.white,
                             tooltip: 'Class Options',
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             onSelected: (value) {
                               if (value == 'edit') onEdit?.call();
                               if (value == 'delete') onDelete?.call();
                               if (value == 'leave') onLeave?.call();
                               if (value == 'copy_code') {
-                                Clipboard.setData(ClipboardData(text: classroom.code));
+                                Clipboard.setData(
+                                  ClipboardData(text: classroom.code),
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Class code ${classroom.code} copied!'),
+                                    content: Text(
+                                      'Class code ${classroom.code} copied!',
+                                    ),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
@@ -217,9 +227,18 @@ class ClassroomCard extends StatelessWidget {
                                   value: 'delete',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.delete_outline, size: 16, color: AppColors.error),
+                                      Icon(
+                                        Icons.delete_outline,
+                                        size: 16,
+                                        color: AppColors.error,
+                                      ),
                                       SizedBox(width: 8),
-                                      Text('Delete Classroom', style: TextStyle(color: AppColors.error)),
+                                      Text(
+                                        'Delete Classroom',
+                                        style: TextStyle(
+                                          color: AppColors.error,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -228,9 +247,18 @@ class ClassroomCard extends StatelessWidget {
                                   value: 'leave',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.exit_to_app, size: 16, color: AppColors.error),
+                                      Icon(
+                                        Icons.exit_to_app,
+                                        size: 16,
+                                        color: AppColors.error,
+                                      ),
                                       SizedBox(width: 8),
-                                      Text('Leave Class', style: TextStyle(color: AppColors.error)),
+                                      Text(
+                                        'Leave Class',
+                                        style: TextStyle(
+                                          color: AppColors.error,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -262,13 +290,18 @@ class ClassroomCard extends StatelessWidget {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryLight,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          classroom.section.isNotEmpty ? classroom.section : classroom.subject,
+                          classroom.section.isNotEmpty
+                              ? classroom.section
+                              : classroom.subject,
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -293,7 +326,11 @@ class ClassroomCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.person_outline, size: 14, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.person_outline,
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -313,11 +350,18 @@ class ClassroomCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.meeting_room_outlined, size: 14, color: AppColors.textLight),
+                        const Icon(
+                          Icons.meeting_room_outlined,
+                          size: 14,
+                          color: AppColors.textLight,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           classroom.room,
-                          style: const TextStyle(fontSize: 11, color: AppColors.textLight),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textLight,
+                          ),
                         ),
                       ],
                     ),
@@ -346,14 +390,19 @@ class ClassroomCard extends StatelessWidget {
                         _StatPill(
                           icon: Icons.check_circle_outline,
                           label: '${attendanceRate!.round()}%',
-                          color: attendanceRate! >= 75 ? AppColors.success : AppColors.warning,
+                          color: attendanceRate! >= 75
+                              ? AppColors.success
+                              : AppColors.warning,
                           tooltip: 'Attendance Rate',
                         ),
                       ],
                       const Spacer(),
                       // Class Code badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.bgSurface,
                           borderRadius: BorderRadius.circular(6),
@@ -362,7 +411,11 @@ class ClassroomCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.key_outlined, size: 12, color: AppColors.primary),
+                            const Icon(
+                              Icons.key_outlined,
+                              size: 12,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               classroom.code,

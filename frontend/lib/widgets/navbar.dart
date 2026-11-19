@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/navigation_provider.dart';
@@ -101,8 +101,10 @@ class Navbar extends StatelessWidget {
               children: [
                 _NavLink(
                   title: 'Home',
-                  isActive: nav.currentPage == 'home' &&
-                      (nav.activeSection == 'home' || nav.activeSection.isEmpty),
+                  isActive:
+                      nav.currentPage == 'home' &&
+                      (nav.activeSection == 'home' ||
+                          nav.activeSection.isEmpty),
                   onTap: () {
                     nav.scrollToSection('home');
                     onScrollToSection?.call('home');
@@ -110,7 +112,8 @@ class Navbar extends StatelessWidget {
                 ),
                 _NavLink(
                   title: 'About',
-                  isActive: nav.currentPage == 'home' && nav.activeSection == 'about',
+                  isActive:
+                      nav.currentPage == 'home' && nav.activeSection == 'about',
                   onTap: () {
                     nav.scrollToSection('about');
                     onScrollToSection?.call('about');
@@ -118,7 +121,9 @@ class Navbar extends StatelessWidget {
                 ),
                 _NavLink(
                   title: 'Features',
-                  isActive: nav.currentPage == 'home' && nav.activeSection == 'features',
+                  isActive:
+                      nav.currentPage == 'home' &&
+                      nav.activeSection == 'features',
                   onTap: () {
                     nav.scrollToSection('features');
                     onScrollToSection?.call('features');
@@ -126,7 +131,9 @@ class Navbar extends StatelessWidget {
                 ),
                 _NavLink(
                   title: 'Contact',
-                  isActive: nav.currentPage == 'home' && nav.activeSection == 'contact',
+                  isActive:
+                      nav.currentPage == 'home' &&
+                      nav.activeSection == 'contact',
                   onTap: () {
                     nav.scrollToSection('contact');
                     onScrollToSection?.call('contact');
@@ -138,7 +145,11 @@ class Navbar extends StatelessWidget {
           // Mobile Navigation Menu Dropdown
           if (!isDesktop)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.menu_rounded, color: AppColors.textMain, size: 24),
+              icon: const Icon(
+                Icons.menu_rounded,
+                color: AppColors.textMain,
+                size: 24,
+              ),
               tooltip: 'Navigation Menu',
               onSelected: (sectionId) {
                 nav.scrollToSection(sectionId);
@@ -149,9 +160,16 @@ class Navbar extends StatelessWidget {
                   value: 'home',
                   child: Row(
                     children: [
-                      Icon(Icons.home_outlined, size: 18, color: AppColors.primary),
+                      Icon(
+                        Icons.home_outlined,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(width: 10),
-                      Text('Home', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        'Home',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
                 ),
@@ -159,9 +177,16 @@ class Navbar extends StatelessWidget {
                   value: 'about',
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primary),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(width: 10),
-                      Text('About', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        'About',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
                 ),
@@ -169,9 +194,16 @@ class Navbar extends StatelessWidget {
                   value: 'features',
                   child: Row(
                     children: [
-                      Icon(Icons.auto_awesome_rounded, size: 18, color: AppColors.primary),
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(width: 10),
-                      Text('Features', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        'Features',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
                 ),
@@ -179,9 +211,16 @@ class Navbar extends StatelessWidget {
                   value: 'contact',
                   child: Row(
                     children: [
-                      Icon(Icons.mail_outline_rounded, size: 18, color: AppColors.primary),
+                      Icon(
+                        Icons.mail_outline_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(width: 10),
-                      Text('Contact', style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        'Contact',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ],
                   ),
                 ),
@@ -199,7 +238,11 @@ class Navbar extends StatelessWidget {
                     if (auth.isTeacher) ...[
                       OutlinedButton.icon(
                         onPressed: () => nav.navigateTo('teacher-dashboard'),
-                        icon: const Icon(Icons.school, size: 16, color: AppColors.teacherPrimary),
+                        icon: const Icon(
+                          Icons.school,
+                          size: 16,
+                          color: AppColors.teacherPrimary,
+                        ),
                         label: Text(
                           '${auth.currentUser?.name ?? "Instructor"} (Instructor)',
                           style: const TextStyle(
@@ -216,13 +259,19 @@ class Navbar extends StatelessWidget {
                       const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: () => nav.navigateTo('teacher-dashboard'),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.teacherPrimary,
+                        ),
                         child: const Text('Instructor Portal'),
                       ),
                     ] else if (auth.isStudent) ...[
                       OutlinedButton.icon(
                         onPressed: () => nav.navigateTo('student-dashboard'),
-                        icon: const Icon(Icons.person, size: 16, color: AppColors.studentPrimary),
+                        icon: const Icon(
+                          Icons.person,
+                          size: 16,
+                          color: AppColors.studentPrimary,
+                        ),
                         label: Text(
                           '${auth.currentUser?.name ?? "Student"} (Student)',
                           style: const TextStyle(
@@ -239,7 +288,9 @@ class Navbar extends StatelessWidget {
                       const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: () => nav.navigateTo('student-dashboard'),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.studentPrimary,
+                        ),
                         child: const Text('Student Portal'),
                       ),
                     ] else if (auth.isAdmin) ...[
@@ -247,13 +298,19 @@ class Navbar extends StatelessWidget {
                         onPressed: () => nav.navigateTo('admin-dashboard'),
                         icon: const Icon(Icons.admin_panel_settings, size: 16),
                         label: const Text('Admin Portal'),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.adminPrimary,
+                        ),
                       ),
                     ] else ...[
                       // Institute
                       OutlinedButton.icon(
                         onPressed: () => nav.navigateTo('institute-home'),
-                        icon: const Icon(Icons.verified, size: 16, color: AppColors.institutePrimary),
+                        icon: const Icon(
+                          Icons.verified,
+                          size: 16,
+                          color: AppColors.institutePrimary,
+                        ),
                         label: Text(
                           auth.currentUser?.instituteName ?? 'Verified Campus',
                           style: const TextStyle(
@@ -270,7 +327,9 @@ class Navbar extends StatelessWidget {
                       const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: () => nav.navigateTo('institute-home'),
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.institutePrimary),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.institutePrimary,
+                        ),
                         child: const Text('Institute Home'),
                       ),
                     ],
@@ -291,7 +350,11 @@ class Navbar extends StatelessWidget {
                           nav.navigateTo('select-role');
                         }
                       },
-                      icon: const Icon(Icons.logout, size: 20, color: AppColors.textMuted),
+                      icon: const Icon(
+                        Icons.logout,
+                        size: 20,
+                        color: AppColors.textMuted,
+                      ),
                       tooltip: 'Logout',
                     ),
                   ] else ...[
@@ -299,7 +362,10 @@ class Navbar extends StatelessWidget {
                       onPressed: () => nav.navigateTo('institute-login'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary, width: 1.5),
+                        side: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
                         backgroundColor: AppColors.primaryLight,
                       ),
                       child: const Text('INSTITUTE Login'),

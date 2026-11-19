@@ -122,14 +122,17 @@ class ClassroomComment {
     'createdAt': createdAt.toIso8601String(),
   };
 
-  factory ClassroomComment.fromJson(Map<String, dynamic> json) => ClassroomComment(
-    id: json['id'] as String,
-    authorId: (json['authorId'] ?? '') as String,
-    authorName: (json['authorName'] ?? 'Anonymous') as String,
-    authorRole: (json['authorRole'] ?? 'student') as String,
-    text: (json['text'] ?? '') as String,
-    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-  );
+  factory ClassroomComment.fromJson(Map<String, dynamic> json) =>
+      ClassroomComment(
+        id: json['id'] as String,
+        authorId: (json['authorId'] ?? '') as String,
+        authorName: (json['authorName'] ?? 'Anonymous') as String,
+        authorRole: (json['authorRole'] ?? 'student') as String,
+        text: (json['text'] ?? '') as String,
+        createdAt:
+            DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+            DateTime.now(),
+      );
 }
 
 /// Classroom stream announcement post
@@ -200,7 +203,9 @@ class ClassroomPost {
     'isPinned': isPinned,
     'attachmentName': attachmentName,
     'attachmentUrl': attachmentUrl,
-    'attachmentBase64': attachmentBytes != null ? base64Encode(attachmentBytes!) : null,
+    'attachmentBase64': attachmentBytes != null
+        ? base64Encode(attachmentBytes!)
+        : null,
     'comments': comments.map((c) => c.toJson()).toList(),
   };
 
@@ -208,15 +213,19 @@ class ClassroomPost {
     id: json['id'] as String,
     author: (json['author'] ?? '') as String,
     text: (json['text'] ?? '') as String,
-    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+    createdAt:
+        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     authorId: (json['authorId'] ?? '') as String,
     authorRole: (json['authorRole'] ?? 'teacher') as String,
     classroomId: (json['classroomId'] ?? '') as String,
     isPinned: json['isPinned'] == true,
     attachmentName: json['attachmentName'] as String?,
     attachmentUrl: json['attachmentUrl'] as String?,
-    attachmentBytes: json['attachmentBase64'] != null ? base64Decode(json['attachmentBase64'] as String) : null,
-    comments: (json['comments'] as List<dynamic>?)
+    attachmentBytes: json['attachmentBase64'] != null
+        ? base64Decode(json['attachmentBase64'] as String)
+        : null,
+    comments:
+        (json['comments'] as List<dynamic>?)
             ?.map((c) => ClassroomComment.fromJson(c as Map<String, dynamic>))
             .toList() ??
         const [],
@@ -288,9 +297,15 @@ class ClassroomAssignment {
     teacherId: teacherId ?? this.teacherId,
     category: category ?? this.category,
     createdAt: createdAt ?? this.createdAt,
-    attachmentName: clearAttachment ? null : (attachmentName ?? this.attachmentName),
-    attachmentUrl: clearAttachment ? null : (attachmentUrl ?? this.attachmentUrl),
-    attachmentBytes: clearAttachment ? null : (attachmentBytes ?? this.attachmentBytes),
+    attachmentName: clearAttachment
+        ? null
+        : (attachmentName ?? this.attachmentName),
+    attachmentUrl: clearAttachment
+        ? null
+        : (attachmentUrl ?? this.attachmentUrl),
+    attachmentBytes: clearAttachment
+        ? null
+        : (attachmentBytes ?? this.attachmentBytes),
     allowLateSubmission: allowLateSubmission ?? this.allowLateSubmission,
     isDraft: isDraft ?? this.isDraft,
     allowPeerReview: allowPeerReview ?? this.allowPeerReview,
@@ -309,34 +324,47 @@ class ClassroomAssignment {
     'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
     'attachmentName': attachmentName,
     'attachmentUrl': attachmentUrl,
-    'attachmentBase64': attachmentBytes != null ? base64Encode(attachmentBytes!) : null,
+    'attachmentBase64': attachmentBytes != null
+        ? base64Encode(attachmentBytes!)
+        : null,
     'allowLateSubmission': allowLateSubmission,
     'isDraft': isDraft,
     'allowPeerReview': allowPeerReview,
     'rubric': rubric.map((criterion) => criterion.toJson()).toList(),
   };
 
-  factory ClassroomAssignment.fromJson(Map<String, dynamic> json) => ClassroomAssignment(
-    id: json['id'] as String,
-    title: (json['title'] ?? '') as String,
-    instructions: (json['instructions'] ?? '') as String,
-    maxMarks: (json['maxMarks'] as num?)?.toInt() ?? 100,
-    dueAt: json['dueAt'] != null ? DateTime.tryParse(json['dueAt'] as String) : null,
-    classroomId: (json['classroomId'] ?? '') as String,
-    teacherId: (json['teacherId'] ?? '') as String,
-    category: (json['category'] ?? 'General') as String,
-    createdAt: json['createdAt'] != null ? DateTime.tryParse(json['createdAt'] as String) : null,
-    attachmentName: json['attachmentName'] as String?,
-    attachmentUrl: json['attachmentUrl'] as String?,
-    attachmentBytes: json['attachmentBase64'] != null ? base64Decode(json['attachmentBase64'] as String) : null,
-    allowLateSubmission: json['allowLateSubmission'] != false,
-    isDraft: json['isDraft'] == true,
-    allowPeerReview: json['allowPeerReview'] == true,
-    rubric: (json['rubric'] as List<dynamic>?)
-            ?.map((item) => RubricCriterion.fromJson(item as Map<String, dynamic>))
-            .toList() ??
-        const [],
-  );
+  factory ClassroomAssignment.fromJson(Map<String, dynamic> json) =>
+      ClassroomAssignment(
+        id: json['id'] as String,
+        title: (json['title'] ?? '') as String,
+        instructions: (json['instructions'] ?? '') as String,
+        maxMarks: (json['maxMarks'] as num?)?.toInt() ?? 100,
+        dueAt: json['dueAt'] != null
+            ? DateTime.tryParse(json['dueAt'] as String)
+            : null,
+        classroomId: (json['classroomId'] ?? '') as String,
+        teacherId: (json['teacherId'] ?? '') as String,
+        category: (json['category'] ?? 'General') as String,
+        createdAt: json['createdAt'] != null
+            ? DateTime.tryParse(json['createdAt'] as String)
+            : null,
+        attachmentName: json['attachmentName'] as String?,
+        attachmentUrl: json['attachmentUrl'] as String?,
+        attachmentBytes: json['attachmentBase64'] != null
+            ? base64Decode(json['attachmentBase64'] as String)
+            : null,
+        allowLateSubmission: json['allowLateSubmission'] != false,
+        isDraft: json['isDraft'] == true,
+        allowPeerReview: json['allowPeerReview'] == true,
+        rubric:
+            (json['rubric'] as List<dynamic>?)
+                ?.map(
+                  (item) =>
+                      RubricCriterion.fromJson(item as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      );
 }
 
 /// Student assignment submission
@@ -428,7 +456,9 @@ class ClassroomSubmission {
     'submittedAt': submittedAt.toIso8601String(),
     'attachmentName': attachmentName,
     'attachmentUrl': attachmentUrl,
-    'attachmentBase64': attachmentBytes != null ? base64Encode(attachmentBytes!) : null,
+    'attachmentBase64': attachmentBytes != null
+        ? base64Encode(attachmentBytes!)
+        : null,
     'marks': marks,
     'feedback': feedback,
     'gradedAt': gradedAt?.toIso8601String(),
@@ -437,28 +467,38 @@ class ClassroomSubmission {
     'gradeHistory': gradeHistory.map((record) => record.toJson()).toList(),
   };
 
-  factory ClassroomSubmission.fromJson(Map<String, dynamic> json) => ClassroomSubmission(
-    id: (json['id'] ?? '') as String,
-    assignmentId: (json['assignmentId'] ?? '') as String,
-    classroomId: (json['classroomId'] ?? '') as String,
-    studentId: (json['studentId'] ?? '') as String,
-    studentName: (json['studentName'] ?? '') as String,
-    studentRoll: (json['studentRoll'] ?? '') as String,
-    comment: (json['comment'] ?? '') as String,
-    submittedAt: DateTime.tryParse(json['submittedAt'] as String? ?? '') ?? DateTime.now(),
-    attachmentName: json['attachmentName'] as String?,
-    attachmentUrl: json['attachmentUrl'] as String?,
-    attachmentBytes: json['attachmentBase64'] != null ? base64Decode(json['attachmentBase64'] as String) : null,
-    marks: (json['marks'] as num?)?.toInt(),
-    feedback: json['feedback'] as String?,
-    gradedAt: json['gradedAt'] != null ? DateTime.tryParse(json['gradedAt'] as String) : null,
-    gradedBy: json['gradedBy'] as String?,
-    status: SubmissionStatus.fromString(json['status'] as String?),
-    gradeHistory: (json['gradeHistory'] as List<dynamic>?)
-            ?.map((item) => GradeRecord.fromJson(item as Map<String, dynamic>))
-            .toList() ??
-        const [],
-  );
+  factory ClassroomSubmission.fromJson(Map<String, dynamic> json) =>
+      ClassroomSubmission(
+        id: (json['id'] ?? '') as String,
+        assignmentId: (json['assignmentId'] ?? '') as String,
+        classroomId: (json['classroomId'] ?? '') as String,
+        studentId: (json['studentId'] ?? '') as String,
+        studentName: (json['studentName'] ?? '') as String,
+        studentRoll: (json['studentRoll'] ?? '') as String,
+        comment: (json['comment'] ?? '') as String,
+        submittedAt:
+            DateTime.tryParse(json['submittedAt'] as String? ?? '') ??
+            DateTime.now(),
+        attachmentName: json['attachmentName'] as String?,
+        attachmentUrl: json['attachmentUrl'] as String?,
+        attachmentBytes: json['attachmentBase64'] != null
+            ? base64Decode(json['attachmentBase64'] as String)
+            : null,
+        marks: (json['marks'] as num?)?.toInt(),
+        feedback: json['feedback'] as String?,
+        gradedAt: json['gradedAt'] != null
+            ? DateTime.tryParse(json['gradedAt'] as String)
+            : null,
+        gradedBy: json['gradedBy'] as String?,
+        status: SubmissionStatus.fromString(json['status'] as String?),
+        gradeHistory:
+            (json['gradeHistory'] as List<dynamic>?)
+                ?.map(
+                  (item) => GradeRecord.fromJson(item as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      );
 }
 
 /// Learning materials / course resources
@@ -511,9 +551,15 @@ class ClassroomMaterial {
     topic: topic ?? this.topic,
     uploadedBy: uploadedBy ?? this.uploadedBy,
     uploadedAt: uploadedAt ?? this.uploadedAt,
-    attachmentName: clearAttachment ? null : (attachmentName ?? this.attachmentName),
-    attachmentUrl: clearAttachment ? null : (attachmentUrl ?? this.attachmentUrl),
-    attachmentBytes: clearAttachment ? null : (attachmentBytes ?? this.attachmentBytes),
+    attachmentName: clearAttachment
+        ? null
+        : (attachmentName ?? this.attachmentName),
+    attachmentUrl: clearAttachment
+        ? null
+        : (attachmentUrl ?? this.attachmentUrl),
+    attachmentBytes: clearAttachment
+        ? null
+        : (attachmentBytes ?? this.attachmentBytes),
     linkUrl: linkUrl ?? this.linkUrl,
     fileType: fileType ?? this.fileType,
   );
@@ -528,25 +574,32 @@ class ClassroomMaterial {
     'uploadedAt': uploadedAt.toIso8601String(),
     'attachmentName': attachmentName,
     'attachmentUrl': attachmentUrl,
-    'attachmentBase64': attachmentBytes != null ? base64Encode(attachmentBytes!) : null,
+    'attachmentBase64': attachmentBytes != null
+        ? base64Encode(attachmentBytes!)
+        : null,
     'linkUrl': linkUrl,
     'fileType': fileType,
   };
 
-  factory ClassroomMaterial.fromJson(Map<String, dynamic> json) => ClassroomMaterial(
-    id: json['id'] as String,
-    classroomId: (json['classroomId'] ?? '') as String,
-    title: (json['title'] ?? '') as String,
-    description: (json['description'] ?? '') as String,
-    topic: (json['topic'] ?? 'General Resources') as String,
-    uploadedBy: (json['uploadedBy'] ?? 'Teacher') as String,
-    uploadedAt: DateTime.tryParse(json['uploadedAt'] as String? ?? '') ?? DateTime.now(),
-    attachmentName: json['attachmentName'] as String?,
-    attachmentUrl: json['attachmentUrl'] as String?,
-    attachmentBytes: json['attachmentBase64'] != null ? base64Decode(json['attachmentBase64'] as String) : null,
-    linkUrl: json['linkUrl'] as String?,
-    fileType: (json['fileType'] ?? 'document') as String,
-  );
+  factory ClassroomMaterial.fromJson(Map<String, dynamic> json) =>
+      ClassroomMaterial(
+        id: json['id'] as String,
+        classroomId: (json['classroomId'] ?? '') as String,
+        title: (json['title'] ?? '') as String,
+        description: (json['description'] ?? '') as String,
+        topic: (json['topic'] ?? 'General Resources') as String,
+        uploadedBy: (json['uploadedBy'] ?? 'Teacher') as String,
+        uploadedAt:
+            DateTime.tryParse(json['uploadedAt'] as String? ?? '') ??
+            DateTime.now(),
+        attachmentName: json['attachmentName'] as String?,
+        attachmentUrl: json['attachmentUrl'] as String?,
+        attachmentBytes: json['attachmentBase64'] != null
+            ? base64Decode(json['attachmentBase64'] as String)
+            : null,
+        linkUrl: json['linkUrl'] as String?,
+        fileType: (json['fileType'] ?? 'document') as String,
+      );
 }
 
 /// Session-based attendance record for an entire classroom
@@ -559,8 +612,8 @@ class ClassroomAttendanceSession {
     required this.takenByTeacherId,
     Map<String, AttendanceStatus>? records,
     Map<String, String>? notes,
-  })  : records = Map.unmodifiable(records ?? {}),
-        notes = Map.unmodifiable(notes ?? {});
+  }) : records = Map.unmodifiable(records ?? {}),
+       notes = Map.unmodifiable(notes ?? {});
 
   final String id;
   final String classroomId;
@@ -635,7 +688,8 @@ class ClassroomNotification {
   final String classroomName;
   final String title;
   final String message;
-  final String type; // 'assignment', 'grade', 'announcement', 'attendance', 'material'
+  final String
+  type; // 'assignment', 'grade', 'announcement', 'attendance', 'material'
   final DateTime timestamp;
   final bool isRead;
 
@@ -663,17 +717,20 @@ class ClassroomNotification {
     'isRead': isRead,
   };
 
-  factory ClassroomNotification.fromJson(Map<String, dynamic> json) => ClassroomNotification(
-    id: json['id'] as String,
-    recipientUserId: (json['recipientUserId'] ?? '') as String,
-    classroomId: (json['classroomId'] ?? '') as String,
-    classroomName: (json['classroomName'] ?? '') as String,
-    title: (json['title'] ?? '') as String,
-    message: (json['message'] ?? '') as String,
-    type: (json['type'] ?? 'announcement') as String,
-    timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
-    isRead: json['isRead'] == true,
-  );
+  factory ClassroomNotification.fromJson(Map<String, dynamic> json) =>
+      ClassroomNotification(
+        id: json['id'] as String,
+        recipientUserId: (json['recipientUserId'] ?? '') as String,
+        classroomId: (json['classroomId'] ?? '') as String,
+        classroomName: (json['classroomName'] ?? '') as String,
+        title: (json['title'] ?? '') as String,
+        message: (json['message'] ?? '') as String,
+        type: (json['type'] ?? 'announcement') as String,
+        timestamp:
+            DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+            DateTime.now(),
+        isRead: json['isRead'] == true,
+      );
 }
 
 /// Main Classroom Model
@@ -695,8 +752,8 @@ class ClassroomModel {
     this.bannerUrl,
     this.isArchived = false,
     DateTime? createdAt,
-  })  : studentIds = List.unmodifiable(studentIds),
-        createdAt = createdAt ?? DateTime.now();
+  }) : studentIds = List.unmodifiable(studentIds),
+       createdAt = createdAt ?? DateTime.now();
 
   final String id;
   final String name;
@@ -781,11 +838,18 @@ class ClassroomModel {
     teacherEmail: (json['teacherEmail'] ?? '') as String,
     room: (json['room'] ?? '') as String,
     bannerIndex: (json['bannerIndex'] as num?)?.toInt() ?? 0,
-    studentIds: (json['studentIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
-    bannerBytes: json['bannerBase64'] != null ? base64Decode(json['bannerBase64'] as String) : null,
+    studentIds:
+        (json['studentIds'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const [],
+    bannerBytes: json['bannerBase64'] != null
+        ? base64Decode(json['bannerBase64'] as String)
+        : null,
     bannerUrl: json['bannerUrl'] as String?,
     isArchived: json['isArchived'] == true,
-    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+    createdAt:
+        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
   );
 }
 
@@ -809,7 +873,8 @@ class ClassroomAnalyticsSummary {
   final double averageScorePercentage; // 0 - 100
   final double attendanceRate; // 0 - 100
   final Map<String, int> gradeDistribution; // 'A': count, 'B': count, etc.
-  final List<String> atRiskStudentIds; // Students with <75% attendance or <50% score
+  final List<String>
+  atRiskStudentIds; // Students with <75% attendance or <50% score
 }
 
 /// Student's personal progress in a classroom
@@ -840,7 +905,9 @@ class StudentProgressSummary {
   final int totalAttendanceSessions;
   final int presentCount;
 
-  double get completionRate => totalAssignments == 0 ? 100.0 : (submittedCount / totalAssignments) * 100.0;
+  double get completionRate => totalAssignments == 0
+      ? 100.0
+      : (submittedCount / totalAssignments) * 100.0;
 }
 
 class RubricCriterion {
@@ -849,14 +916,21 @@ class RubricCriterion {
   final int maxPoints;
 
   Map<String, dynamic> toJson() => {'title': title, 'maxPoints': maxPoints};
-  factory RubricCriterion.fromJson(Map<String, dynamic> json) => RubricCriterion(
+  factory RubricCriterion.fromJson(Map<String, dynamic> json) =>
+      RubricCriterion(
         title: json['title'] as String? ?? '',
         maxPoints: (json['maxPoints'] as num?)?.toInt() ?? 0,
       );
 }
 
 class GradeRecord {
-  const GradeRecord({required this.marks, required this.feedback, required this.gradedAt, required this.gradedBy, this.rubricScores = const {}});
+  const GradeRecord({
+    required this.marks,
+    required this.feedback,
+    required this.gradedAt,
+    required this.gradedBy,
+    this.rubricScores = const {},
+  });
   final int marks;
   final String feedback;
   final DateTime gradedAt;
@@ -864,41 +938,49 @@ class GradeRecord {
   final Map<String, int> rubricScores;
 
   Map<String, dynamic> toJson() => {
-        'marks': marks,
-        'feedback': feedback,
-        'gradedAt': gradedAt.toIso8601String(),
-        'gradedBy': gradedBy,
-        'rubricScores': rubricScores,
-      };
+    'marks': marks,
+    'feedback': feedback,
+    'gradedAt': gradedAt.toIso8601String(),
+    'gradedBy': gradedBy,
+    'rubricScores': rubricScores,
+  };
   factory GradeRecord.fromJson(Map<String, dynamic> json) => GradeRecord(
-        marks: (json['marks'] as num?)?.toInt() ?? 0,
-        feedback: json['feedback'] as String? ?? '',
-        gradedAt: DateTime.tryParse(json['gradedAt'] as String? ?? '') ?? DateTime.now(),
-        gradedBy: json['gradedBy'] as String? ?? '',
-        rubricScores: (json['rubricScores'] as Map<String, dynamic>? ?? const {})
-            .map((key, value) => MapEntry(key, (value as num).toInt())),
-      );
+    marks: (json['marks'] as num?)?.toInt() ?? 0,
+    feedback: json['feedback'] as String? ?? '',
+    gradedAt:
+        DateTime.tryParse(json['gradedAt'] as String? ?? '') ?? DateTime.now(),
+    gradedBy: json['gradedBy'] as String? ?? '',
+    rubricScores: (json['rubricScores'] as Map<String, dynamic>? ?? const {})
+        .map((key, value) => MapEntry(key, (value as num).toInt())),
+  );
 }
 
 class QuizQuestion {
-  const QuizQuestion({required this.prompt, required this.options, required this.correctOptionIndex, this.points = 1});
+  const QuizQuestion({
+    required this.prompt,
+    required this.options,
+    required this.correctOptionIndex,
+    this.points = 1,
+  });
   final String prompt;
   final List<String> options;
   final int correctOptionIndex;
   final int points;
 
   Map<String, dynamic> toJson() => {
-        'prompt': prompt,
-        'options': options,
-        'correctOptionIndex': correctOptionIndex,
-        'points': points,
-      };
+    'prompt': prompt,
+    'options': options,
+    'correctOptionIndex': correctOptionIndex,
+    'points': points,
+  };
   factory QuizQuestion.fromJson(Map<String, dynamic> json) => QuizQuestion(
-        prompt: json['prompt'] as String? ?? '',
-        options: (json['options'] as List<dynamic>? ?? const []).map((value) => value.toString()).toList(),
-        correctOptionIndex: (json['correctOptionIndex'] as num?)?.toInt() ?? 0,
-        points: (json['points'] as num?)?.toInt() ?? 1,
-      );
+    prompt: json['prompt'] as String? ?? '',
+    options: (json['options'] as List<dynamic>? ?? const [])
+        .map((value) => value.toString())
+        .toList(),
+    correctOptionIndex: (json['correctOptionIndex'] as num?)?.toInt() ?? 0,
+    points: (json['points'] as num?)?.toInt() ?? 1,
+  );
 }
 
 class ClassroomQuiz {
@@ -924,34 +1006,36 @@ class ClassroomQuiz {
   final DateTime createdAt;
   final DateTime? dueAt;
   final bool isDraft;
-  int get maxScore => questions.fold(0, (sum, question) => sum + question.points);
+  int get maxScore =>
+      questions.fold(0, (sum, question) => sum + question.points);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'classroomId': classroomId,
-        'title': title,
-        'instructions': instructions,
-        'teacherId': teacherId,
-        'durationMinutes': durationMinutes,
-        'questions': questions.map((question) => question.toJson()).toList(),
-        'createdAt': createdAt.toIso8601String(),
-        'dueAt': dueAt?.toIso8601String(),
-        'isDraft': isDraft,
-      };
+    'id': id,
+    'classroomId': classroomId,
+    'title': title,
+    'instructions': instructions,
+    'teacherId': teacherId,
+    'durationMinutes': durationMinutes,
+    'questions': questions.map((question) => question.toJson()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+    'dueAt': dueAt?.toIso8601String(),
+    'isDraft': isDraft,
+  };
   factory ClassroomQuiz.fromJson(Map<String, dynamic> json) => ClassroomQuiz(
-        id: json['id'] as String? ?? '',
-        classroomId: json['classroomId'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        instructions: json['instructions'] as String? ?? '',
-        teacherId: json['teacherId'] as String? ?? '',
-        durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 10,
-        questions: (json['questions'] as List<dynamic>? ?? const [])
-            .map((item) => QuizQuestion.fromJson(item as Map<String, dynamic>))
-            .toList(),
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-        dueAt: DateTime.tryParse(json['dueAt'] as String? ?? ''),
-        isDraft: json['isDraft'] == true,
-      );
+    id: json['id'] as String? ?? '',
+    classroomId: json['classroomId'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    instructions: json['instructions'] as String? ?? '',
+    teacherId: json['teacherId'] as String? ?? '',
+    durationMinutes: (json['durationMinutes'] as num?)?.toInt() ?? 10,
+    questions: (json['questions'] as List<dynamic>? ?? const [])
+        .map((item) => QuizQuestion.fromJson(item as Map<String, dynamic>))
+        .toList(),
+    createdAt:
+        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+    dueAt: DateTime.tryParse(json['dueAt'] as String? ?? ''),
+    isDraft: json['isDraft'] == true,
+  );
 }
 
 class QuizAttempt {
@@ -974,26 +1058,30 @@ class QuizAttempt {
   final DateTime startedAt;
   final DateTime submittedAt;
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'quizId': quizId,
-        'studentId': studentId,
-        'answers': answers.map((key, value) => MapEntry('$key', value)),
-        'score': score,
-        'maxScore': maxScore,
-        'startedAt': startedAt.toIso8601String(),
-        'submittedAt': submittedAt.toIso8601String(),
-      };
+    'id': id,
+    'quizId': quizId,
+    'studentId': studentId,
+    'answers': answers.map((key, value) => MapEntry('$key', value)),
+    'score': score,
+    'maxScore': maxScore,
+    'startedAt': startedAt.toIso8601String(),
+    'submittedAt': submittedAt.toIso8601String(),
+  };
   factory QuizAttempt.fromJson(Map<String, dynamic> json) => QuizAttempt(
-        id: json['id'] as String? ?? '',
-        quizId: json['quizId'] as String? ?? '',
-        studentId: json['studentId'] as String? ?? '',
-        answers: (json['answers'] as Map<String, dynamic>? ?? const {})
-            .map((key, value) => MapEntry(int.tryParse(key) ?? 0, (value as num).toInt())),
-        score: (json['score'] as num?)?.toInt() ?? 0,
-        maxScore: (json['maxScore'] as num?)?.toInt() ?? 0,
-        startedAt: DateTime.tryParse(json['startedAt'] as String? ?? '') ?? DateTime.now(),
-        submittedAt: DateTime.tryParse(json['submittedAt'] as String? ?? '') ?? DateTime.now(),
-      );
+    id: json['id'] as String? ?? '',
+    quizId: json['quizId'] as String? ?? '',
+    studentId: json['studentId'] as String? ?? '',
+    answers: (json['answers'] as Map<String, dynamic>? ?? const {}).map(
+      (key, value) => MapEntry(int.tryParse(key) ?? 0, (value as num).toInt()),
+    ),
+    score: (json['score'] as num?)?.toInt() ?? 0,
+    maxScore: (json['maxScore'] as num?)?.toInt() ?? 0,
+    startedAt:
+        DateTime.tryParse(json['startedAt'] as String? ?? '') ?? DateTime.now(),
+    submittedAt:
+        DateTime.tryParse(json['submittedAt'] as String? ?? '') ??
+        DateTime.now(),
+  );
 }
 
 class ClassroomPoll {
@@ -1015,7 +1103,8 @@ class ClassroomPoll {
   final DateTime createdAt;
   final Map<String, int> votes;
   final bool isClosed;
-  ClassroomPoll copyWith({Map<String, int>? votes, bool? isClosed}) => ClassroomPoll(
+  ClassroomPoll copyWith({Map<String, int>? votes, bool? isClosed}) =>
+      ClassroomPoll(
         id: id,
         classroomId: classroomId,
         question: question,
@@ -1026,45 +1115,69 @@ class ClassroomPoll {
         isClosed: isClosed ?? this.isClosed,
       );
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'classroomId': classroomId,
-        'question': question,
-        'options': options,
-        'createdBy': createdBy,
-        'createdAt': createdAt.toIso8601String(),
-        'votes': votes,
-        'isClosed': isClosed,
-      };
+    'id': id,
+    'classroomId': classroomId,
+    'question': question,
+    'options': options,
+    'createdBy': createdBy,
+    'createdAt': createdAt.toIso8601String(),
+    'votes': votes,
+    'isClosed': isClosed,
+  };
   factory ClassroomPoll.fromJson(Map<String, dynamic> json) => ClassroomPoll(
-        id: json['id'] as String? ?? '',
-        classroomId: json['classroomId'] as String? ?? '',
-        question: json['question'] as String? ?? '',
-        options: (json['options'] as List<dynamic>? ?? const []).map((value) => value.toString()).toList(),
-        createdBy: json['createdBy'] as String? ?? '',
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-        votes: (json['votes'] as Map<String, dynamic>? ?? const {})
-            .map((key, value) => MapEntry(key, (value as num).toInt())),
-        isClosed: json['isClosed'] == true,
-      );
+    id: json['id'] as String? ?? '',
+    classroomId: json['classroomId'] as String? ?? '',
+    question: json['question'] as String? ?? '',
+    options: (json['options'] as List<dynamic>? ?? const [])
+        .map((value) => value.toString())
+        .toList(),
+    createdBy: json['createdBy'] as String? ?? '',
+    createdAt:
+        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+    votes: (json['votes'] as Map<String, dynamic>? ?? const {}).map(
+      (key, value) => MapEntry(key, (value as num).toInt()),
+    ),
+    isClosed: json['isClosed'] == true,
+  );
 }
 
 class ClassroomGroup {
-  ClassroomGroup({required this.id, required this.classroomId, required this.name, required this.memberIds});
+  ClassroomGroup({
+    required this.id,
+    required this.classroomId,
+    required this.name,
+    required this.memberIds,
+  });
   final String id;
   final String classroomId;
   final String name;
   final List<String> memberIds;
-  Map<String, dynamic> toJson() => {'id': id, 'classroomId': classroomId, 'name': name, 'memberIds': memberIds};
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'classroomId': classroomId,
+    'name': name,
+    'memberIds': memberIds,
+  };
   factory ClassroomGroup.fromJson(Map<String, dynamic> json) => ClassroomGroup(
-        id: json['id'] as String? ?? '',
-        classroomId: json['classroomId'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        memberIds: (json['memberIds'] as List<dynamic>? ?? const []).map((value) => value.toString()).toList(),
-      );
+    id: json['id'] as String? ?? '',
+    classroomId: json['classroomId'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    memberIds: (json['memberIds'] as List<dynamic>? ?? const [])
+        .map((value) => value.toString())
+        .toList(),
+  );
 }
 
 class PeerReview {
-  const PeerReview({required this.id, required this.assignmentId, required this.reviewerId, required this.revieweeId, required this.rating, required this.feedback, required this.createdAt});
+  const PeerReview({
+    required this.id,
+    required this.assignmentId,
+    required this.reviewerId,
+    required this.revieweeId,
+    required this.rating,
+    required this.feedback,
+    required this.createdAt,
+  });
   final String id;
   final String assignmentId;
   final String reviewerId;
@@ -1073,44 +1186,65 @@ class PeerReview {
   final String feedback;
   final DateTime createdAt;
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'assignmentId': assignmentId,
-        'reviewerId': reviewerId,
-        'revieweeId': revieweeId,
-        'rating': rating,
-        'feedback': feedback,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'assignmentId': assignmentId,
+    'reviewerId': reviewerId,
+    'revieweeId': revieweeId,
+    'rating': rating,
+    'feedback': feedback,
+    'createdAt': createdAt.toIso8601String(),
+  };
   factory PeerReview.fromJson(Map<String, dynamic> json) => PeerReview(
-        id: json['id'] as String? ?? '',
-        assignmentId: json['assignmentId'] as String? ?? '',
-        reviewerId: json['reviewerId'] as String? ?? '',
-        revieweeId: json['revieweeId'] as String? ?? '',
-        rating: (json['rating'] as num?)?.toInt() ?? 0,
-        feedback: json['feedback'] as String? ?? '',
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-      );
+    id: json['id'] as String? ?? '',
+    assignmentId: json['assignmentId'] as String? ?? '',
+    reviewerId: json['reviewerId'] as String? ?? '',
+    revieweeId: json['revieweeId'] as String? ?? '',
+    rating: (json['rating'] as num?)?.toInt() ?? 0,
+    feedback: json['feedback'] as String? ?? '',
+    createdAt:
+        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+  );
 }
 
 class RecentlyViewedItem {
-  const RecentlyViewedItem({required this.type, required this.id, required this.title, required this.classroomId, required this.viewedAt});
+  const RecentlyViewedItem({
+    required this.type,
+    required this.id,
+    required this.title,
+    required this.classroomId,
+    required this.viewedAt,
+  });
   final String type;
   final String id;
   final String title;
   final String classroomId;
   final DateTime viewedAt;
-  Map<String, dynamic> toJson() => {'type': type, 'id': id, 'title': title, 'classroomId': classroomId, 'viewedAt': viewedAt.toIso8601String()};
-  factory RecentlyViewedItem.fromJson(Map<String, dynamic> json) => RecentlyViewedItem(
+  Map<String, dynamic> toJson() => {
+    'type': type,
+    'id': id,
+    'title': title,
+    'classroomId': classroomId,
+    'viewedAt': viewedAt.toIso8601String(),
+  };
+  factory RecentlyViewedItem.fromJson(Map<String, dynamic> json) =>
+      RecentlyViewedItem(
         type: json['type'] as String? ?? '',
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
         classroomId: json['classroomId'] as String? ?? '',
-        viewedAt: DateTime.tryParse(json['viewedAt'] as String? ?? '') ?? DateTime.now(),
+        viewedAt:
+            DateTime.tryParse(json['viewedAt'] as String? ?? '') ??
+            DateTime.now(),
       );
 }
 
 class ClassroomActivity {
-  const ClassroomActivity({required this.type, required this.title, required this.description, required this.timestamp});
+  const ClassroomActivity({
+    required this.type,
+    required this.title,
+    required this.description,
+    required this.timestamp,
+  });
   final String type;
   final String title;
   final String description;

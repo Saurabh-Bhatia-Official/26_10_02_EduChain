@@ -16,4 +16,3 @@ class ApiConfig {
 
   static bool isOfflineFallbackEnabled = true;
 }
-

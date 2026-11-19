@@ -85,7 +85,10 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id']?.toString() ?? json['userId']?.toString() ?? 'usr_${DateTime.now().millisecondsSinceEpoch}',
+      id:
+          json['id']?.toString() ??
+          json['userId']?.toString() ??
+          'usr_${DateTime.now().millisecondsSinceEpoch}',
       name: json['name']?.toString() ?? json['fullName']?.toString() ?? 'User',
       email: json['email']?.toString() ?? '',
       role: json['role']?.toString().toLowerCase() ?? 'student',
@@ -122,9 +125,15 @@ class UserModel {
       verificationDate: json['verificationDate']?.toString(),
       accreditation: json['accreditation']?.toString(),
       campusLocation: json['campusLocation']?.toString(),
-      studentCount: json['studentCount'] is int ? json['studentCount'] : int.tryParse(json['studentCount']?.toString() ?? ''),
-      facultyCount: json['facultyCount'] is int ? json['facultyCount'] : int.tryParse(json['facultyCount']?.toString() ?? ''),
-      departmentCount: json['departmentCount'] is int ? json['departmentCount'] : int.tryParse(json['departmentCount']?.toString() ?? ''),
+      studentCount: json['studentCount'] is int
+          ? json['studentCount']
+          : int.tryParse(json['studentCount']?.toString() ?? ''),
+      facultyCount: json['facultyCount'] is int
+          ? json['facultyCount']
+          : int.tryParse(json['facultyCount']?.toString() ?? ''),
+      departmentCount: json['departmentCount'] is int
+          ? json['departmentCount']
+          : int.tryParse(json['departmentCount']?.toString() ?? ''),
     );
   }
 
@@ -173,4 +182,3 @@ class UserModel {
     };
   }
 }
-

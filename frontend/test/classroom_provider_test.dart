@@ -12,89 +12,140 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       provider = ClassroomProvider();
+      await provider.ready;
     });
 
-    test('1. Creates, filters, updates, and deletes a teacher classroom with unique code', () {
-      final classroom = provider.create(
-        name: 'Distributed Systems 401',
-        subject: 'Computer Science',
-        section: 'CS-4A',
-        description: 'Advanced Cloud Computing and Microservices',
-        teacherId: 'teacher-1',
-        teacherName: 'Prof. Rajesh Verma',
-        room: 'Hall 302',
-      );
-
-      expect(provider.forTeacher('teacher-1'), contains(classroom));
-      expect(provider.forTeacher('teacher-2'), isEmpty);
-      expect(classroom.code, startsWith('EC'));
-      expect(classroom.room, 'Hall 302');
-
-      provider.update(classroom.copyWith(name: 'Advanced Distributed Systems'));
-      expect(provider.byId(classroom.id)?.name, 'Advanced Distributed Systems');
-
-      final newCode = provider.regenerateCode(classroom.id);
-      expect(newCode, startsWith('EC'));
-      expect(provider.byId(classroom.id)?.code, newCode);
-
-      provider.delete(classroom.id);
-      expect(provider.byId(classroom.id), isNull);
+    tearDown(() async {
+      await provider.flushPendingSaves();
     });
 
-    test('2. Strict RBAC: Separate permissions for Student, Teacher, and Admin', () {
-      final c1 = provider.create(
-        name: 'Algorithms',
-        subject: 'CS',
-        section: 'A',
-        description: '',
-        teacherId: 'teacher-100',
-        teacherName: 'Teacher 100',
-      );
+    test(
+      '1. Creates, filters, updates, and deletes a teacher classroom with unique code',
+      () {
+        final classroom = provider.create(
+          name: 'Distributed Systems 401',
+          subject: 'Computer Science',
+          section: 'CS-4A',
+          description: 'Advanced Cloud Computing and Microservices',
+          teacherId: 'teacher-1',
+          teacherName: 'Prof. Rajesh Verma',
+          room: 'Hall 302',
+        );
 
-      final c2 = provider.create(
-        name: 'Databases',
-        subject: 'CS',
-        section: 'B',
-        description: '',
-        teacherId: 'teacher-200',
-        teacherName: 'Teacher 200',
-      );
+        expect(provider.forTeacher('teacher-1'), contains(classroom));
+        expect(provider.forTeacher('teacher-2'), isEmpty);
+        expect(classroom.code, startsWith('EC'));
+        expect(classroom.room, 'Hall 302');
 
-      // Student 1 joins C1 only
-      expect(provider.join(c1.code, 'student-1'), isTrue);
+        provider.update(
+          classroom.copyWith(name: 'Advanced Distributed Systems'),
+        );
+        expect(
+          provider.byId(classroom.id)?.name,
+          'Advanced Distributed Systems',
+        );
 
-      // Verify Teacher view: Teacher 100 sees only C1; Teacher 200 sees only C2
-      final t1Classes = provider.forTeacher('teacher-100');
-      expect(t1Classes.map((c) => c.id), contains(c1.id));
-      expect(t1Classes.map((c) => c.id), isNot(contains(c2.id)));
+        final newCode = provider.regenerateCode(classroom.id);
+        expect(newCode, startsWith('EC'));
+        expect(provider.byId(classroom.id)?.code, newCode);
 
-      final t2Classes = provider.forTeacher('teacher-200');
-      expect(t2Classes.map((c) => c.id), contains(c2.id));
-      expect(t2Classes.map((c) => c.id), isNot(contains(c1.id)));
+        provider.delete(classroom.id);
+        expect(provider.byId(classroom.id), isNull);
+      },
+    );
 
-      // Verify Student view: Student 1 sees only C1
-      final s1Classes = provider.forStudent('student-1');
-      expect(s1Classes.map((c) => c.id), contains(c1.id));
-      expect(s1Classes.map((c) => c.id), isNot(contains(c2.id)));
+    test(
+      '2. Strict RBAC: Separate permissions for Student, Teacher, and Admin',
+      () {
+        final c1 = provider.create(
+          name: 'Algorithms',
+          subject: 'CS',
+          section: 'A',
+          description: '',
+          teacherId: 'teacher-100',
+          teacherName: 'Teacher 100',
+        );
 
-      // Verify Admin view: Admin oversees all classes
-      final adminClasses = provider.forAdmin();
-      expect(adminClasses.map((c) => c.id), containsAll([c1.id, c2.id]));
+        final c2 = provider.create(
+          name: 'Databases',
+          subject: 'CS',
+          section: 'B',
+          description: '',
+          teacherId: 'teacher-200',
+          teacherName: 'Teacher 200',
+        );
 
-      // Verify permission guards
-      expect(provider.canManageClass(c1, ClassroomRole.teacher, 'teacher-100'), isTrue);
-      expect(provider.canManageClass(c1, ClassroomRole.teacher, 'teacher-200'), isFalse);
-      expect(provider.canManageClass(c1, ClassroomRole.student, 'student-1'), isFalse);
-      expect(provider.canManageClass(c1, ClassroomRole.admin, 'admin-1'), isTrue);
+        // Student 1 joins C1 only
+        expect(provider.join(c1.code, 'student-1'), isTrue);
 
-      expect(provider.canGrade(c1, ClassroomRole.teacher, 'teacher-100'), isTrue);
-      expect(provider.canGrade(c1, ClassroomRole.teacher, 'teacher-200'), isFalse);
-      expect(provider.canGrade(c1, ClassroomRole.student, 'student-1'), isFalse);
+        // Verify Teacher view: Teacher 100 sees only C1; Teacher 200 sees only C2
+        final t1Classes = provider.forTeacher('teacher-100');
+        expect(t1Classes.map((c) => c.id), contains(c1.id));
+        expect(t1Classes.map((c) => c.id), isNot(contains(c2.id)));
 
-      expect(provider.canSubmitWork(c1, ClassroomRole.student, 'student-1'), isTrue);
-      expect(provider.canSubmitWork(c1, ClassroomRole.student, 'student-2'), isFalse);
-      expect(provider.canSubmitWork(c1, ClassroomRole.teacher, 'teacher-100'), isFalse);
-    });
+        final t2Classes = provider.forTeacher('teacher-200');
+        expect(t2Classes.map((c) => c.id), contains(c2.id));
+        expect(t2Classes.map((c) => c.id), isNot(contains(c1.id)));
+
+        // Verify Student view: Student 1 sees only C1
+        final s1Classes = provider.forStudent('student-1');
+        expect(s1Classes.map((c) => c.id), contains(c1.id));
+        expect(s1Classes.map((c) => c.id), isNot(contains(c2.id)));
+
+        // Verify Admin view: Admin oversees all classes
+        final adminClasses = provider.forAdmin();
+        expect(adminClasses.map((c) => c.id), containsAll([c1.id, c2.id]));
+
+        // Verify permission guards
+        expect(
+          provider.canManageClass(c1, ClassroomRole.teacher, 'teacher-100'),
+          isTrue,
+        );
+        expect(
+          provider.canManageClass(c1, ClassroomRole.teacher, 'teacher-200'),
+          isFalse,
+        );
+        expect(
+          provider.canManageClass(c1, ClassroomRole.student, 'student-1'),
+          isFalse,
+        );
+        expect(
+          provider.canManageClass(c1, ClassroomRole.admin, 'admin-1'),
+          isTrue,
+        );
+
+        expect(
+          provider.canGrade(c1, ClassroomRole.teacher, 'teacher-100'),
+          isTrue,
+        );
+        expect(
+          provider.canGrade(c1, ClassroomRole.teacher, 'teacher-200'),
+          isFalse,
+        );
+        expect(
+          provider.canGrade(c1, ClassroomRole.student, 'student-1'),
+          isFalse,
+        );
+        expect(provider.canGrade(c1, ClassroomRole.admin, 'admin-1'), isTrue);
+        expect(
+          provider.canTakeAttendance(c1, ClassroomRole.admin, 'admin-1'),
+          isTrue,
+        );
+
+        expect(
+          provider.canSubmitWork(c1, ClassroomRole.student, 'student-1'),
+          isTrue,
+        );
+        expect(
+          provider.canSubmitWork(c1, ClassroomRole.student, 'student-2'),
+          isFalse,
+        );
+        expect(
+          provider.canSubmitWork(c1, ClassroomRole.teacher, 'teacher-100'),
+          isFalse,
+        );
+      },
+    );
 
     test('3. Stream Announcements, Pinned Posts, and Discussion Comments', () {
       final classroom = provider.create(
@@ -144,76 +195,89 @@ void main() {
       expect(updatedPost.comments.first.text, 'Will this be on the exam?');
 
       // Delete comment
-      provider.deleteComment(classroom.id, pinnedPost.id, updatedPost.comments.first.id);
+      provider.deleteComment(
+        classroom.id,
+        pinnedPost.id,
+        updatedPost.comments.first.id,
+      );
       expect(provider.postsFor(classroom.id).first.comments, isEmpty);
     });
 
-    test('4. Assignments, Student Submissions, Unsubmit, and Teacher Grading with Feedback', () {
-      final classroom = provider.create(
-        name: 'Math',
-        subject: 'Mathematics',
-        section: 'A',
-        description: '',
-        teacherId: 'teacher-1',
-        teacherName: 'Teacher',
-      );
-      provider.join(classroom.code, 'student-1');
+    test(
+      '4. Assignments, Student Submissions, Unsubmit, and Teacher Grading with Feedback',
+      () {
+        final classroom = provider.create(
+          name: 'Math',
+          subject: 'Mathematics',
+          section: 'A',
+          description: '',
+          teacherId: 'teacher-1',
+          teacherName: 'Teacher',
+        );
+        provider.join(classroom.code, 'student-1');
 
-      // Add assignment
-      provider.addAssignment(
-        classroom.id,
-        'Calculus Problem Set 1',
-        'Solve problems 1 through 10',
-        100,
-        DateTime.now().add(const Duration(days: 5)),
-        category: 'Homework',
-      );
+        // Add assignment
+        provider.addAssignment(
+          classroom.id,
+          'Calculus Problem Set 1',
+          'Solve problems 1 through 10',
+          100,
+          DateTime.now().add(const Duration(days: 5)),
+          category: 'Homework',
+        );
 
-      final asg = provider.assignmentsFor(classroom.id).single;
-      expect(asg.title, 'Calculus Problem Set 1');
-      expect(asg.category, 'Homework');
+        final asg = provider.assignmentsFor(classroom.id).single;
+        expect(asg.title, 'Calculus Problem Set 1');
+        expect(asg.category, 'Homework');
 
-      // Submit
-      provider.submit(
-        asg.id,
-        'student-1',
-        'All 10 problems completed.',
-        classroomId: classroom.id,
-        studentName: 'Student One',
-        attachmentName: 'calculus_p1.pdf',
-      );
+        // Submit
+        provider.submit(
+          asg.id,
+          'student-1',
+          'All 10 problems completed.',
+          classroomId: classroom.id,
+          studentName: 'Student One',
+          attachmentName: 'calculus_p1.pdf',
+        );
 
-      var sub = provider.submissionFor(asg.id, 'student-1');
-      expect(sub, isNotNull);
-      expect(sub?.status, SubmissionStatus.submitted);
-      expect(sub?.marks, isNull);
+        var sub = provider.submissionFor(asg.id, 'student-1');
+        expect(sub, isNotNull);
+        expect(sub?.status, SubmissionStatus.submitted);
+        expect(sub?.marks, isNull);
 
-      // Unsubmit test
-      provider.unsubmit(asg.id, 'student-1');
-      expect(provider.submissionFor(asg.id, 'student-1'), isNull);
+        // Unsubmit test
+        provider.unsubmit(asg.id, 'student-1');
+        expect(provider.submissionFor(asg.id, 'student-1'), isNull);
 
-      // Re-submit
-      provider.submit(
-        asg.id,
-        'student-1',
-        'Final corrected work.',
-        classroomId: classroom.id,
-        studentName: 'Student One',
-      );
+        // Re-submit
+        provider.submit(
+          asg.id,
+          'student-1',
+          'Final corrected work.',
+          classroomId: classroom.id,
+          studentName: 'Student One',
+        );
 
-      // Teacher grades submission
-      provider.grade(asg.id, 'student-1', 94, 'Great proofs on problem 7 and 9!', gradedBy: 'Teacher');
-      sub = provider.submissionFor(asg.id, 'student-1');
-      expect(sub?.marks, 94);
-      expect(sub?.feedback, 'Great proofs on problem 7 and 9!');
-      expect(sub?.status, SubmissionStatus.graded);
+        // Teacher grades submission
+        provider.grade(
+          asg.id,
+          'student-1',
+          94,
+          'Great proofs on problem 7 and 9!',
+          gradedBy: 'Teacher',
+        );
+        sub = provider.submissionFor(asg.id, 'student-1');
+        expect(sub?.marks, 94);
+        expect(sub?.feedback, 'Great proofs on problem 7 and 9!');
+        expect(sub?.status, SubmissionStatus.graded);
 
-      // Check student progress summary
-      final progress = provider.getStudentProgress(classroom.id, 'student-1');
-      expect(progress.averageGradePercentage, 94.0);
-      expect(progress.letterGrade, 'A+');
-      expect(progress.submittedCount, 1);
-    });
+        // Check student progress summary
+        final progress = provider.getStudentProgress(classroom.id, 'student-1');
+        expect(progress.averageGradePercentage, 94.0);
+        expect(progress.letterGrade, 'A+');
+        expect(progress.submittedCount, 1);
+      },
+    );
 
     test('5. Session-Based Attendance Recording and Metrics Calculation', () {
       final classroom = provider.create(
@@ -297,7 +361,10 @@ void main() {
       final allMats = provider.materialsFor(classroom.id);
       expect(allMats.length, 2);
 
-      final memMats = provider.materialsFor(classroom.id, 'Module 3: Memory Management');
+      final memMats = provider.materialsFor(
+        classroom.id,
+        'Module 3: Memory Management',
+      );
       expect(memMats.length, 1);
       expect(memMats.first.title, 'Virtual Memory & Paging Slides');
 
@@ -306,7 +373,10 @@ void main() {
       expect(topics, contains('Module 2: CPU Scheduling'));
 
       provider.deleteMaterial(classroom.id, memMats.first.id);
-      expect(provider.materialsFor(classroom.id, 'Module 3: Memory Management'), isEmpty);
+      expect(
+        provider.materialsFor(classroom.id, 'Module 3: Memory Management'),
+        isEmpty,
+      );
     });
 
     test('7. Real-Time In-App Notifications and Unread Badging', () {
@@ -339,47 +409,55 @@ void main() {
       expect(provider.unreadNotificationsCount('s1'), 0);
     });
 
-    test('8. Classroom Analytics Summary and At-Risk Student Identification', () {
-      final classroom = provider.create(
-        name: 'AI Engineering',
-        subject: 'CS',
-        section: 'AI-1',
-        description: '',
-        teacherId: 'teacher-1',
-        teacherName: 'Teacher',
-        studentIds: ['good-student', 'struggling-student'],
-      );
+    test(
+      '8. Classroom Analytics Summary and At-Risk Student Identification',
+      () {
+        final classroom = provider.create(
+          name: 'AI Engineering',
+          subject: 'CS',
+          section: 'AI-1',
+          description: '',
+          teacherId: 'teacher-1',
+          teacherName: 'Teacher',
+          studentIds: ['good-student', 'struggling-student'],
+        );
 
-      provider.addAssignment(
-        classroom.id,
-        'Neural Net From Scratch',
-        'Code backprop',
-        100,
-        DateTime.now().add(const Duration(days: 2)),
-      );
-      final asg = provider.assignmentsFor(classroom.id).single;
+        provider.addAssignment(
+          classroom.id,
+          'Neural Net From Scratch',
+          'Code backprop',
+          100,
+          DateTime.now().add(const Duration(days: 2)),
+        );
+        final asg = provider.assignmentsFor(classroom.id).single;
 
-      // Good student submits and scores 90
-      provider.submit(asg.id, 'good-student', 'done', classroomId: classroom.id);
-      provider.grade(asg.id, 'good-student', 90, 'Great job');
+        // Good student submits and scores 90
+        provider.submit(
+          asg.id,
+          'good-student',
+          'done',
+          classroomId: classroom.id,
+        );
+        provider.grade(asg.id, 'good-student', 90, 'Great job');
 
-      // Struggling student attendance session
-      provider.recordAttendanceSession(
-        classroomId: classroom.id,
-        date: DateTime.now().subtract(const Duration(days: 1)),
-        topic: 'Intro to Tensors',
-        takenByTeacherId: 'teacher-1',
-        records: {
-          'good-student': AttendanceStatus.present,
-          'struggling-student': AttendanceStatus.absent,
-        },
-      );
+        // Struggling student attendance session
+        provider.recordAttendanceSession(
+          classroomId: classroom.id,
+          date: DateTime.now().subtract(const Duration(days: 1)),
+          topic: 'Intro to Tensors',
+          takenByTeacherId: 'teacher-1',
+          records: {
+            'good-student': AttendanceStatus.present,
+            'struggling-student': AttendanceStatus.absent,
+          },
+        );
 
-      final analytics = provider.getClassroomAnalytics(classroom.id);
-      expect(analytics.totalStudents, 2);
-      expect(analytics.totalAssignments, 1);
-      expect(analytics.atRiskStudentIds, contains('struggling-student'));
-      expect(analytics.gradeDistribution['A'], 1);
-    });
+        final analytics = provider.getClassroomAnalytics(classroom.id);
+        expect(analytics.totalStudents, 2);
+        expect(analytics.totalAssignments, 1);
+        expect(analytics.atRiskStudentIds, contains('struggling-student'));
+        expect(analytics.gradeDistribution['A'], 1);
+      },
+    );
   });
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/navigation_provider.dart';
@@ -66,11 +66,17 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       backgroundColor: AppColors.bgPage,
       body: Column(
         children: [
-          const PortalHeader(backTarget: 'select-role', backLabel: 'Back to Role Selection'),
+          const PortalHeader(
+            backTarget: 'select-role',
+            backLabel: 'Back to Role Selection',
+          ),
           Expanded(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 36,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 960),
                   child: Container(
@@ -135,7 +141,11 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
           const SizedBox(height: 16),
           const Text(
             'Student Login',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -146,13 +156,28 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
             const SizedBox(height: 32),
             const Center(child: StudentIllustrationWidget(size: 200)),
             const SizedBox(height: 24),
-            const Text('Switch Role:', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+            const Text(
+              'Switch Role:',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildRoleSwitchBtn('Admin', Icons.admin_panel_settings, () => nav.navigateTo('admin-login')),
+                _buildRoleSwitchBtn(
+                  'Admin',
+                  Icons.admin_panel_settings,
+                  () => nav.navigateTo('admin-login'),
+                ),
                 const SizedBox(width: 8),
-                _buildRoleSwitchBtn('Teacher', Icons.cast_for_education, () => nav.navigateTo('teacher-login')),
+                _buildRoleSwitchBtn(
+                  'Teacher',
+                  Icons.cast_for_education,
+                  () => nav.navigateTo('teacher-login'),
+                ),
               ],
             ),
           ],
@@ -176,7 +201,14 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
           children: [
             Icon(icon, size: 13, color: Colors.white),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -196,21 +228,29 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               children: [
                 const Text(
                   'Student Portal',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
                 ),
                 TextButton.icon(
                   onPressed: _handleDemoFill,
                   icon: Icon(
                     _autoFilled ? Icons.check : Icons.bolt,
                     size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.studentPrimary,
+                    color: _autoFilled
+                        ? AppColors.accentGreen
+                        : AppColors.studentPrimary,
                   ),
                   label: Text(
                     _autoFilled ? 'Filled!' : 'Demo Fill',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.studentPrimary,
+                      color: _autoFilled
+                          ? AppColors.accentGreen
+                          : AppColors.studentPrimary,
                     ),
                   ),
                 ),
@@ -230,12 +270,18 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(auth.errorMessage!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+                child: Text(
+                  auth.errorMessage!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13),
+                ),
               ),
               const SizedBox(height: 16),
             ],
 
-            const Text('Student Email', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Student Email',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _emailController,
@@ -244,11 +290,16 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 hintText: 'e.g. rahul@institute.com',
                 prefixIcon: Icon(Icons.email_outlined, size: 18),
               ),
-              validator: (v) => v == null || !v.contains('@') ? 'Please enter valid student email' : null,
+              validator: (v) => v == null || !v.contains('@')
+                  ? 'Please enter valid student email'
+                  : null,
             ),
             const SizedBox(height: 16),
 
-            const Text('Password', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const Text(
+              'Password',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _passwordController,
@@ -257,11 +308,16 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 hintText: '••••••••',
                 prefixIcon: const Icon(Icons.lock_outline, size: 18),
                 suffixIcon: IconButton(
-                  icon: Icon(_showPassword ? Icons.visibility_off : Icons.visibility, size: 18),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                  icon: Icon(
+                    _showPassword ? Icons.visibility_off : Icons.visibility,
+                    size: 18,
+                  ),
+                  onPressed: () =>
+                      setState(() => _showPassword = !_showPassword),
                 ),
               ),
-              validator: (v) => v == null || v.isEmpty ? 'Please enter your password' : null,
+              validator: (v) =>
+                  v == null || v.isEmpty ? 'Please enter your password' : null,
             ),
             const SizedBox(height: 14),
 
@@ -272,16 +328,28 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   children: [
                     Checkbox(
                       value: _rememberMe,
-                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _rememberMe = v ?? false),
                     ),
-                    const Text('Remember me', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                    const Text(
+                      'Remember me',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
                 InkWell(
-                  onTap: () => nav.navigateTo('forgot-password', {'role': 'student'}),
+                  onTap: () =>
+                      nav.navigateTo('forgot-password', {'role': 'student'}),
                   child: const Text(
                     'Forgot password?',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.studentPrimary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.studentPrimary,
+                    ),
                   ),
                 ),
               ],
@@ -293,9 +361,18 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               height: 48,
               child: ElevatedButton(
                 onPressed: auth.isLoading ? null : _handleSubmit,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.studentPrimary,
+                ),
                 child: auth.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text('Sign In as Student'),
               ),
             ),
@@ -304,12 +381,19 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
             Center(
               child: Wrap(
                 children: [
-                  const Text("Don't have an account? ", style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  const Text(
+                    "Don't have an account? ",
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
                   InkWell(
                     onTap: () => nav.navigateTo('student-register'),
                     child: const Text(
                       'Register as Student',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.studentPrimary),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.studentPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -321,4 +405,3 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     );
   }
 }
-

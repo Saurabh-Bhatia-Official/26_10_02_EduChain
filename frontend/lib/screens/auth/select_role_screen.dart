@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
@@ -28,7 +28,10 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
     Clipboard.setData(ClipboardData(text: code));
     setState(() => _copiedCode = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Institute code copied!'), duration: Duration(seconds: 1)),
+      const SnackBar(
+        content: Text('Institute code copied!'),
+        duration: Duration(seconds: 1),
+      ),
     );
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _copiedCode = false);
@@ -52,7 +55,9 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
         children: [
           PortalHeader(
             backTarget: isInstituteLoggedIn ? 'institute-home' : 'home',
-            backLabel: isInstituteLoggedIn ? 'Back to Institute Home' : 'Back to Home',
+            backLabel: isInstituteLoggedIn
+                ? 'Back to Institute Home'
+                : 'Back to Home',
             onLogout: isInstituteLoggedIn
                 ? () async {
                     await auth.logout();
@@ -90,7 +95,8 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                           children: [
                             isDesktop
                                 ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Row(
                                         children: [
@@ -99,44 +105,90 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                                             height: 52,
                                             decoration: BoxDecoration(
                                               color: AppColors.primary,
-                                              borderRadius: BorderRadius.circular(14),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
                                             ),
-                                            child: const Icon(Icons.account_balance, color: Colors.white, size: 28),
+                                            child: const Icon(
+                                              Icons.account_balance,
+                                              color: Colors.white,
+                                              size: 28,
+                                            ),
                                           ),
                                           const SizedBox(width: 16),
                                           Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Row(
                                                 children: [
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 2,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: Colors.white.withValues(alpha: 0.15),
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      color: Colors.white
+                                                          .withValues(
+                                                            alpha: 0.15,
+                                                          ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
                                                     ),
-                                                    child: const Text('Verified Academic Campus', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                                    child: const Text(
+                                                      'Verified Academic Campus',
+                                                      style: TextStyle(
+                                                        color: Colors.white70,
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 2,
+                                                        ),
                                                     decoration: BoxDecoration(
-                                                      color: AppColors.successBg,
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      color:
+                                                          AppColors.successBg,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
                                                     ),
-                                                    child: const Text('● Live Portal', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.w700)),
+                                                    child: const Text(
+                                                      '● Live Portal',
+                                                      style: TextStyle(
+                                                        color:
+                                                            AppColors.success,
+                                                        fontSize: 11,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ],
                                               ),
                                               const SizedBox(height: 6),
                                               Text(
                                                 instituteName,
-                                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
+                                                style: const TextStyle(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Colors.white,
+                                                ),
                                               ),
                                               const SizedBox(height: 2),
                                               const Text(
                                                 'Academic Management Hub & Role Access Launchpad',
-                                                style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Color(0xFF94A3B8),
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -145,19 +197,45 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                                       Row(
                                         children: [
                                           InkWell(
-                                            onTap: () => _copyCode(instituteCode),
+                                            onTap: () =>
+                                                _copyCode(instituteCode),
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 8,
+                                                  ),
                                               decoration: BoxDecoration(
-                                                color: Colors.white.withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(10),
-                                                border: Border.all(color: Colors.white24),
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  color: Colors.white24,
+                                                ),
                                               ),
                                               child: Row(
                                                 children: [
-                                                  Text('Code: $instituteCode', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                                                  Text(
+                                                    'Code: $instituteCode',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
                                                   const SizedBox(width: 8),
-                                                  Icon(_copiedCode ? Icons.check : Icons.copy, size: 14, color: _copiedCode ? AppColors.accentGreen : Colors.white70),
+                                                  Icon(
+                                                    _copiedCode
+                                                        ? Icons.check
+                                                        : Icons.copy,
+                                                    size: 14,
+                                                    color: _copiedCode
+                                                        ? AppColors.accentGreen
+                                                        : Colors.white70,
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -168,7 +246,11 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                                               await auth.logout();
                                               nav.navigateTo('institute-login');
                                             },
-                                            icon: const Icon(Icons.logout, color: Colors.white70, size: 20),
+                                            icon: const Icon(
+                                              Icons.logout,
+                                              color: Colors.white70,
+                                              size: 20,
+                                            ),
                                             tooltip: 'Logout',
                                           ),
                                         ],
@@ -176,16 +258,27 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                                     ],
                                   )
                                 : Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         instituteName,
-                                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white),
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       InkWell(
                                         onTap: () => _copyCode(instituteCode),
-                                        child: Text('Code: $instituteCode (tap to copy)', style: const TextStyle(color: AppColors.secondary, fontSize: 13)),
+                                        child: Text(
+                                          'Code: $instituteCode (tap to copy)',
+                                          style: const TextStyle(
+                                            color: AppColors.secondary,
+                                            fontSize: 13,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -196,10 +289,30 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _buildMetric('1,420+', 'Enrolled Students', Icons.school, AppColors.studentPrimary),
-                                _buildMetric('86', 'Faculty Instructors', Icons.people, AppColors.teacherPrimary),
-                                _buildMetric('24', 'Active Courses', Icons.layers, AppColors.accentPurple),
-                                _buildMetric('2025-2026', 'Academic Year', Icons.event_note, AppColors.accentOrange),
+                                _buildMetric(
+                                  '1,420+',
+                                  'Enrolled Students',
+                                  Icons.school,
+                                  AppColors.studentPrimary,
+                                ),
+                                _buildMetric(
+                                  '86',
+                                  'Faculty Instructors',
+                                  Icons.people,
+                                  AppColors.teacherPrimary,
+                                ),
+                                _buildMetric(
+                                  '24',
+                                  'Active Courses',
+                                  Icons.layers,
+                                  AppColors.accentPurple,
+                                ),
+                                _buildMetric(
+                                  '2025-2026',
+                                  'Academic Year',
+                                  Icons.event_note,
+                                  AppColors.accentOrange,
+                                ),
                               ],
                             ),
                           ],
@@ -209,7 +322,10 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
 
                       // Campus announcement banner
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEFF6FF),
                           borderRadius: BorderRadius.circular(12),
@@ -217,16 +333,34 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.campaign, color: AppColors.primary, size: 20),
+                            const Icon(
+                              Icons.campaign,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: RichText(
                                 text: TextSpan(
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF1E3A8A)),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1E3A8A),
+                                  ),
                                   children: [
-                                    const TextSpan(text: 'Campus Tip: Share your Institute Code '),
-                                    TextSpan(text: instituteCode, style: const TextStyle(fontWeight: FontWeight.w800)),
-                                    const TextSpan(text: ' with your teachers and students so they can directly register and link with this campus.'),
+                                    const TextSpan(
+                                      text:
+                                          'Campus Tip: Share your Institute Code ',
+                                    ),
+                                    TextSpan(
+                                      text: instituteCode,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const TextSpan(
+                                      text:
+                                          ' with your teachers and students so they can directly register and link with this campus.',
+                                    ),
                                   ],
                                 ),
                               ),
@@ -244,13 +378,24 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _activeMode == 'login' ? 'Role Authentication Gateway' : 'New Role Registration Hub',
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                                _activeMode == 'login'
+                                    ? 'Role Authentication Gateway'
+                                    : 'New Role Registration Hub',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textMain,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                _activeMode == 'login' ? 'Select a role to open the dedicated login interface.' : 'Select a role to create and link a new user profile.',
-                                style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                                _activeMode == 'login'
+                                    ? 'Select a role to open the dedicated login interface.'
+                                    : 'Select a role to create and link a new user profile.',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textMuted,
+                                ),
                               ),
                             ],
                           ),
@@ -263,8 +408,16 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                             ),
                             child: Row(
                               children: [
-                                _buildModeButton('login', 'Login as Role', Icons.login),
-                                _buildModeButton('register', 'Register New User', Icons.person_add_alt),
+                                _buildModeButton(
+                                  'login',
+                                  'Login as Role',
+                                  Icons.login,
+                                ),
+                                _buildModeButton(
+                                  'register',
+                                  'Register New User',
+                                  Icons.person_add_alt,
+                                ),
                               ],
                             ),
                           ),
@@ -293,15 +446,28 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
           child: Icon(icon, color: color, size: 16),
         ),
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-            Text(label, style: const TextStyle(fontSize: 10, color: Colors.white70)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 10, color: Colors.white70),
+            ),
           ],
         ),
       ],
@@ -321,7 +487,11 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 15, color: isActive ? Colors.white : AppColors.textMuted),
+            Icon(
+              icon,
+              size: 15,
+              color: isActive ? Colors.white : AppColors.textMuted,
+            ),
             const SizedBox(width: 6),
             Text(
               label,
@@ -342,8 +512,14 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
       {
         'title': 'Administrator Login',
         'badge': 'System Admin',
-        'desc': 'Institute administration, role directory, class scheduling, and reports.',
-        'features': ['Manage students & instructors', 'Master timetable configuration', 'Academic planning & analytics', 'Full administrative authority'],
+        'desc':
+            'Institute administration, role directory, class scheduling, and reports.',
+        'features': [
+          'Manage students & instructors',
+          'Master timetable configuration',
+          'Academic planning & analytics',
+          'Full administrative authority',
+        ],
         'color': AppColors.adminPrimary,
         'icon': Icons.admin_panel_settings,
         'route': 'admin-login',
@@ -352,8 +528,14 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
       {
         'title': 'Teacher / Instructor Login',
         'badge': 'Faculty Member',
-        'desc': 'Class management, attendance logging, course curriculum, and student marks.',
-        'features': ['Class roster & student records', 'Course & syllabus progression', 'Lecture timetables & notes', 'Student evaluation & feedback'],
+        'desc':
+            'Class management, attendance logging, course curriculum, and student marks.',
+        'features': [
+          'Class roster & student records',
+          'Course & syllabus progression',
+          'Lecture timetables & notes',
+          'Student evaluation & feedback',
+        ],
         'color': AppColors.teacherPrimary,
         'icon': Icons.cast_for_education,
         'route': 'teacher-login',
@@ -362,8 +544,14 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
       {
         'title': 'Student Portal Login',
         'badge': 'Enrolled Student',
-        'desc': 'Access attendance percentage, exam hall, verified marksheets, and timetable.',
-        'features': ['Live examination & results', 'Attendance tracking with stats', 'Class schedules & lecture notes', 'Parent communications log'],
+        'desc':
+            'Access attendance percentage, exam hall, verified marksheets, and timetable.',
+        'features': [
+          'Live examination & results',
+          'Attendance tracking with stats',
+          'Class schedules & lecture notes',
+          'Parent communications log',
+        ],
         'color': AppColors.studentPrimary,
         'icon': Icons.school,
         'route': 'student-login',
@@ -374,10 +562,26 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
     return isDesktop
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: roles.map((r) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: _buildRoleCard(r, nav)))).toList(),
+            children: roles
+                .map(
+                  (r) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: _buildRoleCard(r, nav),
+                    ),
+                  ),
+                )
+                .toList(),
           )
         : Column(
-            children: roles.map((r) => Padding(padding: const EdgeInsets.only(bottom: 16), child: _buildRoleCard(r, nav))).toList(),
+            children: roles
+                .map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildRoleCard(r, nav),
+                  ),
+                )
+                .toList(),
           );
   }
 
@@ -386,8 +590,14 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
       {
         'title': 'Student Registration',
         'badge': 'New Student',
-        'desc': 'Create a student profile linked with this verified campus code.',
-        'features': ['Instant batch & roll number link', 'Access to online learning portal', 'Exam hall seating eligibility', 'Parent portal connectivity'],
+        'desc':
+            'Create a student profile linked with this verified campus code.',
+        'features': [
+          'Instant batch & roll number link',
+          'Access to online learning portal',
+          'Exam hall seating eligibility',
+          'Parent portal connectivity',
+        ],
         'color': AppColors.studentPrimary,
         'icon': Icons.school,
         'route': 'student-register',
@@ -396,8 +606,14 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
       {
         'title': 'Teacher Registration',
         'badge': 'New Faculty',
-        'desc': 'Create an instructor profile linked with this verified campus code.',
-        'features': ['Department & employee ID link', 'Class & subject assignment', 'Curriculum syllabus manager', 'Academic records authority'],
+        'desc':
+            'Create an instructor profile linked with this verified campus code.',
+        'features': [
+          'Department & employee ID link',
+          'Class & subject assignment',
+          'Curriculum syllabus manager',
+          'Academic records authority',
+        ],
         'color': AppColors.teacherPrimary,
         'icon': Icons.cast_for_education,
         'route': 'teacher-register',
@@ -408,10 +624,26 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
     return isDesktop
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: roles.map((r) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: _buildRoleCard(r, nav)))).toList(),
+            children: roles
+                .map(
+                  (r) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: _buildRoleCard(r, nav),
+                    ),
+                  ),
+                )
+                .toList(),
           )
         : Column(
-            children: roles.map((r) => Padding(padding: const EdgeInsets.only(bottom: 16), child: _buildRoleCard(r, nav))).toList(),
+            children: roles
+                .map(
+                  (r) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _buildRoleCard(r, nav),
+                  ),
+                )
+                .toList(),
           );
   }
 
@@ -448,14 +680,21 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
                 child: Icon(r['icon'] as IconData, color: color, size: 24),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   r['badge'] as String,
-                  style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -463,26 +702,44 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
           const SizedBox(height: 18),
           Text(
             r['title'] as String,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textMain,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             r['desc'] as String,
-            style: const TextStyle(fontSize: 13, color: AppColors.textMuted, height: 1.4),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textMuted,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 18),
           const Divider(color: AppColors.border),
           const SizedBox(height: 14),
-          ...features.map((f) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.check, size: 14, color: color),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(f, style: const TextStyle(fontSize: 12, color: AppColors.textMain))),
-                  ],
-                ),
-              )),
+          ...features.map(
+            (f) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.check, size: 14, color: color),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      f,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMain,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -498,4 +755,3 @@ class _SelectRoleScreenState extends State<SelectRoleScreen> {
     );
   }
 }
-

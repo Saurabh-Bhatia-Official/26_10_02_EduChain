@@ -35,6 +35,13 @@ All accounts are pre-seeded in PostgreSQL via Flyway (`V2__seed_initial_data.sql
 
 ## 3. How to Run the Application
 
+For a local run without database credentials, `mvn spring-boot:run` starts the
+backend with the in-memory H2 `dev` profile when `SPRING_DATASOURCE_URL` is
+missing or still contains an unresolved template value. Local H2 data is
+discarded when the backend stops. To use PostgreSQL, configure a real JDBC URL,
+username, and password with the environment variables above; a configured
+database URL continues to use the default PostgreSQL profile.
+
 ### A. Start the PostgreSQL Server (if not running)
 ```powershell
 & "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" -D "C:\Users\NTCI\pgdata_lms" start

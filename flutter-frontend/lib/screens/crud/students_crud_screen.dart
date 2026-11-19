@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../constants/app_colors.dart';
 import '../../models/student_model.dart';
 import '../../services/api_service.dart';
