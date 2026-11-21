@@ -12,10 +12,14 @@ import '../../providers/instructor_provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/metric_card.dart';
+import '../portal_modules_screen.dart';
+import '../../widgets/portal_notification_bell.dart';
+import '../../widgets/portal_announcement_preview.dart';
 
 class AdminPortalScreen extends StatefulWidget {
   final String initialTab;
-  const AdminPortalScreen({super.key, this.initialTab = 'dashboard'});
+  final String? initialTargetId;
+  const AdminPortalScreen({super.key, this.initialTab = 'dashboard', this.initialTargetId});
 
   @override
   State<AdminPortalScreen> createState() => _AdminPortalScreenState();
@@ -53,6 +57,47 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     {'title': 'Operating Systems Architecture', 'code': 'CS-303', 'date': 'May 16, 2025', 'time': '09:00 AM - 12:00 PM', 'room': 'Hall 105', 'invigilator': 'Prof. Sunita Rao'},
   ];
 
+  List<Map<String, dynamic>> _onlineExamsAdmin = [];
+  bool _loadingOnlineExams = false;
+
+  Future<void> _loadOnlineExamsAdmin() async {
+    setState(() => _loadingOnlineExams = true);
+    try {
+      final exams = await ApiService().getExams();
+      if (mounted) {
+        setState(() {
+          _onlineExamsAdmin = exams;
+          _loadingOnlineExams = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingOnlineExams = false);
+    }
+  }
+
+  Future<void> _toggleReleaseResults(String examId, bool currentReleased) async {
+    try {
+      await ApiService().releaseExamResults(examId, !currentReleased);
+      await _loadOnlineExamsAdmin();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(!currentReleased
+                ? 'Exam results released! Students can now view their scorecards.'
+                : 'Exam results withheld from students.'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +122,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     await Future.wait([
       studentProv.fetchStudents(),
       instructorProv.fetchInstructors(),
+      _loadOnlineExamsAdmin(),
     ]);
 
     try {
@@ -159,6 +205,8 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
       {'id': 'lecture-schedule', 'title': 'Lecture Schedule', 'icon': Icons.schedule_outlined},
       {'id': 'exam-timetable', 'title': 'Exam Timetable', 'icon': Icons.assignment_outlined},
       {'id': 'create-exam', 'title': 'Schedule Exam', 'icon': Icons.post_add_outlined},
+      {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
+      {'id': 'leaves', 'title': 'Leave Management', 'icon': Icons.event_available_outlined},
       {'id': 'cross-module', 'title': 'Global Explorer', 'icon': Icons.dataset_outlined},
       {'id': 'reports', 'title': 'Analytics & Reports', 'icon': Icons.analytics_outlined},
       {'id': 'settings', 'title': 'Settings & System', 'icon': Icons.settings_outlined},
@@ -319,6 +367,8 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
           ),
           Row(
             children: [
+              const PortalNotificationBell(role: 'admin'),
+              const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.refresh, size: 20, color: AppColors.textMuted),
                 tooltip: 'Refresh Data',
@@ -385,6 +435,10 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         return 'Master Examination Timetable';
       case 'create-exam':
         return 'Schedule New Assessment';
+      case 'announcements':
+        return 'Announcement Management';
+      case 'leaves':
+        return 'Leave Management';
       case 'cross-module':
         return 'Cross-Module Global Explorer';
       case 'reports':
@@ -422,6 +476,15 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         return _buildExamTimetableScreen();
       case 'create-exam':
         return _buildCreateExamScreen();
+      case 'announcements':
+      case 'leaves':
+        return PortalModulesScreen(
+          key: ValueKey('$_activeScreen-${widget.initialTargetId ?? ''}'),
+          role: 'admin',
+          module: _activeScreen,
+          user: user,
+          targetId: widget.initialTargetId,
+        );
       case 'cross-module':
         return _buildCrossModuleScreen();
       case 'reports':
@@ -446,6 +509,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const PortalAnnouncementPreview(role: 'admin'),
         Row(
           children: [
             Expanded(child: MetricCard(title: 'Total Students', value: '$totalStudents', icon: Icons.school, color: AppColors.studentPrimary, subtitle: 'Live registered count')),
@@ -1029,48 +1093,254 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
 
   // 11. Exam Timetable
   Widget _buildExamTimetableScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Live Online Examination Management & Results Release
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Master Examination Timetable', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              ElevatedButton.icon(
-                onPressed: () => setState(() => _activeScreen = 'create-exam'),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Schedule Exam'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminPrimary),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Online Examinations & Results Release',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Control student assessment status and release results for official viewing.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: AppColors.adminPrimary,
+                    ),
+                    tooltip: 'Refresh Online Exams',
+                    onPressed: _loadOnlineExamsAdmin,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              if (_loadingOnlineExams)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_onlineExamsAdmin.isEmpty)
+                const Text(
+                  'No online examinations currently found.',
+                  style: TextStyle(color: AppColors.textMuted),
+                )
+              else
+                ..._onlineExamsAdmin.map((exam) {
+                  final id = exam['id'].toString();
+                  final title = exam['title']?.toString() ?? 'Examination';
+                  final code = exam['code']?.toString() ?? '';
+                  final subject = exam['subject']?.toString() ?? '';
+                  final resultsReleased = exam['resultsReleased'] == true;
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      '$title ${code.isNotEmpty ? "($code)" : ""}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: resultsReleased
+                                            ? AppColors.successBg
+                                            : Colors.amber.shade100,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        resultsReleased
+                                            ? 'Results Released'
+                                            : 'Results Withheld',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: resultsReleased
+                                              ? AppColors.success
+                                              : Colors.amber.shade900,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Subject: $subject • Duration: ${exam["durationMinutes"]} Mins • Total Marks: ${exam["totalMarks"]}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () =>
+                                _toggleReleaseResults(id, resultsReleased),
+                            icon: Icon(
+                              resultsReleased
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              size: 16,
+                            ),
+                            label: Text(
+                              resultsReleased
+                                  ? 'Withhold Results'
+                                  : 'Release Results to Students',
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: resultsReleased
+                                  ? Colors.grey.shade700
+                                  : AppColors.adminPrimary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Traditional Master Timetable
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Master Examination Timetable',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () =>
+                        setState(() => _activeScreen = 'create-exam'),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('Schedule Exam'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.adminPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ..._examTimetable.map(
+                (e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgPage,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${e['code']}: ${e['title']}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${e['date']} • ${e['time']} • ${e['room']}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'Invigilator: ${e['invigilator']}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.adminPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          ..._examTimetable.map((e) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppColors.bgPage, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${e['code']}: ${e['title']}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                          const SizedBox(height: 3),
-                          Text('${e['date']} • ${e['time']} • ${e['room']}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                        ],
-                      ),
-                      Text('Invigilator: ${e['invigilator']}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.adminPrimary)),
-                    ],
-                  ),
-                ),
-              )),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

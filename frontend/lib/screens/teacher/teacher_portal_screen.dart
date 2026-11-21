@@ -10,10 +10,14 @@ import '../../providers/auth_provider.dart';
 import '../../providers/student_provider.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/metric_card.dart';
+import '../portal_modules_screen.dart';
+import '../../widgets/portal_notification_bell.dart';
+import '../../widgets/portal_announcement_preview.dart';
 
 class TeacherPortalScreen extends StatefulWidget {
   final String initialTab;
-  const TeacherPortalScreen({super.key, this.initialTab = 'dashboard'});
+  final String? initialTargetId;
+  const TeacherPortalScreen({super.key, this.initialTab = 'dashboard', this.initialTargetId});
 
   @override
   State<TeacherPortalScreen> createState() => _TeacherPortalScreenState();
@@ -140,6 +144,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       {'id': 'add-course', 'title': 'Add Course', 'icon': Icons.post_add_outlined},
       {'id': 'lectures', 'title': 'Lecture Schedules', 'icon': Icons.event_note_outlined},
       {'id': 'update-lecture', 'title': 'Update Lecture', 'icon': Icons.edit_calendar_outlined},
+      {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
+      {'id': 'leaves', 'title': 'Leave Requests & Leave', 'icon': Icons.event_available_outlined},
       {'id': 'profile', 'title': 'Faculty Profile', 'icon': Icons.badge_outlined},
     ];
 
@@ -299,6 +305,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
           ),
           Row(
             children: [
+              const PortalNotificationBell(role: 'teacher'),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -357,6 +365,10 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         return 'Lecture Schedule Manager';
       case 'update-lecture':
         return 'Reschedule / Update Lecture';
+      case 'announcements':
+        return 'Announcements';
+      case 'leaves':
+        return 'Student Leave Requests & My Leave';
       case 'profile':
         return 'Faculty Member Profile';
       default:
@@ -388,6 +400,15 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         return _buildLecturesScreen();
       case 'update-lecture':
         return _buildUpdateLectureScreen();
+      case 'announcements':
+      case 'leaves':
+        return PortalModulesScreen(
+          key: ValueKey('$_activeScreen-${widget.initialTargetId ?? ''}'),
+          role: 'teacher',
+          module: _activeScreen,
+          user: user,
+          targetId: widget.initialTargetId,
+        );
       case 'profile':
         return _buildProfileScreen(user);
       default:
@@ -400,6 +421,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const PortalAnnouncementPreview(role: 'teacher'),
         Row(
           children: [
             Expanded(child: MetricCard(title: 'Assigned Courses', value: '4 Courses', icon: Icons.menu_book, color: AppColors.teacherPrimary)),

@@ -7,10 +7,15 @@ import '../../providers/navigation_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/metric_card.dart';
+import '../portal_modules_screen.dart';
+import '../../widgets/portal_notification_bell.dart';
+import '../../widgets/portal_announcement_preview.dart';
+import '../../services/api_service.dart';
 
 class StudentPortalScreen extends StatefulWidget {
   final String initialTab;
-  const StudentPortalScreen({super.key, this.initialTab = 'dashboard'});
+  final String? initialTargetId;
+  const StudentPortalScreen({super.key, this.initialTab = 'dashboard', this.initialTargetId});
 
   @override
   State<StudentPortalScreen> createState() => _StudentPortalScreenState();
@@ -22,24 +27,26 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // Live Exam States
   int _currentQuestion = 1;
-  final Map<int, String> _selectedAnswers = {
-    1: 'B',
-    2: 'A',
-    3: 'C',
-    4: 'D',
-  };
-  final Set<int> _flaggedQuestions = {3};
+  final Map<int, String> _selectedAnswers = {};
+  final Set<int> _flaggedQuestions = {};
   bool _instructionsAccepted = false;
   int _examTimeSeconds = 3600; // 60 mins
   Timer? _examTimer;
 
-  // Modals & Notifications
-  bool _showNotifications = false;
+  // Real backend exam integration state
+  List<Map<String, dynamic>> _onlineExams = [];
+  bool _loadingExams = false;
+  Map<String, dynamic>? _selectedExam;
+  Map<String, dynamic>? _examAttempt;
+  List<Map<String, dynamic>> _liveQuestions = [];
+  bool _submittingExam = false;
+  String? _examError;
 
   @override
   void initState() {
     super.initState();
     _activeTab = widget.initialTab.isNotEmpty ? widget.initialTab : 'dashboard';
+    _fetchOnlineExams();
   }
 
   @override
@@ -47,7 +54,114 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTab.isNotEmpty && widget.initialTab != _activeTab) {
       setState(() => _activeTab = widget.initialTab);
+      if (_activeTab == 'exams') {
+        _fetchOnlineExams();
+      }
     }
+  }
+
+  Future<void> _fetchOnlineExams() async {
+    setState(() {
+      _loadingExams = true;
+      _examError = null;
+    });
+    try {
+      final exams = await ApiService().getExams();
+      if (mounted) {
+        setState(() {
+          _onlineExams = exams;
+          _loadingExams = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingExams = false;
+          _examError = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  Future<void> _openExamInstructions(Map<String, dynamic> exam) async {
+    setState(() {
+      _selectedExam = exam;
+      _instructionsAccepted = false;
+      _examError = null;
+    });
+    try {
+      final details = await ApiService().getExamDetails(exam['id'].toString());
+      if (mounted) {
+        setState(() {
+          _selectedExam = details;
+          final qs = details['questions'];
+          if (qs is List) {
+            _liveQuestions = qs.cast<Map<String, dynamic>>();
+          }
+          _activeTab = 'exam-instructions';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load exam details: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _startLiveExam() async {
+    if (_selectedExam == null) return;
+    final examId = _selectedExam!['id'].toString();
+    try {
+      final attemptRes = await ApiService().startExamAttempt(examId);
+      final qs = _selectedExam!['questions'];
+      if (qs is List && qs.isNotEmpty) {
+        _liveQuestions = qs.cast<Map<String, dynamic>>();
+      }
+      final duration =
+          int.tryParse(_selectedExam!['durationMinutes']?.toString() ?? '60') ??
+          60;
+      _examTimeSeconds = duration * 60;
+      _currentQuestion = 1;
+      _selectedAnswers.clear();
+      _flaggedQuestions.clear();
+
+      if (attemptRes['answers'] is Map) {
+        final existing = attemptRes['answers'] as Map;
+        for (var i = 0; i < _liveQuestions.length; i++) {
+          final qId = _liveQuestions[i]['id']?.toString() ?? '';
+          if (existing.containsKey(qId)) {
+            _selectedAnswers[i + 1] = existing[qId].toString();
+          }
+        }
+      }
+
+      _startExamTimer();
+      setState(() => _activeTab = 'exam-live');
+    } catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _saveAnswerLocallyAndRemote(int qIndex, String optKey) async {
+    setState(() {
+      _selectedAnswers[qIndex] = optKey;
+    });
+    if (_selectedExam == null || qIndex - 1 >= _liveQuestions.length) return;
+    final qId = _liveQuestions[qIndex - 1]['id']?.toString() ?? '';
+    final examId = _selectedExam!['id'].toString();
+    try {
+      await ApiService().saveExamAnswer(examId, qId, optKey);
+    } catch (_) {}
   }
 
   void _startExamTimer() {
@@ -57,14 +171,68 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         if (mounted) setState(() => _examTimeSeconds--);
       } else {
         timer.cancel();
-        if (mounted) _submitExam();
+        if (mounted) _submitLiveExam();
       }
     });
   }
 
-  void _submitExam() {
+  Future<void> _submitLiveExam() async {
+    if (_selectedExam == null || _submittingExam) return;
+    setState(() => _submittingExam = true);
     _examTimer?.cancel();
-    setState(() => _activeTab = 'exam-submitted');
+    final examId = _selectedExam!['id'].toString();
+    final answersPayload = <String, String>{};
+    for (var i = 0; i < _liveQuestions.length; i++) {
+      final qId = _liveQuestions[i]['id']?.toString() ?? '';
+      if (_selectedAnswers.containsKey(i + 1)) {
+        answersPayload[qId] = _selectedAnswers[i + 1]!;
+      }
+    }
+    try {
+      final result = await ApiService().submitExam(examId, answersPayload);
+      if (mounted) {
+        setState(() {
+          _submittingExam = false;
+          _examAttempt = result['attempt'] as Map<String, dynamic>?;
+          _activeTab = 'exam-submitted';
+        });
+        _fetchOnlineExams();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submittingExam = false);
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit exam: $msg'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _viewExamResults(Map<String, dynamic> exam) async {
+    setState(() {
+      _selectedExam = exam;
+    });
+    final examId = exam['id'].toString();
+    try {
+      final attemptRes = await ApiService().getExamAttempt(examId);
+      if (mounted) {
+        setState(() {
+          _examAttempt = attemptRes;
+          _activeTab = 'exam-results';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 
   @override
@@ -129,6 +297,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       {'id': 'timetable', 'title': 'Weekly Timetable', 'icon': Icons.grid_view_outlined},
       {'id': 'parents', 'title': 'Parent Portal', 'icon': Icons.family_restroom_outlined},
       {'id': 'exams', 'title': 'Online Exams', 'icon': Icons.assignment_outlined},
+      {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
+      {'id': 'leaves', 'title': 'Leave Applications', 'icon': Icons.event_available_outlined},
     ];
 
     return Container(
@@ -288,24 +458,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           ),
           Row(
             children: [
-              // Notification Bell
-              Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined, size: 22, color: AppColors.textMuted),
-                    onPressed: () => setState(() => _showNotifications = !_showNotifications),
-                  ),
-                  Positioned(
-                    right: 10,
-                    top: 10,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.error),
-                    ),
-                  ),
-                ],
-              ),
+              const PortalNotificationBell(role: 'student'),
               const SizedBox(width: 8),
               // User Chip
               Container(
@@ -362,6 +515,10 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         return 'Parent & Guardian Portal';
       case 'exams':
         return 'Online Examination Hall';
+      case 'announcements':
+        return 'Announcements';
+      case 'leaves':
+        return 'Leave Applications';
       case 'exam-instructions':
         return 'Examination Rules & Instructions';
       case 'exam-live':
@@ -395,6 +552,15 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         return _buildParentsTab(user);
       case 'exams':
         return _buildExamsTab();
+      case 'announcements':
+      case 'leaves':
+        return PortalModulesScreen(
+          key: ValueKey('$_activeTab-${widget.initialTargetId ?? ''}'),
+          role: 'student',
+          module: _activeTab,
+          user: user,
+          targetId: widget.initialTargetId,
+        );
       case 'exam-instructions':
         return _buildExamInstructionsTab();
       case 'exam-live':
@@ -413,6 +579,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        PortalAnnouncementPreview(role: 'student'),
         // Welcome Banner
         Container(
           padding: const EdgeInsets.all(24),
@@ -1089,29 +1256,217 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Upcoming Examinations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              const Text('Review instructions and enter the online testing environment.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Online Examinations',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Official institutional examinations and real-time assessments.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: AppColors.studentPrimary,
+                    ),
+                    tooltip: 'Refresh Exams',
+                    onPressed: _fetchOnlineExams,
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
-              _buildExamCard(
-                title: 'DBMS Mid-Term Examination (CS-301)',
-                date: 'May 10, 2025 • 10:00 AM',
-                duration: '60 Minutes • 50 Marks',
-                status: 'Ready to Start',
-                onEnter: () => setState(() => _activeTab = 'exam-instructions'),
-              ),
-              const SizedBox(height: 12),
-              _buildExamCard(
-                title: 'Data Structures Practical Assessment',
-                date: 'May 16, 2025 • 02:00 PM',
-                duration: '90 Minutes • 100 Marks',
-                status: 'Upcoming',
-                onEnter: null,
-              ),
+              if (_loadingExams)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_onlineExams.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  alignment: Alignment.center,
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.assignment_outlined,
+                        size: 48,
+                        color: AppColors.textMuted,
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'No examinations scheduled at this time.',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      if (_examError != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _examError!,
+                          style: const TextStyle(
+                            color: AppColors.error,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                )
+              else
+                ..._onlineExams.map((exam) {
+                  final title = exam['title']?.toString() ?? 'Examination';
+                  final code = exam['code']?.toString() ?? '';
+                  final subject = exam['subject']?.toString() ?? '';
+                  final duration = exam['durationMinutes']?.toString() ?? '60';
+                  final totalMarks = exam['totalMarks']?.toString() ?? '100';
+                  final passingMarks =
+                      exam['passingMarks']?.toString() ?? '40';
+                  final attemptStatus =
+                      exam['attemptStatus']?.toString() ?? 'NOT_ATTEMPTED';
+                  final resultsReleased = exam['resultsReleased'] == true;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgPage,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.studentPrimary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.assignment,
+                                    color: AppColors.studentPrimary,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '$title ${code.isNotEmpty ? "($code)" : ""}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Subject: $subject • Duration: $duration Mins • Total Marks: $totalMarks • Passing: $passingMarks',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          if (attemptStatus == 'SUBMITTED') ...[
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const StatusBadge(
+                                  label: 'EXAM ALREADY SUBMITTED',
+                                  status: 'completed',
+                                ),
+                                const SizedBox(height: 6),
+                                ElevatedButton(
+                                  onPressed: () => _viewExamResults(exam),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: resultsReleased
+                                        ? AppColors.studentPrimary
+                                        : Colors.grey.shade600,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    resultsReleased
+                                        ? 'View Results'
+                                        : 'Results Pending',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else if (attemptStatus == 'IN_PROGRESS') ...[
+                            ElevatedButton(
+                              onPressed: () => _openExamInstructions(exam),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accentOrange,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                              ),
+                              child: const Text('Resume Exam'),
+                            ),
+                          ] else ...[
+                            ElevatedButton(
+                              onPressed: () => _openExamInstructions(exam),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.studentPrimary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 10,
+                                ),
+                              ),
+                              child: const Text('Start Exam'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
             ],
           ),
         ),
@@ -1119,98 +1474,103 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     );
   }
 
-  Widget _buildExamCard({
-    required String title,
-    required String date,
-    required String duration,
-    required String status,
-    required VoidCallback? onEnter,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.bgPage,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: AppColors.studentPrimary.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.assignment, color: AppColors.studentPrimary, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  const SizedBox(height: 3),
-                  Text('$date • $duration', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                ],
-              ),
-            ],
-          ),
-          if (onEnter != null)
-            ElevatedButton(
-              onPressed: onEnter,
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
-              child: const Text('Start Exam'),
-            )
-          else
-            const StatusBadge(label: 'Upcoming', status: 'pending'),
-        ],
-      ),
-    );
-  }
-
   // 10. Exam Instructions Tab
   Widget _buildExamInstructionsTab() {
+    final title = _selectedExam?['title']?.toString() ?? 'Examination';
+    final code = _selectedExam?['code']?.toString() ?? '';
+    final subject = _selectedExam?['subject']?.toString() ?? '';
+    final duration = _selectedExam?['durationMinutes']?.toString() ?? '60';
+    final totalMarks = _selectedExam?['totalMarks']?.toString() ?? '100';
+    final qCount = _liveQuestions.isNotEmpty
+        ? _liveQuestions.length
+        : (_selectedExam?['totalQuestions']?.toString() ?? '5');
+    final instructions =
+        _selectedExam?['instructions']?.toString() ??
+        'Please read all questions carefully before submitting. Navigating away may trigger proctor warnings.';
+
     return Container(
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Online Examination Rules & Instructions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          const Text('DBMS Mid-Term Examination (CS-301) • Academic Session 2025–2026', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Online Examination Instructions: $title',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '$subject ${code.isNotEmpty ? "($code)" : ""} • Duration: $duration Mins • Total Marks: $totalMarks',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              OutlinedButton(
+                onPressed: () => setState(() => _activeTab = 'exams'),
+                child: const Text('Back to Exams'),
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
           const Divider(color: AppColors.border),
           const SizedBox(height: 16),
-          const Text('1. Examination Duration: 60 minutes. The countdown starts immediately once you click Start Exam.'),
+          Text(
+            '1. Examination Duration: $duration minutes. Countdown timer activates immediately upon clicking "Agree & Launch Examination Hall".',
+          ),
           const SizedBox(height: 8),
-          const Text('2. Total Questions: 20 multiple choice questions. Each question carries 2.5 marks.'),
+          Text('2. Total Questions: $qCount multiple-choice questions.'),
           const SizedBox(height: 8),
-          const Text('3. Navigating away from the exam tab will trigger automatic warning and proctor review.'),
+          const Text(
+            '3. Single Attempt Rule: Each student is permitted exactly ONE attempt per exam. A second attempt is strictly blocked.',
+          ),
           const SizedBox(height: 8),
-          const Text('4. Click "Submit Exam" once you have attempted all required questions.'),
+          const Text(
+            '4. Answer Persistence: Answers are saved as you proceed. You can review and change your selected option prior to final submission.',
+          ),
+          const SizedBox(height: 8),
+          Text('5. Specific Instructions: $instructions'),
           const SizedBox(height: 24),
           Row(
             children: [
               Checkbox(
                 value: _instructionsAccepted,
-                onChanged: (v) => setState(() => _instructionsAccepted = v ?? false),
+                onChanged: (v) =>
+                    setState(() => _instructionsAccepted = v ?? false),
               ),
               const Expanded(
-                child: Text('I have read and agree to comply with all online examination guidelines and honor code.'),
+                child: Text(
+                  'I have read and agree to comply with all online examination guidelines, anti-cheating policies, and rules.',
+                ),
               ),
             ],
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _instructionsAccepted
-                ? () {
-                    _startExamTimer();
-                    setState(() => _activeTab = 'exam-live');
-                  }
-                : null,
+            onPressed: _instructionsAccepted ? _startLiveExam : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.studentPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 28,
+                vertical: 14,
+              ),
             ),
             child: const Text('Agree & Launch Examination Hall'),
           ),
@@ -1221,30 +1581,55 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // 11. Exam Live Tab
   Widget _buildExamLiveTab() {
-    final questions = [
-      {
-        'id': 1,
-        'q': 'Which normal form is based on the concept of full functional dependency?',
-        'options': {'A': 'First Normal Form (1NF)', 'B': 'Second Normal Form (2NF)', 'C': 'Third Normal Form (3NF)', 'D': 'Boyce-Codd Normal Form (BCNF)'},
-      },
-      {
-        'id': 2,
-        'q': 'In SQL, which command is used to remove an index from a database?',
-        'options': {'A': 'DROP INDEX', 'B': 'REMOVE INDEX', 'C': 'DELETE INDEX', 'D': 'ALTER TABLE DROP'},
-      },
-      {
-        'id': 3,
-        'q': 'What does ACID stand for in the context of database transactions?',
-        'options': {'A': 'Accuracy, Consistency, Integrity, Durability', 'B': 'Atomicity, Compatibility, Isolation, Durability', 'C': 'Atomicity, Consistency, Isolation, Durability', 'D': 'Access, Control, Isolation, Distribution'},
-      },
-      {
-        'id': 4,
-        'q': 'Which of the following is NOT an aggregate function in SQL?',
-        'options': {'A': 'AVG()', 'B': 'COUNT()', 'C': 'SUM()', 'D': 'SELECT()'},
-      },
-    ];
+    final title =
+        _selectedExam?['title']?.toString() ?? 'Online Examination';
+    if (_liveQuestions.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const SizedBox(height: 16),
+            const Text(
+              'No questions loaded for this examination.',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => setState(() => _activeTab = 'exams'),
+              child: const Text('Return to Exams List'),
+            ),
+          ],
+        ),
+      );
+    }
 
-    final currentQ = questions[(_currentQuestion - 1).clamp(0, questions.length - 1)];
+    final qIdx = (_currentQuestion - 1).clamp(0, _liveQuestions.length - 1);
+    final currentQ = _liveQuestions[qIdx];
+    final qText =
+        currentQ['question']?.toString() ??
+        currentQ['text']?.toString() ??
+        currentQ['q']?.toString() ??
+        'Question';
+
+    Map<String, String> optionsMap = {};
+    if (currentQ['options'] is Map) {
+      optionsMap = (currentQ['options'] as Map).map(
+        (k, v) => MapEntry(k.toString(), v.toString()),
+      );
+    } else if (currentQ['options'] is List) {
+      final optsList = currentQ['options'] as List;
+      final labels = ['A', 'B', 'C', 'D', 'E'];
+      for (var i = 0; i < optsList.length; i++) {
+        final key = i < labels.length ? labels[i] : '$i';
+        optionsMap[key] = optsList[i].toString();
+      }
+    }
 
     return Column(
       children: [
@@ -1258,19 +1643,40 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('DBMS Mid-Term Examination', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                  Text('Live Proctored Session', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Live Examination Session • Auto-proctored & Persistent',
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.error.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -1278,7 +1684,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     const SizedBox(width: 8),
                     Text(
                       _formatTime(_examTimeSeconds),
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.error),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: AppColors.error,
+                      ),
                     ),
                   ],
                 ),
@@ -1296,18 +1706,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 8,
               child: Container(
                 padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Question $_currentQuestion of ${questions.length}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.studentPrimary)),
+                        Text(
+                          'Question $_currentQuestion of ${_liveQuestions.length}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.studentPrimary,
+                          ),
+                        ),
                         OutlinedButton.icon(
                           onPressed: () {
                             setState(() {
-                              if (_flaggedQuestions.contains(_currentQuestion)) {
+                              if (_flaggedQuestions.contains(
+                                _currentQuestion,
+                              )) {
                                 _flaggedQuestions.remove(_currentQuestion);
                               } else {
                                 _flaggedQuestions.add(_currentQuestion);
@@ -1315,35 +1738,79 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                             });
                           },
                           icon: Icon(
-                            _flaggedQuestions.contains(_currentQuestion) ? Icons.flag : Icons.outlined_flag,
+                            _flaggedQuestions.contains(_currentQuestion)
+                                ? Icons.flag
+                                : Icons.outlined_flag,
                             size: 16,
-                            color: _flaggedQuestions.contains(_currentQuestion) ? AppColors.accentOrange : AppColors.textMuted,
+                            color: _flaggedQuestions.contains(_currentQuestion)
+                                ? AppColors.accentOrange
+                                : AppColors.textMuted,
                           ),
-                          label: Text(_flaggedQuestions.contains(_currentQuestion) ? 'Flagged' : 'Flag for Review'),
+                          label: Text(
+                            _flaggedQuestions.contains(_currentQuestion)
+                                ? 'Flagged'
+                                : 'Flag for Review',
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(currentQ['q'] as String, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, height: 1.4)),
+                    Text(
+                      qText,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        height: 1.4,
+                      ),
+                    ),
                     const SizedBox(height: 24),
-                    ...(currentQ['options'] as Map<String, String>).entries.map((opt) {
-                      final isSelected = _selectedAnswers[_currentQuestion] == opt.key;
+                    ...optionsMap.entries.map((opt) {
+                      final isSelected =
+                          _selectedAnswers[_currentQuestion] == opt.key;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: InkWell(
-                          onTap: () => setState(() => _selectedAnswers[_currentQuestion] = opt.key),
+                          onTap: () => _saveAnswerLocallyAndRemote(
+                            _currentQuestion,
+                            opt.key,
+                          ),
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFF3E8FF) : AppColors.bgPage,
+                              color: isSelected
+                                  ? const Color(0xFFF3E8FF)
+                                  : AppColors.bgPage,
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: isSelected ? AppColors.studentPrimary : AppColors.border, width: isSelected ? 1.5 : 1),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.studentPrimary
+                                    : AppColors.border,
+                                width: isSelected ? 1.5 : 1,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Text('${opt.key}. ', style: TextStyle(fontWeight: FontWeight.w800, color: isSelected ? AppColors.studentPrimary : AppColors.textMain)),
-                                Expanded(child: Text(opt.value, style: TextStyle(fontSize: 14, color: isSelected ? AppColors.studentPrimary : AppColors.textMain))),
+                                Text(
+                                  '${opt.key}. ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: isSelected
+                                        ? AppColors.studentPrimary
+                                        : AppColors.textMain,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    opt.value,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: isSelected
+                                          ? AppColors.studentPrimary
+                                          : AppColors.textMain,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -1355,20 +1822,37 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         OutlinedButton(
-                          onPressed: _currentQuestion > 1 ? () => setState(() => _currentQuestion--) : null,
+                          onPressed: _currentQuestion > 1
+                              ? () => setState(() => _currentQuestion--)
+                              : null,
                           child: const Text('Previous'),
                         ),
-                        if (_currentQuestion < questions.length)
+                        if (_currentQuestion < _liveQuestions.length)
                           ElevatedButton(
-                            onPressed: () => setState(() => _currentQuestion++),
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                            onPressed: () =>
+                                setState(() => _currentQuestion++),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.studentPrimary,
+                            ),
                             child: const Text('Next Question'),
                           )
                         else
                           ElevatedButton(
-                            onPressed: _submitExam,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-                            child: const Text('Submit Final Exam'),
+                            onPressed:
+                                _submittingExam ? null : _submitLiveExam,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                            ),
+                            child: _submittingExam
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Submit Final Exam'),
                           ),
                       ],
                     ),
@@ -1383,19 +1867,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 4,
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Question Navigator', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                    const Text(
+                      'Question Navigator',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 14),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: List.generate(questions.length, (idx) {
+                      children: List.generate(_liveQuestions.length, (idx) {
                         final qNum = idx + 1;
-                        final isAnswered = _selectedAnswers.containsKey(qNum);
-                        final isFlagged = _flaggedQuestions.contains(qNum);
+                        final isAnswered =
+                            _selectedAnswers.containsKey(qNum);
+                        final isFlagged =
+                            _flaggedQuestions.contains(qNum);
                         final isCur = _currentQuestion == qNum;
 
                         Color bg = AppColors.bgPage;
@@ -1408,14 +1904,19 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                         }
 
                         return InkWell(
-                          onTap: () => setState(() => _currentQuestion = qNum),
+                          onTap: () =>
+                              setState(() => _currentQuestion = qNum),
                           child: Container(
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
                               color: bg,
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: isCur ? AppColors.studentPrimary : AppColors.border),
+                              border: Border.all(
+                                color: isCur
+                                    ? AppColors.studentPrimary
+                                    : AppColors.border,
+                              ),
                             ),
                             alignment: Alignment.center,
                             child: Text(
@@ -1423,7 +1924,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13,
-                                color: isCur ? Colors.white : AppColors.textMain,
+                                color: isCur
+                                    ? Colors.white
+                                    : AppColors.textMain,
                               ),
                             ),
                           ),
@@ -1432,12 +1935,21 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
-                      onPressed: _submitExam,
+                      onPressed: _submittingExam ? null : _submitLiveExam,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.success,
                         minimumSize: const Size.fromHeight(40),
                       ),
-                      child: const Text('Submit Exam'),
+                      child: _submittingExam
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Submit Exam'),
                     ),
                   ],
                 ),
@@ -1451,22 +1963,43 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // 12. Exam Submitted Tab
   Widget _buildExamSubmittedTab() {
+    final title = _selectedExam?['title']?.toString() ?? 'Examination';
+    final resultsReleased = _examAttempt?['resultsReleased'] == true;
+
     return Container(
       padding: const EdgeInsets.all(36),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.successBg, shape: BoxShape.circle),
-            child: const Icon(Icons.check_circle, color: AppColors.success, size: 54),
+            decoration: BoxDecoration(
+              color: AppColors.successBg,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_circle,
+              color: AppColors.success,
+              size: 54,
+            ),
           ),
           const SizedBox(height: 20),
-          const Text('Exam Successfully Submitted!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.textMain)),
-          const SizedBox(height: 8),
           const Text(
-            'Your answers for DBMS Mid-Term Examination have been recorded into the database.',
-            style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+            'Exam Successfully Submitted!',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: AppColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your answers for $title have been persisted in the database.',
+            style: const TextStyle(fontSize: 14, color: AppColors.textMuted),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 28),
@@ -1475,13 +2008,19 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             children: [
               ElevatedButton(
                 onPressed: () => setState(() => _activeTab = 'exam-results'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
-                child: const Text('View Exam Results'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.studentPrimary,
+                ),
+                child: Text(
+                  resultsReleased
+                      ? 'View Exam Results'
+                      : 'Check Results Status',
+                ),
               ),
               const SizedBox(width: 14),
               OutlinedButton(
-                onPressed: () => setState(() => _activeTab = 'dashboard'),
-                child: const Text('Return to Dashboard'),
+                onPressed: () => setState(() => _activeTab = 'exams'),
+                child: const Text('Return to Exams List'),
               ),
             ],
           ),
@@ -1492,26 +2031,121 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // 13. Exam Results Tab
   Widget _buildExamResultsTab() {
+    final title =
+        _selectedExam?['title']?.toString() ?? 'Online Examination';
+    final resultsReleased = _examAttempt?['resultsReleased'] == true;
+
+    if (!resultsReleased) {
+      return Container(
+        padding: const EdgeInsets.all(36),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.lock_clock_outlined,
+                color: AppColors.accentOrange,
+                size: 54,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Results Pending Release',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textMain,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Your submission for $title has been recorded into the database.\nPer academic policy, results will become visible once the instructor or administrator releases them.',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textMuted,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 28),
+            ElevatedButton(
+              onPressed: () => setState(() => _activeTab = 'exams'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.studentPrimary,
+              ),
+              child: const Text('Back to Examinations'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final score = _examAttempt?['score']?.toString() ?? '0';
+    final totalMarks = _examAttempt?['totalMarks']?.toString() ?? '100';
+    final percentage = _examAttempt?['percentage']?.toString() ?? '0';
+    final passed = _examAttempt?['passed'] == true;
+    final totalQ = _examAttempt?['totalQuestions']?.toString() ?? '0';
+    final correctQ = _examAttempt?['correctAnswers']?.toString() ?? '0';
+    final incorrectQ = _examAttempt?['incorrectAnswers']?.toString() ?? '0';
+
     return Container(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Examination Scorecard', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                  Text('DBMS Mid-Term Examination (CS-301) Result', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  const Text(
+                    'Examination Scorecard',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$title Official Results',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: AppColors.successBg, borderRadius: BorderRadius.circular(12)),
-                child: const Text('PASSED (GRADE: A)', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.success)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: passed ? AppColors.successBg : AppColors.errorBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  passed ? 'PASSED' : 'FAILED',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: passed ? AppColors.success : AppColors.error,
+                  ),
+                ),
               ),
             ],
           ),
@@ -1520,17 +2154,43 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildResultStat('Score', '46 / 50', AppColors.studentPrimary)),
-              Expanded(child: _buildResultStat('Percentage', '92.0%', AppColors.accentGreen)),
-              Expanded(child: _buildResultStat('Accuracy', '95.0%', AppColors.accentOrange)),
-              Expanded(child: _buildResultStat('Attempted', '4 / 4', AppColors.primary)),
+              Expanded(
+                child: _buildResultStat(
+                  'Score',
+                  '$score / $totalMarks',
+                  AppColors.studentPrimary,
+                ),
+              ),
+              Expanded(
+                child: _buildResultStat(
+                  'Percentage',
+                  '$percentage%',
+                  passed ? AppColors.accentGreen : AppColors.error,
+                ),
+              ),
+              Expanded(
+                child: _buildResultStat(
+                  'Correct Answers',
+                  '$correctQ / $totalQ',
+                  AppColors.success,
+                ),
+              ),
+              Expanded(
+                child: _buildResultStat(
+                  'Incorrect Answers',
+                  '$incorrectQ / $totalQ',
+                  AppColors.error,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 28),
           ElevatedButton(
-            onPressed: () => setState(() => _activeTab = 'dashboard'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
-            child: const Text('Return to Student Dashboard'),
+            onPressed: () => setState(() => _activeTab = 'exams'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.studentPrimary,
+            ),
+            child: const Text('Return to Examinations'),
           ),
         ],
       ),

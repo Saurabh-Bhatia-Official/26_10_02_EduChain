@@ -1,6 +1,7 @@
 package com.edlearn.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -85,6 +86,11 @@ public class UserEntity {
     @Column(name = "instructor_id")
     private String instructorId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_teacher_id")
+    @JsonIgnore
+    private UserEntity assignedTeacher;
+
     private String designation;
     private String department;
 
@@ -138,7 +144,7 @@ public class UserEntity {
     }
 
     public String getRole() {
-        return role;
+        return role != null ? role.toLowerCase() : "";
     }
 
     public void setRole(String role) {
@@ -171,7 +177,7 @@ public class UserEntity {
     }
 
     public String getInstituteCode() {
-        return instituteCode;
+        return instituteCode != null && !instituteCode.isBlank() ? instituteCode : "INST-2025";
     }
 
     public void setInstituteCode(String instituteCode) {
@@ -344,6 +350,14 @@ public class UserEntity {
 
     public void setInstructorId(String instructorId) {
         this.instructorId = instructorId;
+    }
+
+    public UserEntity getAssignedTeacher() {
+        return assignedTeacher;
+    }
+
+    public void setAssignedTeacher(UserEntity assignedTeacher) {
+        this.assignedTeacher = assignedTeacher;
     }
 
     public void setEmployeeId(String employeeId) {

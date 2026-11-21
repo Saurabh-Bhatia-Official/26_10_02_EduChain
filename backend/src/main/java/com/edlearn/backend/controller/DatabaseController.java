@@ -6,7 +6,6 @@ import com.edlearn.backend.repository.InstituteRepository;
 import com.edlearn.backend.repository.StoredFileRepository;
 import com.edlearn.backend.repository.UserRepository;
 import com.edlearn.backend.service.CloudinaryService;
-import com.edlearn.backend.service.S3StorageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -22,20 +21,17 @@ public class DatabaseController {
     private final InstituteRepository instituteRepository;
     private final UserRepository userRepository;
     private final StoredFileRepository storedFileRepository;
-    private final S3StorageService s3StorageService;
     private final CloudinaryService cloudinaryService;
 
     public DatabaseController(JdbcTemplate jdbcTemplate,
                               InstituteRepository instituteRepository,
                               UserRepository userRepository,
                               StoredFileRepository storedFileRepository,
-                              S3StorageService s3StorageService,
                               CloudinaryService cloudinaryService) {
         this.jdbcTemplate = jdbcTemplate;
         this.instituteRepository = instituteRepository;
         this.userRepository = userRepository;
         this.storedFileRepository = storedFileRepository;
-        this.s3StorageService = s3StorageService;
         this.cloudinaryService = cloudinaryService;
     }
 
@@ -61,17 +57,15 @@ public class DatabaseController {
             }
 
             health.put("databaseStatus", "UP");
-            health.put("provider", dbProduct.toLowerCase().contains("h2") ? "Embedded PostgreSQL-Compatible Engine (H2)" : "PostgreSQL Database Server (" + dbProduct + " " + dbVersion + ")");
+            health.put("provider", dbProduct);
             health.put("databaseProduct", dbProduct);
             health.put("databaseName", catalog);
             health.put("databaseUser", currentUser);
             health.put("databaseVersion", dbVersion);
             health.put("jdbcUrl", url);
-            health.put("h2WebConsole", dbProduct.toLowerCase().contains("h2") ? "http://localhost:5000/h2-console" : "PostgreSQL Database connected on port 5432");
             health.put("instituteCount", instituteRepository.count());
             health.put("userCount", userRepository.count());
             health.put("storedFilesCount", storedFileRepository.count());
-            health.put("s3Storage", s3StorageService.testConnection());
             health.put("cloudinary", cloudinaryService.testConnection());
             health.put("status", "CONNECTED");
             return ResponseEntity.ok(health);

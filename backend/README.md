@@ -1,58 +1,36 @@
-# Enterprise Management System - Spring Boot Backend & PostgreSQL Database
+# EduChain Spring Boot Backend
 
-This backend powers the Management System frontend, replacing static demo records with full Spring Boot 3.3.4 REST APIs connected to a relational PostgreSQL database.
+The backend uses PostgreSQL for application data and Cloudinary for uploaded media. It defaults to a local PostgreSQL database for development and accepts production database settings from environment variables.
 
----
+## Configure PostgreSQL and Cloudinary
 
-## 1. PostgreSQL Database Credentials
+For local development, create a PostgreSQL database named `edlearndb` and the existing `edlearn` schema, then run the backend without setting deployment variables. The defaults are `jdbc:postgresql://localhost:5432/edlearndb`, username `postgres`, and an empty password. If your local server requires a password or uses a different database/user, set `DATABASE_URL`, `DATABASE_USERNAME`, and `DATABASE_PASSWORD` in `backend/.env` or the process environment. Never commit populated `.env` files.
 
-| Parameter | Default Value | Environment Variable |
-|---|---|---|
-| **Host** | `localhost` / `127.0.0.1` | `DB_HOST` |
-| **Port** | `5433` | `DB_PORT` |
-| **Database Name** | `lms_db` | `DB_NAME` |
-| **Username** | `postgres` | `DB_USERNAME` |
-| **Password** | `tiger` | `DB_PASSWORD` |
-| **JDBC Connection URL** | `jdbc:postgresql://localhost:5433/lms_db` | `SPRING_DATASOURCE_URL` |
-| **Data Directory** | `C:\Users\NTCI\pgdata_lms` | - |
+If needed, create the database once and ensure the schema exists:
 
-> **Note:** If your PostgreSQL setup requires a password, set `DB_PASSWORD=your_password` in your terminal or in `application.yml`.
-
----
-
-## 2. Default Seed Logins (All User Roles)
-
-All accounts are pre-seeded in PostgreSQL via Flyway (`V2__seed_initial_data.sql`):
-
-| Role | Email | Password | Identifier / Code |
-|---|---|---|---|
-| **Institute Portal** | `inst.admin@apex.edu` | `Password123!` | Code: `INST-2025` |
-| **System Admin** | `amit.kumar@institute.com` | `Password123!` | Admin ID: `ADM-001` |
-| **Teacher / Instructor** | `amit.sharma@institute.com` | `Password123!` | Instructor ID: `INS-001` |
-| **Student** | `rahul@institute.com` | `Password123!` | Roll #: `1023` / `BCA-301` |
-
----
-
-## 3. How to Run the Application
-
-### A. Start the PostgreSQL Server (if not running)
 ```powershell
-& "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" -D "C:\Users\NTCI\pgdata_lms" start
+createdb -U postgres edlearndb
+psql -U postgres -d edlearndb -c "CREATE SCHEMA IF NOT EXISTS edlearn;"
 ```
 
-### B. Run the Spring Boot Backend (Port 5000)
+Skip `createdb` if the database already exists. The schema command is non-destructive.
+
+Production can use `DATABASE_URL` / `DATABASE_USERNAME` / `DATABASE_PASSWORD`, `SPRING_DATASOURCE_URL` / `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD`, or the legacy `DB_USERNAME` / `DB_PASSWORD` aliases. Use a JDBC URL such as `jdbc:postgresql://db-host:5432/database`; remote database URLs are configured to require SSL and use the `edlearn` schema. Localhost URLs do not have SSL or a custom socket factory forced on them. The PostgreSQL driver is included in `pom.xml`.
+
+Cloudinary is optional for local startup. Configure `CLOUDINARY_URL` or `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` to enable file uploads.
+
+At startup Hibernate applies the existing `ddl-auto=update` schema updates to the configured PostgreSQL database. This creates/updates tables; it does not copy data from an older local database or transfer existing S3 objects to Cloudinary. New uploads use Cloudinary only. Back up existing data and transfer old media separately before deleting their source accounts.
+
+Integration tests use `TEST_DATABASE_URL`, `TEST_DATABASE_USERNAME`, and `TEST_DATABASE_PASSWORD` for a dedicated disposable PostgreSQL database. They create and drop mapped tables in the `edlearn` schema, so never point these variables at production.
+
+## Run the application
+
 ```powershell
-cd "c:\Users\NTCI\Downloads\Management-System1-main (1)\Management-System1-main\backend"
+Set-Location backend
 mvn spring-boot:run
 ```
-Once started, the backend is available at `http://localhost:5000/api`.
 
-### C. Run the React Frontend (Port 5173)
-```powershell
-cd "c:\Users\NTCI\Downloads\Management-System1-main (1)\Management-System1-main\frontend"
-npm run dev
-```
-Open `http://localhost:5173` in your browser.
+The backend listens on port `5000` by default (or the configured `PORT` / `SERVER_PORT`). The Flutter frontend is in `../frontend`.
 
 ---
 
@@ -65,6 +43,25 @@ Interactive API documentation with JWT Bearer token authorization:
 ---
 
 ## 5. Implemented REST API Endpoints
+
+### Portal announcements, leave management, and notifications (`/api/portal`)
+All endpoints below require the signed Bearer token returned by Admin, Teacher, or Student login. Tokens expire after 12 hours. Configure `EDLEARN_AUTH_SECRET` (or the existing `JWT_SECRET`) to the same strong secret of at least 32 bytes on every backend replica; when omitted, a random process-local signing key is generated, so sessions expire on restart and do not work across replicas.
+
+- `GET /api/portal/announcements` - List announcements for the current role; Admins see institute announcements including drafts
+- `POST /api/portal/announcements` - Create an Admin announcement
+- `PUT /api/portal/announcements/{id}` - Edit or publish/unpublish an announcement
+- `DELETE /api/portal/announcements/{id}` - Delete an Admin announcement
+- `POST /api/portal/announcements/{id}/read` - Mark an announcement as read
+- `GET /api/portal/leaves` - List the caller's applications and role-appropriate review queue; supports `status`, `applicantRole`, `from`, `to`, and `search`
+- `POST /api/portal/leaves` - Submit a Student or Teacher leave application
+- `POST /api/portal/leaves/{id}/decision` - Teacher review of assigned Student requests or Admin review of Teacher requests and second-stage Student requests
+- `POST /api/portal/leave-attachments` - Upload an optional PDF/JPEG/PNG attachment (maximum 10 MB)
+- `GET /api/portal/notifications` and `GET /api/portal/notifications/unread-count` - List user-specific notifications and unread count
+- `POST /api/portal/notifications/{id}/read` - Mark a notification as read
+- `GET /api/portal/admin/assignment-options` - List same-institute Students and Teachers, including current assignments
+- `PUT /api/portal/admin/students/{studentId}/teacher` - Assign a Student's Teacher
+
+Portal entities are created/updated by the existing Hibernate `ddl-auto=update` schema management. Student leave requests require an Admin-managed Teacher assignment. Student requests require Teacher approval first; the additional Admin approval stage is controlled by `EDLEARN_LEAVE_SECOND_APPROVAL` (default `true`).
 
 ### Authentication (`/api/auth`)
 - `POST /api/auth/login` - Role-based login (Admin, Teacher, Student)
