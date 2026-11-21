@@ -653,4 +653,184 @@ class ApiService {
     }
     return [];
   }
+
+  // ==========================================
+  // LMS: GOOGLE CLASSROOM & LIVE CLASSES HUB
+  // ==========================================
+
+  Future<List<Map<String, dynamic>>> getClassrooms() async {
+    final response = await request('/classrooms');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> getClassroomDetails(String id) async {
+    final response = await request('/classrooms/$id');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createClassroom(Map<String, dynamic> data) async {
+    final response = await request('/classrooms', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateClassroom(String id, Map<String, dynamic> data) async {
+    final response = await request('/classrooms/$id', method: 'PUT', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> joinClassroom(String code) async {
+    final response = await request('/classrooms/join', method: 'POST', body: {'code': code});
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getClassroomMembers(String id) async {
+    final response = await request('/classrooms/$id/members');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateMemberStatus(String classroomId, String userId, String status) async {
+    final response = await request(
+      '/classrooms/$classroomId/members/$userId/status',
+      method: 'POST',
+      body: {'status': status},
+    );
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> archiveClassroom(String id, bool archive) async {
+    final response = await request('/classrooms/$id/archive', method: 'PUT', body: {'archive': archive});
+    return response as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getClassroomComments(
+    String classroomId, {
+    String targetType = 'STREAM_POST',
+    String? targetId,
+  }) async {
+    String url = '/classrooms/$classroomId/comments?targetType=$targetType';
+    if (targetId != null) {
+      url += '&targetId=$targetId';
+    }
+    final response = await request(url);
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> addClassroomComment(String classroomId, Map<String, dynamic> data) async {
+    final response = await request('/classrooms/$classroomId/comments', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  // Assignments
+  Future<List<Map<String, dynamic>>> getAssignments(String classroomId, {String? topic}) async {
+    String url = '/assignments/classroom/$classroomId';
+    if (topic != null && topic.isNotEmpty) {
+      url += '?topic=${Uri.encodeComponent(topic)}';
+    }
+    final response = await request(url);
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> getAssignmentDetails(String id) async {
+    final response = await request('/assignments/$id');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createAssignment(String classroomId, Map<String, dynamic> data) async {
+    final response = await request('/assignments?classroomId=$classroomId', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> submitAssignment(String id, Map<String, dynamic> data) async {
+    final response = await request('/assignments/$id/submit', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> unsubmitAssignment(String id) async {
+    final response = await request('/assignments/$id/unsubmit', method: 'POST');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> deleteAttachment(String attachmentId) async {
+    final response = await request('/assignments/attachments/$attachmentId', method: 'DELETE');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getStudentTodoList() async {
+    final response = await request('/assignments/to-do');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> gradeSubmission(String submissionId, Map<String, dynamic> data) async {
+    final response = await request('/assignments/submissions/$submissionId/grade', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getClassGradebook(String classroomId) async {
+    final response = await request('/assignments/classroom/$classroomId/gradebook');
+    return response as Map<String, dynamic>;
+  }
+
+  // Google Meet & Live Classes
+  Future<Map<String, dynamic>> scheduleLiveClass(String classroomId, Map<String, dynamic> data) async {
+    final response = await request('/live-classes?classroomId=$classroomId', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getClassroomLiveClasses(String classroomId) async {
+    final response = await request('/live-classes/classroom/$classroomId');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getUpcomingLiveClasses() async {
+    final response = await request('/live-classes/upcoming');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> joinLiveClass(String id) async {
+    final response = await request('/live-classes/$id/join', method: 'POST');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> leaveLiveClass(String id) async {
+    final response = await request('/live-classes/$id/leave', method: 'POST');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateLiveClassStatus(String id, Map<String, dynamic> data) async {
+    final response = await request('/live-classes/$id/status', method: 'PUT', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getLiveClassAttendance(String id) async {
+    final response = await request('/live-classes/$id/attendance');
+    return response as Map<String, dynamic>;
+  }
+
+  // Public Discovery
+  Future<List<Map<String, dynamic>>> searchPublicClassrooms({String? query}) async {
+    String url = '/public/classrooms';
+    if (query != null && query.isNotEmpty) {
+      url += '?search=${Uri.encodeComponent(query)}';
+    }
+    final response = await request(url);
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
 }

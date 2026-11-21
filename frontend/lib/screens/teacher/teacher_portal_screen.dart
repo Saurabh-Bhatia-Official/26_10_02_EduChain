@@ -13,6 +13,7 @@ import '../../widgets/metric_card.dart';
 import '../portal_modules_screen.dart';
 import '../../widgets/portal_notification_bell.dart';
 import '../../widgets/portal_announcement_preview.dart';
+import '../classroom/classroom_hub_screen.dart';
 
 class TeacherPortalScreen extends StatefulWidget {
   final String initialTab;
@@ -114,17 +115,22 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
             child: Column(
               children: [
                 _buildTopBar(user, nav, auth, isDesktop),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1200),
-                        child: _buildScreenContent(user, nav),
+                if (_activeScreen == 'classes')
+                  const Expanded(
+                    child: ClassroomHubScreen(userRole: 'teacher'),
+                  )
+                else
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: _buildScreenContent(user, nav),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -484,56 +490,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
   // 2. Classes
   Widget _buildClassesScreen() {
-    final classes = [
-      {'name': 'BCA - Semester 3 (Section A)', 'students': 48, 'room': 'Hall 302', 'sub': 'Database Systems', 'prog': 0.72},
-      {'name': 'BCA - Semester 3 (Section B)', 'students': 52, 'room': 'Hall 105', 'sub': 'Data Structures', 'prog': 0.65},
-      {'name': 'MCA - Semester 1', 'students': 42, 'room': 'Hall 201', 'sub': 'Advanced Web Tech', 'prog': 0.80},
-      {'name': 'B.Tech CS - Semester 5', 'students': 38, 'room': 'Seminar Hall', 'sub': 'Cloud Architecture', 'prog': 0.50},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Assigned Class Batches', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          const Text('Manage classroom rosters, attendance logs, and student performance.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          const SizedBox(height: 20),
-          ...classes.map((c) {
-            final prog = c['prog'] as double;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: AppColors.bgPage, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.border)),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c['name'] as String, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                        const SizedBox(height: 3),
-                        Text('Subject: ${c['sub']} • ${c['room']} • ${c['students']} Students', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                        const SizedBox(height: 8),
-                        Text('Syllabus Progress: ${(prog * 100).toInt()}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.teacherPrimary)),
-                      ],
-                    ),
-                    ElevatedButton(
-                      onPressed: () => setState(() => _activeScreen = 'students'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary),
-                      child: const Text('View Students'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
+    return const ClassroomHubScreen(userRole: 'teacher');
   }
 
   // 3. Students (Live CRUD from Backend)

@@ -22,6 +22,7 @@ import 'screens/student/student_portal_screen.dart';
 import 'screens/teacher/teacher_portal_screen.dart';
 import 'screens/admin/admin_portal_screen.dart';
 import 'screens/crud/students_crud_screen.dart';
+import 'screens/classroom/classroom_hub_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -145,6 +146,10 @@ class AppRootView extends StatelessWidget {
     }
     if (currentPage == 'students-crud') {
       return const StudentsCrudScreen();
+    }
+    if (currentPage == 'classroom-hub') {
+      final role = auth.currentUser?.role ?? 'student';
+      return ClassroomHubScreen(userRole: role);
     }
 
     // Default: Public Home Page with Navbar and Footer

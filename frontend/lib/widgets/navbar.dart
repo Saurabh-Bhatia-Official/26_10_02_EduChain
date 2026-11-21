@@ -104,6 +104,11 @@ class Navbar extends StatelessWidget {
                   onTap: () => nav.navigateTo('home'),
                 ),
                 _NavLink(
+                  title: 'Classrooms',
+                  isActive: nav.currentPage == 'classroom-hub',
+                  onTap: () => nav.navigateTo('classroom-hub'),
+                ),
+                _NavLink(
                   title: 'About',
                   isActive: false,
                   onTap: () => onScrollToSection?.call('about'),

@@ -11,6 +11,7 @@ import '../portal_modules_screen.dart';
 import '../../widgets/portal_notification_bell.dart';
 import '../../widgets/portal_announcement_preview.dart';
 import '../../services/api_service.dart';
+import '../classroom/classroom_hub_screen.dart';
 
 class StudentPortalScreen extends StatefulWidget {
   final String initialTab;
@@ -266,17 +267,22 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             child: Column(
               children: [
                 _buildTopBar(user, nav, auth, isDesktop),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1200),
-                        child: _buildTabContent(user, nav),
+                if (_activeTab == 'classrooms')
+                  const Expanded(
+                    child: ClassroomHubScreen(userRole: 'student'),
+                  )
+                else
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1200),
+                          child: _buildTabContent(user, nav),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -296,6 +302,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       {'id': 'materials', 'title': 'Study Materials', 'icon': Icons.menu_book_outlined},
       {'id': 'timetable', 'title': 'Weekly Timetable', 'icon': Icons.grid_view_outlined},
       {'id': 'parents', 'title': 'Parent Portal', 'icon': Icons.family_restroom_outlined},
+      {'id': 'classrooms', 'title': 'Google Classroom', 'icon': Icons.school_outlined},
       {'id': 'exams', 'title': 'Online Exams', 'icon': Icons.assignment_outlined},
       {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
       {'id': 'leaves', 'title': 'Leave Applications', 'icon': Icons.event_available_outlined},
@@ -515,6 +522,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         return 'Parent & Guardian Portal';
       case 'exams':
         return 'Online Examination Hall';
+      case 'classrooms':
+        return 'Google Classroom & Meet Hub';
       case 'announcements':
         return 'Announcements';
       case 'leaves':
@@ -552,6 +561,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         return _buildParentsTab(user);
       case 'exams':
         return _buildExamsTab();
+      case 'classrooms':
+        return const ClassroomHubScreen(userRole: 'student');
       case 'announcements':
       case 'leaves':
         return PortalModulesScreen(

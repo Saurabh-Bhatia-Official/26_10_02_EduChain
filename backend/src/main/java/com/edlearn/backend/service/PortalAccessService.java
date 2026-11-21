@@ -45,4 +45,17 @@ public class PortalAccessService {
         }
         return user;
     }
+
+    public java.util.Optional<UserEntity> resolveOptional(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return java.util.Optional.empty();
+        }
+        try {
+            PortalTokenService.Claims claims = tokenService.verify(header.substring(7));
+            return userRepository.findById(claims.userId());
+        } catch (Exception ex) {
+            return java.util.Optional.empty();
+        }
+    }
 }
