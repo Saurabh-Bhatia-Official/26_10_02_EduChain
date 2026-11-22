@@ -3,14 +3,12 @@ name: Frontend Multi-Platform Build & Release
 on:
   push:
     branches:
-      - main
       - master
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-build.yml'
   pull_request:
     branches:
-      - main
       - master
     paths:
       - 'frontend/**'
