@@ -62,12 +62,26 @@ public class ExamController {
         return examService.getStudentAttempt(user, id);
     }
 
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, Object> createExam(HttpServletRequest request, @RequestBody Map<String, Object> body) {
+        UserEntity teacher = accessService.require(request, "teacher", "admin");
+        return examService.createExam(teacher, body);
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> deleteExam(HttpServletRequest request, @PathVariable UUID id) {
+        UserEntity teacher = accessService.require(request, "teacher", "admin");
+        examService.deleteExam(teacher, id);
+        return Map.of("success", true, "message", "Examination deleted successfully.");
+    }
+
     @PutMapping("/{id}/release-results")
     public Map<String, Object> releaseResults(HttpServletRequest request, @PathVariable UUID id,
                                               @RequestBody Map<String, Object> body) {
-        UserEntity admin = accessService.require(request, "admin");
+        UserEntity user = accessService.require(request, "admin", "teacher");
         boolean release = Boolean.TRUE.equals(body.get("release"));
-        return examService.releaseResults(admin, id, release);
+        return examService.releaseResults(user, id, release);
     }
 
     @GetMapping("/{id}/attempts")

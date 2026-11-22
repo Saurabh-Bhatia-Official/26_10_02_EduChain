@@ -654,6 +654,16 @@ class ApiService {
     return [];
   }
 
+  Future<Map<String, dynamic>> createExam(Map<String, dynamic> data) async {
+    final response = await request('/portal/exams', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> deleteExam(String id) async {
+    final response = await request('/portal/exams/$id', method: 'DELETE');
+    return response as Map<String, dynamic>;
+  }
+
   // ==========================================
   // LMS: GOOGLE CLASSROOM & LIVE CLASSES HUB
   // ==========================================
@@ -725,6 +735,9 @@ class ApiService {
     final response = await request('/classrooms/$classroomId/comments', method: 'POST', body: data);
     return response as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> postClassroomComment(String classroomId, Map<String, dynamic> data) =>
+      addClassroomComment(classroomId, data);
 
   // Assignments
   Future<List<Map<String, dynamic>>> getAssignments(String classroomId, {String? topic}) async {

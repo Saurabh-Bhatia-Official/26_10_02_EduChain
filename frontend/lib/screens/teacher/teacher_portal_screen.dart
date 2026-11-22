@@ -14,6 +14,7 @@ import '../portal_modules_screen.dart';
 import '../../widgets/portal_notification_bell.dart';
 import '../../widgets/portal_announcement_preview.dart';
 import '../classroom/classroom_hub_screen.dart';
+import '../../services/api_service.dart';
 
 class TeacherPortalScreen extends StatefulWidget {
   final String initialTab;
@@ -143,7 +144,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   Widget _buildSidebar(UserModel? user, NavigationProvider nav) {
     final menuItems = [
       {'id': 'dashboard', 'title': 'Dashboard', 'icon': Icons.dashboard_outlined},
-      {'id': 'classes', 'title': 'My Classes', 'icon': Icons.class_outlined},
+      {'id': 'classes', 'title': 'Google Classroom', 'icon': Icons.school_outlined},
+      {'id': 'exams', 'title': 'Examinations', 'icon': Icons.assignment_outlined},
       {'id': 'students', 'title': 'Student Records', 'icon': Icons.people_outline},
       {'id': 'add-student', 'title': 'Add New Student', 'icon': Icons.person_add_outlined},
       {'id': 'courses', 'title': 'Courses & Curriculum', 'icon': Icons.menu_book_outlined},
@@ -352,7 +354,9 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       case 'dashboard':
         return 'Instructor Dashboard';
       case 'classes':
-        return 'Assigned Classes & Roster';
+        return 'Google Classroom & Meet Hub';
+      case 'exams':
+        return 'Online Examinations & Evaluations';
       case 'students':
         return 'Student Directory & Records';
       case 'add-student':
@@ -388,6 +392,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
         return _buildDashboardScreen();
       case 'classes':
         return _buildClassesScreen();
+      case 'exams':
+        return _buildTeacherExamsScreen();
       case 'students':
         return _buildStudentsScreen();
       case 'add-student':
@@ -491,6 +497,556 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   // 2. Classes
   Widget _buildClassesScreen() {
     return const ClassroomHubScreen(userRole: 'teacher');
+  }
+
+  // 2B. Examinations Management & Evaluations (Teacher Portal)
+  List<Map<String, dynamic>> _teacherExams = [];
+  bool _loadingTeacherExams = false;
+  String? _teacherExamError;
+
+  Future<void> _fetchTeacherExams() async {
+    setState(() {
+      _loadingTeacherExams = true;
+      _teacherExamError = null;
+    });
+    try {
+      final exams = await ApiService().getExams();
+      if (mounted) {
+        setState(() {
+          _teacherExams = exams;
+          _loadingTeacherExams = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadingTeacherExams = false;
+          _teacherExamError = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
+    }
+  }
+
+  void _showCreateExamDialog() {
+    final titleController = TextEditingController();
+    final courseCodeController = TextEditingController(text: 'CS-302');
+    final courseNameController = TextEditingController(text: 'Data Structures & Algorithms');
+    final classNameController = TextEditingController(text: 'CSE 2026');
+    final sectionController = TextEditingController(text: 'Batch A');
+    final durationController = TextEditingController(text: '60');
+    final totalMarksController = TextEditingController(text: '100');
+
+    // Questions builder
+    final List<Map<String, dynamic>> questions = [
+      {
+        'id': '1',
+        'question': 'Which data structure follows the Last-In-First-Out (LIFO) principle?',
+        'options': ['Queue', 'Stack', 'Linked List', 'Binary Tree'],
+        'correctAnswer': 'Stack',
+        'marks': 25,
+      },
+      {
+        'id': '2',
+        'question': 'What is the average time complexity of searching in a Balanced Binary Search Tree (AVL Tree)?',
+        'options': ['O(1)', 'O(n)', 'O(log n)', 'O(n log n)'],
+        'correctAnswer': 'O(log n)',
+        'marks': 25,
+      },
+      {
+        'id': '3',
+        'question': 'Which algorithm is used to find the shortest path in a weighted graph without negative cycles?',
+        'options': ['Dijkstra Algorithm', 'Prim Algorithm', 'Kruskal Algorithm', 'Floyd-Warshall'],
+        'correctAnswer': 'Dijkstra Algorithm',
+        'marks': 25,
+      },
+      {
+        'id': '4',
+        'question': 'In a max heap, where is the largest element always located?',
+        'options': ['At the deepest leaf', 'At the root node', 'In the left subtree', 'At any position'],
+        'correctAnswer': 'At the root node',
+        'marks': 25,
+      },
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.assignment_add, color: AppColors.teacherPrimary),
+              SizedBox(width: 10),
+              Text('Create Online Examination', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Exam Title', hintText: 'e.g. Midterm Assessment: Data Structures'),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: courseCodeController,
+                          decoration: const InputDecoration(labelText: 'Course Code', hintText: 'CS-302'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: classNameController,
+                          decoration: const InputDecoration(labelText: 'Class / Program', hintText: 'BCA / B.Tech'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: durationController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Duration (Minutes)', hintText: '60'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: totalMarksController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Total Marks', hintText: '100'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Assessment Questions (${questions.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text('${questions.fold<int>(0, (sum, q) => sum + (q['marks'] as int? ?? 0))} Marks Total', style: const TextStyle(fontSize: 12, color: AppColors.teacherPrimary, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: questions.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (ctx, i) {
+                        final q = questions[i];
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: AppColors.teacherPrimary,
+                            child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 11)),
+                          ),
+                          title: Text(q['question'] as String, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          subtitle: Text('Ans: ${q['correctAnswer']} • ${q['marks']} pts', style: const TextStyle(fontSize: 11, color: Colors.green)),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.teacherPrimary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                final title = titleController.text.trim();
+                if (title.isEmpty) return;
+                Navigator.pop(ctx);
+                try {
+                  await ApiService().createExam({
+                    'title': title,
+                    'courseCode': courseCodeController.text.trim(),
+                    'courseName': courseNameController.text.trim(),
+                    'className': classNameController.text.trim(),
+                    'sectionName': sectionController.text.trim(),
+                    'durationMinutes': int.tryParse(durationController.text.trim()) ?? 60,
+                    'totalMarks': int.tryParse(totalMarksController.text.trim()) ?? 100,
+                    'questions': questions,
+                    'status': 'Published',
+                    'resultsReleased': false,
+                  });
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Examination published successfully!'), backgroundColor: Colors.green),
+                  );
+                  _fetchTeacherExams();
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
+                  );
+                }
+              },
+              child: const Text('Publish Exam'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showExamAttemptsDialog(Map<String, dynamic> exam) async {
+    final examId = exam['id'].toString();
+    showDialog(
+      context: context,
+      builder: (ctx) => FutureBuilder<List<Map<String, dynamic>>>(
+        future: ApiService().getExamAttempts(examId),
+        builder: (ctx, snapshot) {
+          final attempts = snapshot.data ?? [];
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                const Icon(Icons.people_alt_outlined, color: AppColors.teacherPrimary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Student Attempts: ${exam['title'] ?? 'Exam'}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 580,
+              height: 380,
+              child: snapshot.connectionState == ConnectionState.waiting
+                  ? const Center(child: CircularProgressIndicator())
+                  : attempts.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No student attempts recorded for this exam yet.',
+                            style: TextStyle(color: AppColors.textMuted),
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: attempts.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (ctx, i) {
+                            final att = attempts[i];
+                            final status = att['status']?.toString() ?? 'IN_PROGRESS';
+                            final score = att['obtainedMarks'];
+                            final total = att['totalMarks'] ?? exam['totalMarks'] ?? 100;
+                            final isSubmitted = status == 'SUBMITTED';
+
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: isSubmitted ? Colors.green.shade100 : Colors.amber.shade100,
+                                child: Icon(
+                                  isSubmitted ? Icons.check : Icons.hourglass_top,
+                                  color: isSubmitted ? Colors.green.shade800 : Colors.amber.shade800,
+                                  size: 18,
+                                ),
+                              ),
+                              title: Text(att['studentName'] ?? 'Student', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              subtitle: Text(
+                                'Roll: ${att['rollNumber'] ?? "-"} • ${att['email'] ?? ""}\nSubmitted: ${att['submittedAt']?.toString().split("T").first ?? "In Progress"}',
+                                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                              ),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isSubmitted ? Colors.purple.shade50 : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: isSubmitted ? Colors.purple.shade200 : Colors.grey.shade300),
+                                ),
+                                child: Text(
+                                  isSubmitted ? '$score / $total pts' : 'In Progress',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: isSubmitted ? Colors.purple.shade900 : AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _toggleReleaseResults(Map<String, dynamic> exam) async {
+    final examId = exam['id'].toString();
+    final currentStatus = exam['resultsReleased'] == true;
+    final newStatus = !currentStatus;
+
+    try {
+      final res = await ApiService().releaseExamResults(examId, newStatus);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['message'] ?? (newStatus ? 'Results released to students!' : 'Results hidden from students.')),
+          backgroundColor: newStatus ? Colors.green : Colors.orange,
+        ),
+      );
+      _fetchTeacherExams();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  void _deleteExam(Map<String, dynamic> exam) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Examination?'),
+        content: Text('Are you sure you want to delete "${exam['title']}"? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ApiService().deleteExam(exam['id'].toString());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Examination deleted.'), backgroundColor: Colors.red),
+      );
+      _fetchTeacherExams();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Widget _buildTeacherExamsScreen() {
+    if (_teacherExams.isEmpty && !_loadingTeacherExams && _teacherExamError == null) {
+      _fetchTeacherExams();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Examinations & Evaluation Desk', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Create exams, manage objective/subjective assessments, and evaluate student attempts.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh, color: AppColors.teacherPrimary),
+                    tooltip: 'Refresh Exams',
+                    onPressed: _fetchTeacherExams,
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Create Examination'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.teacherPrimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: _showCreateExamDialog,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherExams)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherExamError != null)
+            Center(
+              child: Column(
+                children: [
+                  Text(_teacherExamError!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 12),
+                  ElevatedButton(onPressed: _fetchTeacherExams, child: const Text('Retry')),
+                ],
+              ),
+            )
+          else if (_teacherExams.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(48),
+              alignment: Alignment.center,
+              child: Column(
+                children: [
+                  const Icon(Icons.assignment_outlined, size: 54, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text('No examinations scheduled yet.', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Create Your First Exam'),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary, foregroundColor: Colors.white),
+                    onPressed: _showCreateExamDialog,
+                  ),
+                ],
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherExams.length,
+              itemBuilder: (ctx, idx) {
+                final exam = _teacherExams[idx];
+                final resultsReleased = exam['resultsReleased'] == true;
+                final duration = exam['durationMinutes'] ?? 60;
+                final totalMarks = exam['totalMarks'] ?? 100;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE0F2FE),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.quiz_outlined, color: AppColors.teacherPrimary, size: 24),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(exam['title'] ?? 'Examination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${exam['courseCode'] ?? "CS-301"} • ${exam['courseName'] ?? ""} • Class: ${exam['className'] ?? ""}',
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: resultsReleased ? Colors.green.shade50 : Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: resultsReleased ? Colors.green.shade300 : Colors.orange.shade300),
+                              ),
+                              child: Text(
+                                resultsReleased ? 'Results Released' : 'Results Pending',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: resultsReleased ? Colors.green.shade800 : Colors.orange.shade900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Text('Duration: $duration mins', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                            const SizedBox(width: 16),
+                            Text('Total Marks: $totalMarks pts', style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.bold)),
+                            const Spacer(),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.visibility_outlined, size: 16),
+                              label: const Text('Submissions & Evaluation'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.teacherPrimary,
+                                side: const BorderSide(color: AppColors.teacherPrimary),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              onPressed: () => _showExamAttemptsDialog(exam),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              icon: Icon(resultsReleased ? Icons.lock : Icons.lock_open, size: 16),
+                              label: Text(resultsReleased ? 'Lock Results' : 'Release Results'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: resultsReleased ? Colors.orange.shade700 : Colors.green.shade700,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              onPressed: () => _toggleReleaseResults(exam),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              tooltip: 'Delete Examination',
+                              onPressed: () => _deleteExam(exam),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
   }
 
   // 3. Students (Live CRUD from Backend)

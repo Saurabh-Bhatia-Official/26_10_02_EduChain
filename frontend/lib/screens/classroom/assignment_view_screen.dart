@@ -209,7 +209,7 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
                   style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: fileType,
+                initialValue: fileType,
                 decoration: InputDecoration(
                   labelText: 'Attachment Type',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -278,7 +278,6 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
   }
 
   Future<void> _submitWork({bool isResubmit = false}) async {
-    final status = _mySubmission?['status']?.toString();
     final hasAttachments = _stagedAttachments.isNotEmpty || (_mySubmission?['attachments'] as List?)?.isNotEmpty == true;
 
     final confirmed = await showDialog<bool>(
@@ -1385,7 +1384,7 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
 
     return ListView.separated(
       itemCount: _allSubmissions.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.border),
+      separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.border),
       itemBuilder: (ctx, idx) {
         final sub = _allSubmissions[idx];
         final isSelected = _selectedSubmission?['id'] == sub['id'];

@@ -275,9 +275,55 @@ public class ExamService {
     }
 
     @Transactional
-    public Map<String, Object> releaseResults(UserEntity admin, UUID examId, boolean release) {
-        if (!"admin".equalsIgnoreCase(admin.getRole())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only administrators can release examination results.");
+    public Map<String, Object> createExam(UserEntity creator, Map<String, Object> body) {
+        ExamEntity exam = new ExamEntity();
+        exam.setTitle((String) body.getOrDefault("title", "Online Examination"));
+        exam.setCourseCode((String) body.get("courseCode"));
+        exam.setCourseName((String) body.get("courseName"));
+        exam.setClassName((String) body.getOrDefault("className", "Default Class"));
+        exam.setSectionName((String) body.get("sectionName"));
+        exam.setInstituteCode(creator.getInstituteCode() != null ? creator.getInstituteCode() : "INST-2025");
+        exam.setDurationMinutes(body.get("durationMinutes") != null ? ((Number) body.get("durationMinutes")).intValue() : 60);
+        exam.setTotalMarks(body.get("totalMarks") != null ? ((Number) body.get("totalMarks")).intValue() : 100);
+        if (body.get("examDate") != null) {
+            try {
+                exam.setExamDate(LocalDateTime.parse(body.get("examDate").toString()));
+            } catch (Exception ex) {
+                exam.setExamDate(LocalDateTime.now());
+            }
+        }
+        if (body.get("questions") != null) {
+            try {
+                exam.setQuestionsJson(objectMapper.writeValueAsString(body.get("questions")));
+            } catch (Exception ex) {
+                exam.setQuestionsJson("[]");
+            }
+        } else if (body.get("questionsJson") != null) {
+            exam.setQuestionsJson(body.get("questionsJson").toString());
+        } else {
+            exam.setQuestionsJson("[]");
+        }
+        exam.setStatus((String) body.getOrDefault("status", "Published"));
+        exam.setResultsReleased(Boolean.TRUE.equals(body.get("resultsReleased")));
+        exam.setCreatedBy(creator);
+        exam.setCreatedAt(LocalDateTime.now());
+        exam.setUpdatedAt(LocalDateTime.now());
+
+        ExamEntity saved = examRepository.save(exam);
+        return toExamSummary(saved, creator);
+    }
+
+    @Transactional
+    public void deleteExam(UserEntity actor, UUID examId) {
+        ExamEntity exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Examination not found."));
+        examRepository.delete(exam);
+    }
+
+    @Transactional
+    public Map<String, Object> releaseResults(UserEntity user, UUID examId, boolean release) {
+        if (!"admin".equalsIgnoreCase(user.getRole()) && !"teacher".equalsIgnoreCase(user.getRole())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only teachers or administrators can release examination results.");
         }
 
         ExamEntity exam = examRepository.findById(examId)

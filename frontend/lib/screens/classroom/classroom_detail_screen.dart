@@ -313,85 +313,6 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
     );
   }
 
-  void _showSubmitAssignmentDialog(Map<String, dynamic> assignment) {
-    final submissionController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.file_upload_outlined, color: AppColors.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Submit: ${assignment['title']}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Instructions: ${assignment['instructions'] ?? 'No instructions provided.'}',
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: submissionController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: 'Your Work / Response / URL',
-                  hintText: 'Enter your answer or paste your project GitHub / Cloudinary repository link...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              final text = submissionController.text.trim();
-              if (text.isEmpty) return;
-              Navigator.pop(ctx);
-              try {
-                final res = await _apiService.submitAssignment(assignment['id'].toString(), {
-                  'submissionText': text,
-                });
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(res['message'] ?? 'Turned in successfully!'), backgroundColor: Colors.green),
-                );
-                _loadClassroom();
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
-                );
-              }
-            },
-            child: const Text('Turn In'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showGradeDialog(Map<String, dynamic> submission) {
     final scoreController = TextEditingController(text: submission['grade']?['score']?.toString() ?? '100');
     final feedbackController = TextEditingController(text: submission['grade']?['feedback']?.toString() ?? '');
@@ -839,7 +760,7 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                                 userRole: widget.userRole,
                               ),
                             ),
-                          ).then((_) => _loadClassroomData());
+                          ).then((_) => _loadClassroom());
                         },
                         leading: CircleAvatar(
                           backgroundColor: themeColor.withValues(alpha: 0.15),
@@ -891,7 +812,7 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                                       userRole: widget.userRole,
                                     ),
                                   ),
-                                ).then((_) => _loadClassroomData());
+                                ).then((_) => _loadClassroom());
                               },
                               child: Text(isTeacher ? 'Review Work' : (submissionStatus == 'TURNED_IN' ? 'View Work' : 'Open')),
                             ),
