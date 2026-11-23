@@ -3,6 +3,7 @@ package com.edlearn.backend.controller;
 import com.edlearn.backend.model.UserEntity;
 import com.edlearn.backend.service.AssignmentService;
 import com.edlearn.backend.service.PortalAccessService;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,28 @@ public class AssignmentController {
     public AssignmentController(AssignmentService assignmentService, PortalAccessService accessService) {
         this.assignmentService = assignmentService;
         this.accessService = accessService;
+    }
+
+    @PutMapping("/{id}")
+    public Map<String, Object> updateAssignment(HttpServletRequest request, @PathVariable UUID id, @RequestBody Map<String, Object> body) {
+        UserEntity user = accessService.require(request, "teacher", "admin");
+        return assignmentService.updateAssignment(user, id, body);
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> deleteAssignment(HttpServletRequest request, @PathVariable UUID id) {
+        UserEntity user = accessService.require(request, "teacher", "admin");
+        assignmentService.deleteAssignment(user, id);
+        return Map.of("success", true);
+    }
+
+    @PostMapping("/attachments/upload")
+    public Map<String, Object> uploadAttachment(HttpServletRequest request,
+                                                @RequestParam UUID classroomId,
+                                                @RequestParam String purpose,
+                                                @RequestParam("file") MultipartFile file) {
+        UserEntity user = accessService.require(request, "teacher", "student", "admin");
+        return assignmentService.uploadAssignmentFile(user, classroomId, purpose, file);
     }
 
     @PostMapping

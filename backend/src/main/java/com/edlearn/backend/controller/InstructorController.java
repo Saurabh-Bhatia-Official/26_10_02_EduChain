@@ -2,6 +2,9 @@ package com.edlearn.backend.controller;
 
 import com.edlearn.backend.model.UserEntity;
 import com.edlearn.backend.repository.UserRepository;
+import com.edlearn.backend.service.PortalAccessService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +19,14 @@ import java.util.UUID;
 @RequestMapping("/api/instructors")
 @CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class InstructorController {
+    private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
     private final UserRepository userRepository;
+    private final PortalAccessService accessService;
 
-    public InstructorController(UserRepository userRepository) {
+    public InstructorController(UserRepository userRepository, PortalAccessService accessService) {
         this.userRepository = userRepository;
+        this.accessService = accessService;
     }
 
     private UserEntity findInstructor(String id) {
@@ -40,11 +46,10 @@ public class InstructorController {
     }
 
     @GetMapping
-    public List<UserEntity> getAllInstructors(@RequestParam(required = false) String search) {
-        List<UserEntity> list = userRepository.findByRoleIgnoreCaseOrderByCreatedAtDesc("teacher");
-        if (list.isEmpty()) {
-            list = userRepository.findByRoleIgnoreCase("teacher");
-        }
+    public List<UserEntity> getAllInstructors(HttpServletRequest request, @RequestParam(required = false) String search) {
+        UserEntity actor = accessService.require(request, "admin");
+        List<UserEntity> list = actor.getInstituteCode() == null ? List.of()
+                : userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "teacher");
         if (search != null && !search.isBlank()) {
             String q = search.toLowerCase();
             return list.stream()
@@ -59,13 +64,27 @@ public class InstructorController {
     }
 
     @GetMapping("/{id}")
-    public UserEntity getInstructor(@PathVariable String id) {
-        return findInstructor(id);
+    public UserEntity getInstructor(HttpServletRequest request, @PathVariable String id) {
+        UserEntity actor = accessService.require(request, "admin");
+        UserEntity instructor = findInstructor(id);
+        requireSameInstitute(actor, instructor);
+        return instructor;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserEntity createInstructor(@RequestBody UserEntity instructor) {
+    public UserEntity createInstructor(HttpServletRequest request, @RequestBody UserEntity instructor) {
+        UserEntity actor = accessService.require(request, "admin");
+        if (actor.getInstituteCode() == null || actor.getInstituteCode().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your admin account is not linked to an institute.");
+        }
+        if (instructor.getEmail() == null || instructor.getEmail().isBlank() || !instructor.getEmail().contains("@")
+                || instructor.getName() == null || instructor.getName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instructor name and a valid email are required.");
+        }
+        if (instructor.getPassword() == null || instructor.getPassword().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 8 characters.");
+        }
         if (instructor.getEmail() != null && !instructor.getEmail().isBlank()) {
             if (userRepository.existsByEmailIgnoreCase(instructor.getEmail().trim())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + instructor.getEmail());
@@ -79,6 +98,9 @@ public class InstructorController {
 
         instructor.setId(null);
         instructor.setRole("teacher");
+        instructor.setInstituteCode(actor.getInstituteCode());
+        instructor.setInstituteName(actor.getInstituteName());
+        instructor.setPassword(PASSWORD_ENCODER.encode(instructor.getPassword()));
         if (instructor.getUserId() == null || instructor.getUserId().isBlank()) {
             instructor.setUserId("ins_" + System.currentTimeMillis());
         }
@@ -93,15 +115,6 @@ public class InstructorController {
         }
         instructor.setName(name.trim());
 
-        if (instructor.getPassword() == null || instructor.getPassword().isBlank()) {
-            instructor.setPassword("password123");
-        }
-        if (instructor.getInstituteCode() == null || instructor.getInstituteCode().isBlank()) {
-            instructor.setInstituteCode("INST-2025");
-        }
-        if (instructor.getInstituteName() == null || instructor.getInstituteName().isBlank()) {
-            instructor.setInstituteName("Apex Institute of Technology");
-        }
         if (instructor.getStatus() == null || instructor.getStatus().isBlank()) {
             instructor.setStatus("Active");
         }
@@ -137,8 +150,10 @@ public class InstructorController {
     }
 
     @PutMapping("/{id}")
-    public UserEntity updateInstructor(@PathVariable String id, @RequestBody UserEntity updated) {
+    public UserEntity updateInstructor(HttpServletRequest request, @PathVariable String id, @RequestBody UserEntity updated) {
+        UserEntity actor = accessService.require(request, "admin");
         UserEntity instructor = findInstructor(id);
+        requireSameInstitute(actor, instructor);
 
         if (updated.getName() != null && !updated.getName().isBlank()) {
             instructor.setName(updated.getName().trim());
@@ -156,14 +171,27 @@ public class InstructorController {
         if (updated.getJoiningDate() != null && !updated.getJoiningDate().isBlank()) instructor.setJoiningDate(updated.getJoiningDate().trim());
         if (updated.getAbout() != null && !updated.getAbout().isBlank()) instructor.setAbout(updated.getAbout().trim());
         if (updated.getStatus() != null && !updated.getStatus().isBlank()) instructor.setStatus(updated.getStatus().trim());
+        if (updated.getPassword() != null && !updated.getPassword().isBlank()) {
+            if (updated.getPassword().length() < 8) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must contain at least 8 characters.");
+            instructor.setPassword(PASSWORD_ENCODER.encode(updated.getPassword()));
+        }
 
         return userRepository.save(instructor);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteInstructor(@PathVariable String id) {
+    public ResponseEntity<Map<String, Object>> deleteInstructor(HttpServletRequest request, @PathVariable String id) {
+        UserEntity actor = accessService.require(request, "admin");
         UserEntity instructor = findInstructor(id);
+        requireSameInstitute(actor, instructor);
         userRepository.delete(instructor);
         return ResponseEntity.ok(Map.of("success", true, "message", "Instructor deleted successfully", "id", id));
+    }
+
+    private void requireSameInstitute(UserEntity actor, UserEntity target) {
+        if (actor.getInstituteCode() == null || target.getInstituteCode() == null
+                || !actor.getInstituteCode().equalsIgnoreCase(target.getInstituteCode())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Instructor not found.");
+        }
     }
 }

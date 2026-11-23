@@ -7,7 +7,6 @@ import com.edlearn.backend.model.InstituteEntity;
 import com.edlearn.backend.model.UserEntity;
 import com.edlearn.backend.repository.InstituteRepository;
 import com.edlearn.backend.repository.UserRepository;
-import jakarta.annotation.PostConstruct;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,105 +29,24 @@ public class AuthService {
 
     private boolean checkPassword(String rawPassword, String storedPassword) {
         if (rawPassword == null || storedPassword == null) return false;
+        if (Set.of("password123", "edlearn123").contains(rawPassword)) return false;
         if (storedPassword.startsWith("$2a$") || storedPassword.startsWith("$2b$") || storedPassword.startsWith("$2y$")) {
             try {
                 if (passwordEncoder.matches(rawPassword, storedPassword)) return true;
             } catch (Exception ignored) {}
         }
         if (storedPassword.equals(rawPassword)) return true;
-        // Support demo passwords for default/seeded accounts
-        if (("edlearn123".equals(storedPassword) || "password123".equals(storedPassword)) &&
-            ("edlearn123".equals(rawPassword) || "password123".equals(rawPassword))) {
-            return true;
-        }
         return false;
     }
 
-    @PostConstruct
-    public void seedDefaultDataIfEmpty() {
-        try {
-            if (instituteRepository.count() == 0) {
-                InstituteEntity defaultInst = new InstituteEntity();
-                defaultInst.setInstituteCode("INST-2025");
-                defaultInst.setInstituteName("Apex Institute of Technology");
-                defaultInst.setInstituteType("College");
-                defaultInst.setAdminName("Institute Administrator");
-                defaultInst.setEmail("admin@apex.edu");
-                defaultInst.setPassword("password123");
-                defaultInst.setPhone("+91 98765 43210");
-                defaultInst.setAddress("Academic Campus, Delhi");
-                defaultInst.setCampusLocation("Central Academic Campus");
-                defaultInst.setAccreditation("AICTE & UGC Recognized • Grade A+ NAAC Accredited");
-                defaultInst.setEstablishedYear("2008");
-                defaultInst.setVerified(true);
-                defaultInst.setVerificationStatus("Officially Verified");
-                defaultInst.setVerificationId("VRF-INST2025-2025");
-                defaultInst.setVerificationDate("Academic Session 2025–2026");
-                defaultInst.setStudentCount(1420);
-                defaultInst.setFacultyCount(86);
-                defaultInst.setDepartmentCount(8);
-                defaultInst.setActiveSemester("Academic Year 2025–2026");
-                instituteRepository.save(defaultInst);
-            }
-
-            if (userRepository.count() == 0) {
-                UserEntity student = new UserEntity();
-                student.setUserId("std_1023");
-                student.setEmail("rahul@institute.com");
-                student.setPassword("password123");
-                student.setRole("student");
-                student.setName("Rahul Sharma");
-                student.setRollNumber("1023");
-                student.setClassName("BCA - Sem 3");
-                student.setCourse("Bachelor of Computer Applications");
-                student.setSemester("Semester 3");
-                student.setInstituteCode("INST-2025");
-                student.setInstituteName("Apex Institute of Technology");
-                student.setGender("Male");
-                student.setDob("12-05-2005");
-                student.setFatherName("Rakesh Sharma");
-                student.setFatherPhone("+91 98765 43210");
-                student.setFatherEmail("rakesh@example.com");
-                student.setMotherName("Pooja Sharma");
-                student.setMotherPhone("+91 98765 43211");
-                student.setMotherEmail("pooja@example.com");
-                student.setAddress("123, Green Park, Delhi - 110016");
-                userRepository.save(student);
-
-                UserEntity teacher = new UserEntity();
-                teacher.setUserId("ins_001");
-                teacher.setEmail("amit.sharma@institute.com");
-                teacher.setPassword("password123");
-                teacher.setRole("teacher");
-                teacher.setName("Dr. Amit Sharma");
-                teacher.setInstructorId("INS-001");
-                teacher.setDesignation("Assistant Professor");
-                teacher.setDepartment("Computer Science");
-                teacher.setPhone("+91 98765 43210");
-                teacher.setJoiningDate("Jan 14, 2020");
-                teacher.setQualification("Ph.D - Computer Science");
-                teacher.setExperience("5 Years");
-                teacher.setAbout("Passionate educator with 5+ years of experience in teaching and research.");
-                teacher.setInstituteCode("INST-2025");
-                teacher.setInstituteName("Apex Institute of Technology");
-                userRepository.save(teacher);
-
-                UserEntity admin = new UserEntity();
-                admin.setUserId("adm_001");
-                admin.setEmail("amit.kumar@institute.com");
-                admin.setPassword("password123");
-                admin.setRole("admin");
-                admin.setName("Amit Kumar");
-                admin.setTitle("System Administrator");
-                admin.setDesignation("System Administrator");
-                admin.setPhone("+91 98765 43210");
-                admin.setInstituteCode("INST-2025");
-                admin.setInstituteName("Apex Institute of Technology");
-                userRepository.save(admin);
-            }
-        } catch (Exception e) {
-            System.out.println("Notice: Database seeding bypassed or database in standby mode: " + e.getMessage());
+    private boolean verifyUserPassword(UserEntity user, String rawPassword) {
+        if (!checkPassword(rawPassword, user.getPassword())) return false;
+        String stored = user.getPassword();
+        if (stored != null && !stored.startsWith("$2a$") && !stored.startsWith("$2b$") && !stored.startsWith("$2y$")) {
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            userRepository.save(user);
         }
+        return true;
     }
 
     public ApiResponse loginInstitute(LoginRequest req) {
@@ -147,15 +65,20 @@ public class AuthService {
         }
 
         if (!instOpt.isPresent()) {
-            return ApiResponse.error("No registered institute found for: " + codeOrEmail + ". Please check your code/email or register.");
+            return ApiResponse.error("Invalid credentials or inactive account.");
         }
 
         InstituteEntity institute = instOpt.get();
         // ONLY validate institutePassword (stored in institute table)
         String storedInstitutePass = institute.getInstitutePassword();
         if (!checkPassword(rawPassword, storedInstitutePass)) {
-            return ApiResponse.error("Invalid credentials: Incorrect institute password for " + institute.getInstituteCode() + ".");
+            return ApiResponse.error("Invalid credentials or inactive account.");
         }
+
+        UserEntity userForToken = userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCase(institute.getInstituteCode(), "admin")
+                .stream().filter(user -> "Active".equalsIgnoreCase(user.getStatus())).findFirst()
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid credentials or inactive account."));
 
         Map<String, Object> userMap = new LinkedHashMap<>();
         userMap.put("id", "inst_" + institute.getInstituteCode());
@@ -176,24 +99,7 @@ public class AuthService {
         userMap.put("departmentCount", institute.getDepartmentCount() != null ? institute.getDepartmentCount() : 1);
         userMap.put("activeSemester", institute.getActiveSemester());
 
-        UserEntity userForToken = userRepository.findByEmailIgnoreCase(institute.getEmail())
-                .orElseGet(() -> userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCase(institute.getInstituteCode(), "admin").stream().findFirst()
-                .orElseGet(() -> {
-                    UserEntity u = new UserEntity();
-                    u.setEmail(institute.getEmail());
-                    u.setPassword(institute.getPassword() != null ? institute.getPassword() : "password123");
-                    u.setRole("admin");
-                    u.setName(institute.getAdminName() != null ? institute.getAdminName() : "Institute Administrator");
-                    u.setInstituteCode(institute.getInstituteCode());
-                    u.setStatus("Active");
-                    return userRepository.save(u);
-                }));
-        if (!"Active".equalsIgnoreCase(userForToken.getStatus())) {
-            userForToken.setStatus("Active");
-            userRepository.save(userForToken);
-        }
-
-        String token = portalTokenService.issue(userForToken);
+        String token = portalTokenService.issue(userForToken, "institute");
         return ApiResponse.ok(token, userMap, "Institute authenticated successfully.");
     }
 
@@ -201,36 +107,14 @@ public class AuthService {
         String identifier = req.getEmail() != null ? req.getEmail().trim() : "";
         String rawPassword = req.getPassword() != null ? req.getPassword() : "";
 
-        if (identifier.isBlank()) {
-            return ApiResponse.error("Admin email is required.");
-        }
-
-        Optional<UserEntity> userOpt = userRepository.findByEmailIgnoreCase(identifier);
-        if (!userOpt.isPresent()) {
-            userOpt = userRepository.findByUserId(identifier);
-        }
-
-        if (!userOpt.isPresent()) {
-            return ApiResponse.error("No Administrator account found for '" + identifier + "'. Please verify admin email or register.");
-        }
-
-        UserEntity adminUser = userOpt.get();
-        String userRole = adminUser.getRole() != null ? adminUser.getRole().toLowerCase() : "";
-        if (!"admin".equals(userRole)) {
-            return ApiResponse.error("Access denied: Account '" + identifier + "' is registered as a " + adminUser.getRole() + ", not an Administrator.");
-        }
-
-        // ONLY validate adminPassword from users table
-        if (!checkPassword(rawPassword, adminUser.getPassword())) {
-            return ApiResponse.error("Invalid credentials: Incorrect admin password.");
-        }
-
-        if (!"Active".equalsIgnoreCase(adminUser.getStatus()) || adminUser.getInstituteCode() == null) {
-            adminUser.setStatus("Active");
-            if (adminUser.getInstituteCode() == null || adminUser.getInstituteCode().isBlank()) {
-                adminUser.setInstituteCode("INST-2025");
-            }
-            userRepository.save(adminUser);
+        Optional<UserEntity> userOpt = identifier.isBlank() ? Optional.empty() : userRepository.findByEmailIgnoreCase(identifier);
+        if (userOpt.isEmpty() && !identifier.isBlank()) userOpt = userRepository.findByUserId(identifier);
+        UserEntity adminUser = userOpt.orElse(null);
+        if (adminUser == null || !"admin".equalsIgnoreCase(adminUser.getRole())
+                || !verifyUserPassword(adminUser, rawPassword)
+                || !"Active".equalsIgnoreCase(adminUser.getStatus())
+                || adminUser.getInstituteCode() == null || adminUser.getInstituteCode().isBlank()) {
+            return ApiResponse.error("Invalid credentials or inactive account.");
         }
 
         Map<String, Object> userMap = toUserMap(adminUser);
@@ -250,9 +134,8 @@ public class AuthService {
         String identifier = req.getEmail() != null ? req.getEmail().trim() : "";
         String rawPassword = req.getPassword() != null ? req.getPassword() : "";
 
-        if (identifier.isBlank()) {
-            return ApiResponse.error("Email or ID is required.");
-        }
+        if (identifier.isBlank() || !Set.of("student", "teacher", "instructor").contains(role))
+            return ApiResponse.error("Invalid credentials or inactive account.");
 
         UserEntity user = null;
         Optional<UserEntity> userOpt = userRepository.findByEmailIgnoreCase(identifier);
@@ -276,29 +159,17 @@ public class AuthService {
             }
         }
 
-        if (user == null) {
-            return ApiResponse.error("Account not found for '" + identifier + "'. Please check your credentials or register.");
-        }
+        if (user == null) return ApiResponse.error("Invalid credentials or inactive account.");
 
         String userRole = user.getRole() != null ? user.getRole().toLowerCase() : "";
         boolean roleMatches = userRole.equalsIgnoreCase(role) ||
                 (role.equalsIgnoreCase("teacher") && userRole.equalsIgnoreCase("instructor")) ||
                 (role.equalsIgnoreCase("instructor") && userRole.equalsIgnoreCase("teacher"));
 
-        if (!roleMatches) {
-            return ApiResponse.error("Access denied: This account is registered as a " + userRole + ", not a " + role + ".");
-        }
-
-        if (!checkPassword(rawPassword, user.getPassword())) {
-            return ApiResponse.error("Invalid credentials: Incorrect password.");
-        }
-
-        if (!"Active".equalsIgnoreCase(user.getStatus()) || user.getInstituteCode() == null) {
-            user.setStatus("Active");
-            if (user.getInstituteCode() == null || user.getInstituteCode().isBlank()) {
-                user.setInstituteCode("INST-2025");
-            }
-            userRepository.save(user);
+        if (!roleMatches || !verifyUserPassword(user, rawPassword)
+                || !"Active".equalsIgnoreCase(user.getStatus())
+                || user.getInstituteCode() == null || user.getInstituteCode().isBlank()) {
+            return ApiResponse.error("Invalid credentials or inactive account.");
         }
 
         Map<String, Object> userMap = toUserMap(user);
@@ -317,18 +188,21 @@ public class AuthService {
                 : instEmail;
         String emailToStore = !instEmail.isBlank() ? instEmail : adminEmail;
 
-        if (instituteRepository.existsByEmailIgnoreCase(emailToStore)) {
-            return ApiResponse.error("An institute with email " + emailToStore + " is already registered.");
+        if (!emailToStore.contains("@") || req.getInstituteName() == null || req.getInstituteName().isBlank()) {
+            return ApiResponse.error("Institute name and a valid official email are required.");
+        }
+        if (instituteRepository.existsByEmailIgnoreCase(emailToStore) || userRepository.existsByEmailIgnoreCase(adminEmail)) {
+            return ApiResponse.error("An institute or account with that email is already registered.");
         }
 
         String institutePassword = req.getInstitutePassword();
         String adminPassword = req.getAdminPassword();
 
-        if (institutePassword == null || institutePassword.isBlank() || institutePassword.length() < 6) {
-            return ApiResponse.error("Institute password is required (minimum 6 characters).");
+        if (institutePassword == null || institutePassword.length() < 8 || Set.of("password123", "edlearn123").contains(institutePassword)) {
+            return ApiResponse.error("Choose a non-default institute password with at least 8 characters.");
         }
-        if (adminPassword == null || adminPassword.isBlank() || adminPassword.length() < 6) {
-            return ApiResponse.error("Admin password is required (minimum 6 characters).");
+        if (adminPassword == null || adminPassword.length() < 8 || Set.of("password123", "edlearn123").contains(adminPassword)) {
+            return ApiResponse.error("Choose a non-default admin password with at least 8 characters.");
         }
         if (institutePassword.equals(adminPassword)) {
             return ApiResponse.error("Institute and Admin passwords must be different.");
@@ -356,13 +230,14 @@ public class AuthService {
         institute.setVerificationId("VRF-" + generatedCode.replace("-", "") + "-2025");
         institute.setVerificationDate("Academic Session 2025–2026");
         institute.setEstablishedYear(req.getEstablishedYear() != null && !req.getEstablishedYear().isBlank() ? req.getEstablishedYear().trim() : "2024");
-        institute.setVerified(true);
-        institute.setVerificationStatus("Officially Verified");
+        institute.setVerified(false);
+        institute.setVerificationStatus("Verification Pending");
         institute.setActiveSemester("Academic Year 2025–2026");
         institute.setStudentCount(0);
         institute.setFacultyCount(0);
         institute.setDepartmentCount(1);
 
+        UserEntity adminUser;
         try {
             institute = instituteRepository.save(institute);
         } catch (Exception ex) {
@@ -371,10 +246,8 @@ public class AuthService {
 
         // Automatically create Administrator User for this institute in users table
         try {
-            UserEntity adminUser = userRepository.findByEmailIgnoreCase(adminEmail).orElseGet(UserEntity::new);
-            if (adminUser.getUserId() == null) {
-                adminUser.setUserId("adm_" + generatedCode.toLowerCase().replace("-", "") + "_" + (100 + new Random().nextInt(900)));
-            }
+            adminUser = new UserEntity();
+            adminUser.setUserId("adm_" + generatedCode.toLowerCase(Locale.ROOT).replace("-", "") + "_" + UUID.randomUUID().toString().substring(0, 8));
             adminUser.setEmail(adminEmail);
             adminUser.setPassword(encodedAdminPassword);
             adminUser.setRole("admin");
@@ -386,9 +259,9 @@ public class AuthService {
             adminUser.setTitle("System Administrator");
             adminUser.setDesignation("Master Administrator");
             adminUser.setStatus("Active");
-            userRepository.save(adminUser);
+            adminUser = userRepository.save(adminUser);
         } catch (Exception ex) {
-            System.err.println("Notice: Could not automatically persist admin user: " + ex.getMessage());
+            return ApiResponse.error("Unable to complete institute registration. Check the submitted details and try again.");
         }
 
         Map<String, Object> userMap = new LinkedHashMap<>();
@@ -408,20 +281,32 @@ public class AuthService {
         userMap.put("facultyCount", institute.getFacultyCount());
         userMap.put("departmentCount", institute.getDepartmentCount());
 
-        String token = "jwt-inst-" + institute.getInstituteCode() + "-" + System.currentTimeMillis();
+        String token = portalTokenService.issue(adminUser, "institute");
         return ApiResponse.ok(token, userMap, "Institute account registered successfully! Institute code: " + generatedCode);
     }
 
     public ApiResponse registerStudent(StudentRegisterRequest req) {
         String email = req.getEmail() != null ? req.getEmail().trim() : "";
-        if (email.isBlank()) {
-            return ApiResponse.error("Email is required for registration.");
+        if (!email.contains("@") || req.getFullName() == null || req.getFullName().isBlank()) {
+            return ApiResponse.error("A valid email and full name are required.");
+        }
+        String rawPass = req.getPassword();
+        if (rawPass == null || rawPass.length() < 8 || Set.of("password123", "edlearn123").contains(rawPass)) {
+            return ApiResponse.error("Choose a non-default password with at least 8 characters.");
+        }
+        String instCode = req.getInstituteCode() == null ? "" : req.getInstituteCode().trim().toUpperCase(Locale.ROOT);
+        InstituteEntity institute = instituteRepository.findByInstituteCodeIgnoreCase(instCode).orElse(null);
+        if (institute == null) return ApiResponse.error("A valid institute code is required.");
+        if (req.getRollNumber() == null || req.getRollNumber().isBlank()) {
+            return ApiResponse.error("Student roll number is required.");
+        }
+        if (userRepository.existsByRollNumberIgnoreCase(req.getRollNumber().trim())) {
+            return ApiResponse.error("Student roll number already exists.");
         }
         if (userRepository.existsByEmailIgnoreCase(email)) {
             return ApiResponse.error("An account with email " + email + " already exists. Please log in.");
         }
 
-        String rawPass = req.getPassword() != null && !req.getPassword().isBlank() ? req.getPassword() : "password123";
         UserEntity student = new UserEntity();
         student.setUserId("std_" + System.currentTimeMillis());
 
@@ -431,28 +316,17 @@ public class AuthService {
         student.setPassword(passwordEncoder.encode(rawPass));
         student.setRole("student");
 
-        String instCode = req.getInstituteCode() != null && !req.getInstituteCode().isBlank() 
-                ? req.getInstituteCode().trim().toUpperCase() 
-                : "INST-2025";
         student.setInstituteCode(instCode);
-        String instName = instituteRepository.findByInstituteCodeIgnoreCase(instCode)
-                .map(InstituteEntity::getInstituteName)
-                .orElse("Apex Institute of Technology");
-        student.setInstituteName(instName);
+        student.setInstituteName(institute.getInstituteName());
 
-        String roll = req.getRollNumber() != null && !req.getRollNumber().isBlank() 
-                ? req.getRollNumber().trim() 
-                : "STD-" + (1000 + new Random().nextInt(9000));
+        String roll = req.getRollNumber().trim();
         student.setRollNumber(roll);
 
-        String course = req.getCourse() != null && !req.getCourse().isBlank() 
-                ? req.getCourse().trim() 
-                : "Computer Science & Engineering";
+        String course = req.getCourse() != null ? req.getCourse().trim() : "";
+        if (course.isBlank()) return ApiResponse.error("Student course is required.");
         student.setCourse(course);
 
-        String className = req.getClassName() != null && !req.getClassName().isBlank() 
-                ? req.getClassName().trim() 
-                : course;
+        String className = req.getClassName() != null && !req.getClassName().isBlank() ? req.getClassName().trim() : course;
         student.setClassName(className);
 
         String semester = req.getSemester() != null && !req.getSemester().isBlank() 
@@ -460,43 +334,12 @@ public class AuthService {
                 : "Semester 1";
         student.setSemester(semester);
 
-        String phone = req.getPhone() != null && !req.getPhone().isBlank() 
-                ? req.getPhone().trim() 
-                : "+91 98765 00000";
-        student.setPhone(phone);
-
-        String gender = req.getGender() != null && !req.getGender().isBlank() 
-                ? req.getGender().trim() 
-                : "Not Specified";
-        student.setGender(gender);
-
-        String dob = req.getDob() != null && !req.getDob().isBlank() 
-                ? req.getDob().trim() 
-                : "2005-01-01";
-        student.setDob(dob);
-
-        String address = req.getAddress() != null && !req.getAddress().isBlank() 
-                ? req.getAddress().trim() 
-                : "Campus Residential";
-        student.setAddress(address);
-
-        String fatherName = req.getFatherName() != null && !req.getFatherName().isBlank() 
-                ? req.getFatherName().trim() 
-                : "Guardian of " + studentName;
-        student.setFatherName(fatherName);
-
-        String fatherPhone = req.getFatherPhone() != null && !req.getFatherPhone().isBlank() 
-                ? req.getFatherPhone().trim() 
-                : phone;
-        student.setFatherPhone(fatherPhone);
-        student.setFatherEmail(email.contains("@") ? email.replace("@", ".parent@") : "parent@example.com");
-
-        String motherName = req.getMotherName() != null && !req.getMotherName().isBlank() 
-                ? req.getMotherName().trim() 
-                : "Guardian";
-        student.setMotherName(motherName);
-        student.setMotherPhone(phone);
-        student.setMotherEmail(email.contains("@") ? email.replace("@", ".mother@") : "mother@example.com");
+        student.setPhone(req.getPhone());
+        student.setGender(req.getGender());
+        student.setDob(req.getDob());
+        student.setAddress(req.getAddress());
+        student.setFatherName(req.getFatherName());
+        student.setFatherPhone(req.getFatherPhone());
 
         student.setStatus("Active");
         student.setDepartment(course);
@@ -514,14 +357,24 @@ public class AuthService {
 
     public ApiResponse registerTeacher(TeacherRegisterRequest req) {
         String email = req.getEmail() != null ? req.getEmail().trim() : "";
-        if (email.isBlank()) {
-            return ApiResponse.error("Email is required for registration.");
+        if (!email.contains("@") || req.getFullName() == null || req.getFullName().isBlank()) {
+            return ApiResponse.error("A valid email and full name are required.");
+        }
+        String rawPass = req.getPassword();
+        if (rawPass == null || rawPass.length() < 8 || Set.of("password123", "edlearn123").contains(rawPass)) {
+            return ApiResponse.error("Choose a non-default password with at least 8 characters.");
+        }
+        String instCode = req.getInstituteCode() == null ? "" : req.getInstituteCode().trim().toUpperCase(Locale.ROOT);
+        InstituteEntity institute = instituteRepository.findByInstituteCodeIgnoreCase(instCode).orElse(null);
+        if (institute == null) return ApiResponse.error("A valid institute code is required.");
+        if (req.getEmployeeId() != null && !req.getEmployeeId().isBlank()
+                && userRepository.existsByInstructorIdIgnoreCase(req.getEmployeeId().trim())) {
+            return ApiResponse.error("Instructor ID already exists.");
         }
         if (userRepository.existsByEmailIgnoreCase(email)) {
             return ApiResponse.error("An account with email " + email + " already exists. Please log in.");
         }
 
-        String rawPass = req.getPassword() != null && !req.getPassword().isBlank() ? req.getPassword() : "password123";
         UserEntity teacher = new UserEntity();
         teacher.setUserId("tch_" + System.currentTimeMillis());
 
@@ -531,14 +384,8 @@ public class AuthService {
         teacher.setPassword(passwordEncoder.encode(rawPass));
         teacher.setRole("teacher");
 
-        String instCode = req.getInstituteCode() != null && !req.getInstituteCode().isBlank() 
-                ? req.getInstituteCode().trim().toUpperCase() 
-                : "INST-2025";
         teacher.setInstituteCode(instCode);
-        String instName = instituteRepository.findByInstituteCodeIgnoreCase(instCode)
-                .map(InstituteEntity::getInstituteName)
-                .orElse("Apex Institute of Technology");
-        teacher.setInstituteName(instName);
+        teacher.setInstituteName(institute.getInstituteName());
 
         String empId = req.getEmployeeId() != null && !req.getEmployeeId().isBlank() 
                 ? req.getEmployeeId().trim() 
@@ -578,7 +425,7 @@ public class AuthService {
                 : "Campus Faculty Quarters";
         teacher.setAddress(addr);
 
-        teacher.setStatus("Active");
+        teacher.setStatus("Pending");
 
         try {
             teacher = userRepository.save(teacher);
@@ -586,9 +433,7 @@ public class AuthService {
             return ApiResponse.error("Failed to store teacher in database: " + ex.getMessage());
         }
 
-        Map<String, Object> userMap = toUserMap(teacher);
-        String token = portalTokenService.issue(teacher);
-        return ApiResponse.ok(token, userMap, "Teacher registered successfully! Stored in Neon database.");
+        return ApiResponse.error("Registration request submitted. An institute administrator must activate the account before sign-in.");
     }
 
     public ApiResponse forgotPassword(Map<String, String> body) {

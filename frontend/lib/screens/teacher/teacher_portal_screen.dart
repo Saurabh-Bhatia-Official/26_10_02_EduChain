@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_colors.dart';
 import '../../models/user_model.dart';
 import '../../models/student_model.dart';
@@ -14,6 +17,7 @@ import '../portal_modules_screen.dart';
 import '../../widgets/portal_notification_bell.dart';
 import '../../widgets/portal_announcement_preview.dart';
 import '../classroom/classroom_hub_screen.dart';
+import '../classroom/assignment_view_screen.dart';
 import '../../services/api_service.dart';
 
 class TeacherPortalScreen extends StatefulWidget {
@@ -67,8 +71,16 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   void initState() {
     super.initState();
     _activeScreen = widget.initialTab.isNotEmpty ? widget.initialTab : 'dashboard';
+    _assignmentRefreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (_activeScreen == 'assignment-eval') {
+        _fetchTeacherAssignments(showLoading: false);
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<StudentProvider>(context, listen: false).fetchStudents();
+      _fetchTeacherExams();
+      _fetchTeacherAssignments();
+      _fetchQuestionBank();
     });
   }
 
@@ -82,6 +94,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
 
   @override
   void dispose() {
+    _assignmentRefreshTimer?.cancel();
     _studentNameController.dispose();
     _studentEmailController.dispose();
     _studentRollController.dispose();
@@ -116,9 +129,9 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
             child: Column(
               children: [
                 _buildTopBar(user, nav, auth, isDesktop),
-                if (_activeScreen == 'classes')
-                  const Expanded(
-                    child: ClassroomHubScreen(userRole: 'teacher'),
+                if (_isClassroomHubTab(_activeScreen))
+                  Expanded(
+                    child: _buildClassroomHubWidget(_activeScreen),
                   )
                 else
                   Expanded(
@@ -141,19 +154,43 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     );
   }
 
+  bool _isClassroomHubTab(String screen) {
+    return screen == 'classes' ||
+        screen == 'my-classrooms' ||
+        screen == 'assignments' ||
+        screen == 'meet';
+  }
+
+  Widget _buildClassroomHubWidget(String screen) {
+    int initialIdx = 0;
+    if (screen == 'assignments') {
+      initialIdx = 1;
+    } else if (screen == 'meet') {
+      initialIdx = 2;
+    }
+    return ClassroomHubScreen(
+      key: ValueKey('teacher-classroom-$screen'),
+      userRole: 'teacher',
+      initialIndex: initialIdx,
+    );
+  }
+
   Widget _buildSidebar(UserModel? user, NavigationProvider nav) {
     final menuItems = [
       {'id': 'dashboard', 'title': 'Dashboard', 'icon': Icons.dashboard_outlined},
-      {'id': 'classes', 'title': 'Google Classroom', 'icon': Icons.school_outlined},
+      {'id': 'classes', 'title': 'My Classrooms', 'icon': Icons.school_outlined},
+      {'id': 'assignments', 'title': 'Assignments', 'icon': Icons.assignment_turned_in_outlined},
+      {'id': 'assignment-eval', 'title': 'Assignment Evaluation', 'icon': Icons.rate_review_outlined},
       {'id': 'exams', 'title': 'Examinations', 'icon': Icons.assignment_outlined},
-      {'id': 'students', 'title': 'Student Records', 'icon': Icons.people_outline},
-      {'id': 'add-student', 'title': 'Add New Student', 'icon': Icons.person_add_outlined},
-      {'id': 'courses', 'title': 'Courses & Curriculum', 'icon': Icons.menu_book_outlined},
-      {'id': 'add-course', 'title': 'Add Course', 'icon': Icons.post_add_outlined},
-      {'id': 'lectures', 'title': 'Lecture Schedules', 'icon': Icons.event_note_outlined},
-      {'id': 'update-lecture', 'title': 'Update Lecture', 'icon': Icons.edit_calendar_outlined},
+      {'id': 'question-mgmt', 'title': 'Question Management', 'icon': Icons.quiz_outlined},
+      {'id': 'exam-eval', 'title': 'Exam Evaluation', 'icon': Icons.fact_check_outlined},
+      {'id': 'results', 'title': 'Results', 'icon': Icons.emoji_events_outlined},
+      {'id': 'meet', 'title': 'Google Meet', 'icon': Icons.video_call_outlined},
       {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
-      {'id': 'leaves', 'title': 'Leave Requests & Leave', 'icon': Icons.event_available_outlined},
+      {'id': 'study-materials', 'title': 'Study Materials', 'icon': Icons.menu_book_outlined},
+      {'id': 'students', 'title': 'Student Records', 'icon': Icons.people_outline},
+      {'id': 'lectures', 'title': 'Lecture Schedules', 'icon': Icons.event_note_outlined},
+      {'id': 'leaves', 'title': 'Leave Requests', 'icon': Icons.event_available_outlined},
       {'id': 'profile', 'title': 'Faculty Profile', 'icon': Icons.badge_outlined},
     ];
 
@@ -354,17 +391,31 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       case 'dashboard':
         return 'Instructor Dashboard';
       case 'classes':
-        return 'Google Classroom & Meet Hub';
+      case 'my-classrooms':
+        return 'My Classrooms (Google Classroom)';
+      case 'assignments':
+        return 'Assignments Stream & Review';
+      case 'assignment-eval':
+        return 'Assignment Submissions & Evaluation';
       case 'exams':
-        return 'Online Examinations & Evaluations';
+        return 'Online Examinations';
+      case 'question-mgmt':
+        return 'Question Management & Question Bank';
+      case 'exam-eval':
+        return 'Student Exam Evaluation & Grading';
+      case 'results':
+        return 'Academic Results & Scorecard Publication';
+      case 'meet':
+        return 'Google Meet Live Classes';
+      case 'study-materials':
+      case 'courses':
+        return 'Study Materials & Curriculum';
       case 'students':
         return 'Student Directory & Records';
       case 'add-student':
         return 'Enroll New Student';
       case 'student-detail':
         return 'Student Profile Details';
-      case 'courses':
-        return 'Assigned Courses & Curriculum';
       case 'add-course':
         return 'Add Academic Course';
       case 'remove-course':
@@ -391,17 +442,27 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       case 'dashboard':
         return _buildDashboardScreen();
       case 'classes':
+      case 'my-classrooms':
         return _buildClassesScreen();
+      case 'assignment-eval':
+        return _buildAssignmentEvaluationScreen();
       case 'exams':
         return _buildTeacherExamsScreen();
+      case 'question-mgmt':
+        return _buildQuestionManagementScreen();
+      case 'exam-eval':
+        return _buildExamEvaluationScreen();
+      case 'results':
+        return _buildResultsScreen();
+      case 'study-materials':
+      case 'courses':
+        return _buildCoursesScreen();
       case 'students':
         return _buildStudentsScreen();
       case 'add-student':
         return _buildAddStudentScreen();
       case 'student-detail':
         return _buildStudentDetailScreen();
-      case 'courses':
-        return _buildCoursesScreen();
       case 'add-course':
         return _buildAddCourseScreen();
       case 'remove-course':
@@ -503,6 +564,90 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   List<Map<String, dynamic>> _teacherExams = [];
   bool _loadingTeacherExams = false;
   String? _teacherExamError;
+  List<Map<String, dynamic>> _questionBank = [];
+  bool _loadingQuestionBank = false;
+  String _questionSearch = '';
+  String _questionTypeFilter = '';
+
+  List<Map<String, dynamic>> _teacherAssignments = [];
+  bool _loadingTeacherAssignments = false;
+  bool _fetchingTeacherAssignments = false;
+  Timer? _assignmentRefreshTimer;
+
+  Future<void> _fetchTeacherAssignments({bool showLoading = true}) async {
+    if (_fetchingTeacherAssignments) return;
+    _fetchingTeacherAssignments = true;
+    if (showLoading) setState(() => _loadingTeacherAssignments = true);
+    try {
+      final classrooms = await ApiService().getClassrooms();
+      final List<Map<String, dynamic>> list = [];
+      for (final c in classrooms) {
+        final cId = c['id']?.toString() ?? '';
+        if (cId.isNotEmpty) {
+          final asgns = await ApiService().getClassroomAssignments(cId);
+          for (final a in asgns) {
+            final detail = await ApiService().getAssignmentDetails(a['id'].toString());
+            list.add({
+              ...a,
+              'submissions': detail['submissions'] ?? const [],
+              'classroomId': cId,
+              'classroomName': c['name'] ?? 'Classroom',
+              'classroomSection': c['section'] ?? '',
+            });
+          }
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _teacherAssignments = list;
+          _loadingTeacherAssignments = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingTeacherAssignments = false);
+    } finally {
+      _fetchingTeacherAssignments = false;
+    }
+  }
+
+  Future<void> _showAssignmentEditor({Map<String, dynamic>? existing}) async {
+    final api = ApiService();
+    final classrooms = await api.getClassrooms();
+    if (!mounted) return;
+    if (classrooms.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Create or join a class before uploading an assignment.')));
+      return;
+    }
+    final title = TextEditingController(text: existing?['title']?.toString() ?? '');
+    final subject = TextEditingController(text: existing?['topic']?.toString() ?? '');
+    final description = TextEditingController(text: existing?['instructions']?.toString() ?? '');
+    final points = TextEditingController(text: existing?['pointsPossible']?.toString() ?? '100');
+    String? classId = existing?['classroomId']?.toString() ?? classrooms.first['id']?.toString();
+    DateTime due = DateTime.tryParse(existing?['dueDate']?.toString() ?? '') ?? DateTime.now().add(const Duration(days: 7));
+    Map<String, dynamic>? attachment;
+    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (ctx, refresh) => AlertDialog(
+      title: Text(existing == null ? 'Upload Assignment' : 'Edit Assignment'),
+      content: SizedBox(width: 480, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: title, decoration: const InputDecoration(labelText: 'Title')),
+        TextField(controller: subject, decoration: const InputDecoration(labelText: 'Subject')),
+        TextField(controller: description, maxLines: 3, decoration: const InputDecoration(labelText: 'Description / instructions')),
+        TextField(controller: points, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Marks possible')),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(initialValue: classId, decoration: const InputDecoration(labelText: 'Class / batch'), items: classrooms.map((c) => DropdownMenuItem(value: c['id'].toString(), child: Text('${c['name']?.toString() ?? 'Class'}${c['section']?.toString().isNotEmpty == true ? ' • ${c['section']}' : ''}'))).toList(), onChanged: existing == null ? (v) => refresh(() => classId = v) : null),
+        ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.event), title: Text('Due ${MaterialLocalizations.of(ctx).formatMediumDate(due)}'), subtitle: Text(TimeOfDay.fromDateTime(due).format(ctx)), onTap: () async { final day = await showDatePicker(context: ctx, initialDate: due, firstDate: DateTime.now().subtract(const Duration(days: 365)), lastDate: DateTime.now().add(const Duration(days: 3650))); if (day == null || !ctx.mounted) return; final time = await showTimePicker(context: ctx, initialTime: TimeOfDay.fromDateTime(due)); if (time != null) refresh(() => due = DateTime(day.year, day.month, day.day, time.hour, time.minute)); }),
+        OutlinedButton.icon(onPressed: () async { final pick = await FilePicker.platform.pickFiles(withData: true); if (pick?.files.single.bytes != null && classId != null) { try { final f = await api.uploadAssignmentFile(pick!.files.single.bytes!, pick.files.single.name, classroomId: classId!, purpose: 'ASSIGNMENT'); refresh(() => attachment = f); } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()))); } } }, icon: const Icon(Icons.attach_file), label: Text(attachment?['fileName']?.toString() ?? 'Attach assignment file')),
+      ]))),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), FilledButton(onPressed: () async {
+        if (title.text.trim().isEmpty || classId == null) return;
+        final data = <String, dynamic>{'title': title.text.trim(), 'topic': subject.text.trim(), 'instructions': description.text.trim(), 'pointsPossible': int.tryParse(points.text) ?? 100, 'dueDate': due.toIso8601String(), 'allowLateSubmissions': true};
+        if (attachment != null) data['attachments'] = [attachment];
+        try { if (existing == null) { await api.createAssignment(classId!, data); } else { await api.updateAssignment(existing['id'].toString(), data); }
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
+          await _fetchTeacherAssignments();
+        } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()))); }
+      }, child: Text(existing == null ? 'Publish' : 'Save changes'))],
+    )));
+  }
 
   Future<void> _fetchTeacherExams() async {
     setState(() {
@@ -510,7 +655,13 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       _teacherExamError = null;
     });
     try {
-      final exams = await ApiService().getExams();
+      final api = ApiService();
+      final summaries = await api.getExams();
+      final exams = <Map<String, dynamic>>[];
+      for (final summary in summaries) {
+        final details = await api.getExamDetails(summary['id'].toString());
+        exams.add({...summary, 'questions': details['questions'] ?? const []});
+      }
       if (mounted) {
         setState(() {
           _teacherExams = exams;
@@ -527,7 +678,66 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     }
   }
 
-  void _showCreateExamDialog() {
+  Future<void> _fetchQuestionBank() async {
+    if (mounted) setState(() => _loadingQuestionBank = true);
+    try {
+      final questions = await ApiService().getExamQuestions();
+      if (mounted) setState(() { _questionBank = questions; _loadingQuestionBank = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingQuestionBank = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Question bank unavailable: $e')));
+      }
+    }
+  }
+
+  Future<void> _showQuestionEditor({Map<String, dynamic>? existing}) async {
+    final text = TextEditingController(text: existing?['questionText']?.toString() ?? '');
+    final subject = TextEditingController(text: existing?['subject']?.toString() ?? '');
+    final className = TextEditingController(text: existing?['className']?.toString() ?? '');
+    final chapter = TextEditingController(text: existing?['chapter']?.toString() ?? '');
+    final topic = TextEditingController(text: existing?['topic']?.toString() ?? '');
+    final marks = TextEditingController(text: existing?['marks']?.toString() ?? '1');
+    final negative = TextEditingController(text: existing?['negativeMarks']?.toString() ?? '0');
+    final answer = TextEditingController(text: existing?['correctAnswer']?.toString() ?? '');
+    final explanation = TextEditingController(text: existing?['explanation']?.toString() ?? '');
+    final optionValue = existing?['options'];
+    final options = TextEditingController(text: optionValue is List ? optionValue.join('\n') : '');
+    String type = existing?['questionType']?.toString() ?? 'MCQ_SINGLE';
+    String difficulty = existing?['difficulty']?.toString() ?? 'MEDIUM';
+    const types = ['MCQ_SINGLE', 'MCQ_MULTI', 'TRUE_FALSE', 'FILL_BLANK', 'SHORT_ANSWER', 'LONG_ANSWER', 'MATCH'];
+    bool hasOptions() => ['MCQ_SINGLE', 'MCQ_MULTI', 'TRUE_FALSE', 'MATCH'].contains(type);
+    await showDialog<void>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (ctx, refresh) => AlertDialog(
+      title: Text(existing == null ? 'Create Exam Question' : 'Edit Exam Question'),
+      content: SizedBox(width: 540, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: text, maxLines: 3, decoration: const InputDecoration(labelText: 'Question text')),
+        Row(children: [Expanded(child: TextField(controller: subject, decoration: const InputDecoration(labelText: 'Subject'))), const SizedBox(width: 10), Expanded(child: TextField(controller: className, decoration: const InputDecoration(labelText: 'Class')))]),
+        Row(children: [Expanded(child: TextField(controller: chapter, decoration: const InputDecoration(labelText: 'Chapter'))), const SizedBox(width: 10), Expanded(child: TextField(controller: topic, decoration: const InputDecoration(labelText: 'Topic')))]),
+        DropdownButtonFormField<String>(initialValue: type, decoration: const InputDecoration(labelText: 'Question type'), items: types.map((t) => DropdownMenuItem(value: t, child: Text(t.replaceAll('_', ' ')))).toList(), onChanged: (value) => refresh(() => type = value ?? 'MCQ_SINGLE')),
+        DropdownButtonFormField<String>(initialValue: difficulty, decoration: const InputDecoration(labelText: 'Difficulty'), items: const ['EASY', 'MEDIUM', 'HARD'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(), onChanged: (value) => refresh(() => difficulty = value ?? 'MEDIUM')),
+        Row(children: [Expanded(child: TextField(controller: marks, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Marks'))), const SizedBox(width: 10), Expanded(child: TextField(controller: negative, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Negative marks')))]),
+        if (hasOptions()) TextField(controller: options, maxLines: 4, decoration: const InputDecoration(labelText: 'Answer options (one per line)')),
+        TextField(controller: answer, decoration: InputDecoration(labelText: type == 'MCQ_MULTI' ? 'Correct answers (comma separated)' : 'Correct answer')),
+        TextField(controller: explanation, maxLines: 2, decoration: const InputDecoration(labelText: 'Explanation (optional)')),
+        if (text.text.trim().isNotEmpty) Padding(padding: const EdgeInsets.only(top: 12), child: Container(width: double.infinity, padding: const EdgeInsets.all(12), color: const Color(0xFFF8FAFC), child: Text('Preview\n${text.text}\n${hasOptions() ? options.text : ''}', style: const TextStyle(fontSize: 12)))),
+      ]))),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')), FilledButton(onPressed: () async {
+        if (text.text.trim().isEmpty || answer.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Question text and correct answer are required.'))); return; }
+        final data = <String, dynamic>{'questionText': text.text.trim(), 'questionType': type, 'subject': subject.text.trim(), 'className': className.text.trim(), 'chapter': chapter.text.trim(), 'topic': topic.text.trim(), 'difficulty': difficulty, 'marks': int.tryParse(marks.text) ?? 1, 'negativeMarks': double.tryParse(negative.text) ?? 0, 'correctAnswer': answer.text.trim(), 'explanation': explanation.text.trim()};
+        if (hasOptions()) data['options'] = type == 'TRUE_FALSE' ? ['True', 'False'] : options.text.split('\n').map((value) => value.trim()).where((value) => value.isNotEmpty).toList();
+        try {
+          if (existing == null) { await ApiService().createExamQuestion(data); } else { await ApiService().updateExamQuestion(existing['id'].toString(), data); }
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
+          await _fetchQuestionBank();
+        } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()))); }
+      }, child: Text(existing == null ? 'Save question' : 'Save changes'))],
+    )));
+  }
+
+  Future<void> _showCreateExamDialog() async {
+    final bankQuestions = await ApiService().getExamQuestions();
+    if (!mounted) return;
+    if (bankQuestions.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Create at least one question in the question bank first.'))); return; }
     final titleController = TextEditingController();
     final courseCodeController = TextEditingController(text: 'CS-302');
     final courseNameController = TextEditingController(text: 'Data Structures & Algorithms');
@@ -536,37 +746,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     final durationController = TextEditingController(text: '60');
     final totalMarksController = TextEditingController(text: '100');
 
-    // Questions builder
-    final List<Map<String, dynamic>> questions = [
-      {
-        'id': '1',
-        'question': 'Which data structure follows the Last-In-First-Out (LIFO) principle?',
-        'options': ['Queue', 'Stack', 'Linked List', 'Binary Tree'],
-        'correctAnswer': 'Stack',
-        'marks': 25,
-      },
-      {
-        'id': '2',
-        'question': 'What is the average time complexity of searching in a Balanced Binary Search Tree (AVL Tree)?',
-        'options': ['O(1)', 'O(n)', 'O(log n)', 'O(n log n)'],
-        'correctAnswer': 'O(log n)',
-        'marks': 25,
-      },
-      {
-        'id': '3',
-        'question': 'Which algorithm is used to find the shortest path in a weighted graph without negative cycles?',
-        'options': ['Dijkstra Algorithm', 'Prim Algorithm', 'Kruskal Algorithm', 'Floyd-Warshall'],
-        'correctAnswer': 'Dijkstra Algorithm',
-        'marks': 25,
-      },
-      {
-        'id': '4',
-        'question': 'In a max heap, where is the largest element always located?',
-        'options': ['At the deepest leaf', 'At the root node', 'In the left subtree', 'At any position'],
-        'correctAnswer': 'At the root node',
-        'marks': 25,
-      },
-    ];
+    final List<Map<String, dynamic>> questions = [];
 
     showDialog(
       context: context,
@@ -630,6 +810,36 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  const Text('Select questions from your bank', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: bankQuestions.length,
+                      itemBuilder: (context, index) {
+                        final bankQuestion = bankQuestions[index];
+                        final id = bankQuestion['id']?.toString() ?? '';
+                        final selected = questions.any((q) => q['id']?.toString() == id);
+                        return CheckboxListTile(
+                          dense: true,
+                          value: selected,
+                          title: Text(bankQuestion['questionText']?.toString() ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+                          subtitle: Text('${bankQuestion['subject'] ?? ''} • ${bankQuestion['marks'] ?? 0} marks'),
+                          onChanged: (value) => setDlgState(() {
+                            if (value == true) {
+                              questions.add({'id': id, 'question': bankQuestion['questionText'], 'questionType': bankQuestion['questionType'], 'options': bankQuestion['options'] ?? const [], 'correctAnswer': bankQuestion['correctAnswer'], 'marks': bankQuestion['marks'], 'negativeMarks': bankQuestion['negativeMarks'], 'explanation': bankQuestion['explanation'], 'sourceQuestionVersion': bankQuestion['version']});
+                            } else {
+                              questions.removeWhere((q) => q['id']?.toString() == id);
+                            }
+                            totalMarksController.text = questions.fold<int>(0, (sum, q) => sum + (q['marks'] as int? ?? 0)).toString();
+                          }),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1049,6 +1259,617 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     );
   }
 
+  // 2C. Assignment Evaluation Screen
+  Widget _buildAssignmentEvaluationScreen() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Submitted Assignments & Grading Desk', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Review student submissions, evaluate attachments, assign marks and return feedback.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              Wrap(spacing: 8, children: [
+                FilledButton.icon(
+                  onPressed: () => _showAssignmentEditor(),
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('Upload Assignment'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: AppColors.teacherPrimary),
+                  tooltip: 'Refresh Assignments',
+                  onPressed: _fetchTeacherAssignments,
+                ),
+              ]),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherAssignments)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherAssignments.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    const Icon(Icons.assignment_turned_in_outlined, size: 54, color: AppColors.textMuted),
+                    const SizedBox(height: 12),
+                    const Text('No assignments found to evaluate.', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.school_outlined),
+                      label: const Text('Open Classrooms Hub'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary, foregroundColor: Colors.white),
+                      onPressed: () => setState(() => _activeScreen = 'classes'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherAssignments.length,
+              itemBuilder: (ctx, idx) {
+                final a = _teacherAssignments[idx];
+                final dueDate = a['dueDate']?.toString() ?? 'No deadline';
+                final points = a['pointsPossible'] ?? 100;
+                final classroomName = a['classroomName'] ?? 'Classroom';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.rate_review_outlined, color: Colors.green, size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(a['title'] ?? 'Assignment', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Submitted: ${a['turnedInCount'] ?? 0}  •  Graded: ${a['gradedCount'] ?? 0}  •  Students: ${a['assignedCount'] ?? 0}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.teacherPrimary),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$classroomName • Due: $dueDate • Total: $points pts',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.grading, size: 16),
+                          label: const Text('View / Grade'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.teacherPrimary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {
+                            final cId = a['classroomId']?.toString() ?? '';
+                            final aId = a['id']?.toString() ?? '';
+                            if (cId.isNotEmpty && aId.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AssignmentViewScreen(
+                                    assignmentId: aId,
+                                    classroomId: cId,
+                                    userRole: 'teacher',
+                                  ),
+                                ),
+                              ).then((_) => _fetchTeacherAssignments(showLoading: false));
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 6),
+                        IconButton(tooltip: 'Edit assignment', icon: const Icon(Icons.edit_outlined), onPressed: () => _showAssignmentEditor(existing: a)),
+                        IconButton(tooltip: 'Delete assignment', icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () async {
+                          final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('Delete assignment?'), content: Text('“${a['title']}” and its submissions will be removed.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete'))]));
+                          if (ok == true) { try { await ApiService().deleteAssignment(a['id'].toString()); await _fetchTeacherAssignments(); } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()))); } }
+                        }),
+                      ],
+                    ),
+                        const SizedBox(height: 12),
+                        Builder(builder: (context) {
+                          final submissions = (a['submissions'] as List? ?? const []).cast<Map<String, dynamic>>();
+                          if (submissions.isEmpty) {
+                            return const Align(alignment: Alignment.centerLeft, child: Text('No student submissions yet.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)));
+                          }
+                          return Column(children: submissions.map((submission) {
+                            final files = (submission['attachments'] as List? ?? const []).cast<Map<String, dynamic>>();
+                            final submittedAt = submission['submittedAt']?.toString().replaceFirst('T', ' ') ?? 'Date unavailable';
+                            return Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(8)),
+                              child: Row(children: [
+                                const Icon(Icons.person_outline, size: 18, color: AppColors.teacherPrimary),
+                                const SizedBox(width: 8),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(submission['studentName']?.toString() ?? 'Student', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                  Text('Submitted $submittedAt', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                                  if (files.isNotEmpty) Wrap(spacing: 8, children: files.map((file) => TextButton.icon(
+                                    onPressed: () async { final uri = Uri.tryParse(file['fileUrl']?.toString() ?? ''); if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication); },
+                                    icon: const Icon(Icons.download_outlined, size: 14),
+                                    label: Text(file['fileName']?.toString() ?? 'Download file', overflow: TextOverflow.ellipsis),
+                                  )).toList()),
+                                  if (files.isEmpty && (submission['submissionText']?.toString().trim().isNotEmpty ?? false))
+                                    Text(submission['submissionText'].toString(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                                ])),
+                                Text(submission['status']?.toString() ?? 'TURNED_IN', style: const TextStyle(fontSize: 11, color: AppColors.teacherPrimary)),
+                              ]),
+                            );
+                          }).toList());
+                        }),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 2D. Question Management Screen
+  Widget _buildQuestionManagementScreen() {
+    final visibleQuestions = _questionBank.where((q) {
+      final textMatches = _questionSearch.trim().isEmpty || q['questionText']?.toString().toLowerCase().contains(_questionSearch.trim().toLowerCase()) == true;
+      final typeMatches = _questionTypeFilter.isEmpty || q['questionType'] == _questionTypeFilter;
+      return textMatches && typeMatches;
+    }).toList();
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Question Management & Question Bank', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Review exam question sets, answer options, correct choices, and scoring weights.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              Wrap(spacing: 8, children: [
+                OutlinedButton.icon(onPressed: _fetchQuestionBank, icon: const Icon(Icons.refresh), label: const Text('Refresh')),
+                ElevatedButton.icon(onPressed: () => _showQuestionEditor(), icon: const Icon(Icons.add), label: const Text('New Question')),
+                ElevatedButton.icon(onPressed: _showCreateExamDialog, icon: const Icon(Icons.assignment_add), label: const Text('New Exam')),
+              ]),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text('Question Bank', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: TextField(decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search questions', border: OutlineInputBorder()), onChanged: (value) => setState(() => _questionSearch = value))),
+            const SizedBox(width: 10),
+            SizedBox(width: 180, child: DropdownButtonFormField<String>(initialValue: _questionTypeFilter, decoration: const InputDecoration(labelText: 'Question type'), items: [const DropdownMenuItem(value: '', child: Text('All types')), ...['MCQ_SINGLE', 'MCQ_MULTI', 'TRUE_FALSE', 'FILL_BLANK', 'SHORT_ANSWER', 'LONG_ANSWER', 'MATCH'].map((type) => DropdownMenuItem(value: type, child: Text(type.replaceAll('_', ' '))))], onChanged: (value) => setState(() => _questionTypeFilter = value ?? ''))),
+          ]),
+          if (_loadingQuestionBank) const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
+          else if (visibleQuestions.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text('No questions match. Create a question to start your bank.', style: TextStyle(color: AppColors.textMuted)))
+          else ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: visibleQuestions.length, itemBuilder: (ctx, index) {
+            final question = visibleQuestions[index];
+            return Card(child: ListTile(
+              leading: const Icon(Icons.quiz_outlined, color: AppColors.teacherPrimary),
+              title: Text(question['questionText']?.toString() ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+              subtitle: Text('${question['subject'] ?? 'No subject'} • ${question['className'] ?? 'All classes'} • ${question['chapter'] ?? ''} ${question['topic'] ?? ''} • ${question['questionType'] ?? ''} • ${question['difficulty'] ?? ''} • ${question['marks'] ?? 0} marks • v${question['version'] ?? 1}'),
+              trailing: Wrap(children: [
+                IconButton(tooltip: 'Edit question', onPressed: () => _showQuestionEditor(existing: question), icon: const Icon(Icons.edit_outlined)),
+                IconButton(tooltip: 'Delete question', onPressed: () async {
+                  final confirmed = await showDialog<bool>(context: context, builder: (dialog) => AlertDialog(title: const Text('Delete question?'), content: const Text('Existing exams keep their stored question snapshots.'), actions: [TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialog, true), child: const Text('Delete'))]));
+                  if (confirmed == true) { try { await ApiService().deleteExamQuestion(question['id'].toString()); await _fetchQuestionBank(); } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()))); } }
+                }, icon: const Icon(Icons.delete_outline, color: Colors.red)),
+              ]),
+            ));
+          }),
+          const Divider(height: 32),
+          const Text('Exam question snapshots', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+          const SizedBox(height: 8),
+          if (_loadingTeacherExams)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherExams.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    const Icon(Icons.quiz_outlined, size: 54, color: AppColors.textMuted),
+                    const SizedBox(height: 12),
+                    const Text('No questions created yet. Schedule an assessment to build questions.', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Exam & Questions'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary, foregroundColor: Colors.white),
+                      onPressed: _showCreateExamDialog,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherExams.length,
+              itemBuilder: (ctx, idx) {
+                final exam = _teacherExams[idx];
+                final qs = exam['questions'] as List? ?? [];
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: ExpansionTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E8FF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.quiz_outlined, color: Colors.purple, size: 22),
+                    ),
+                    title: Text(exam['title'] ?? 'Assessment', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    subtitle: Text('${exam['courseCode'] ?? "CS"} • ${qs.length} Questions • Total ${exam['totalMarks'] ?? 100} Marks', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Column(
+                          children: qs.asMap().entries.map((entry) {
+                            final qIdx = entry.key + 1;
+                            final q = entry.value as Map<String, dynamic>;
+                            final opts = (q['options'] as List?) ?? [];
+                            final correct = q['correctAnswer']?.toString() ?? '';
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text('Q$qIdx: ', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                      Expanded(
+                                        child: Text(q['question']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(4)),
+                                        child: Text('${q['marks'] ?? 25} pts', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: opts.map((opt) {
+                                      final isCorrect = opt.toString() == correct;
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isCorrect ? Colors.green.shade50 : Colors.white,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: isCorrect ? Colors.green : AppColors.border),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (isCorrect) const Icon(Icons.check_circle, size: 14, color: Colors.green),
+                                            if (isCorrect) const SizedBox(width: 4),
+                                            Text(
+                                              opt.toString(),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: isCorrect ? FontWeight.bold : FontWeight.normal,
+                                                color: isCorrect ? Colors.green.shade900 : AppColors.textMain,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 2E. Exam Evaluation Screen
+  Widget _buildExamEvaluationScreen() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Exam Evaluation & Student Attempts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Review student submissions, inspect chosen responses, and verify automated marks.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppColors.teacherPrimary),
+                tooltip: 'Refresh',
+                onPressed: _fetchTeacherExams,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherExams)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherExams.isEmpty)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No exams scheduled yet.')))
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherExams.length,
+              itemBuilder: (ctx, idx) {
+                final exam = _teacherExams[idx];
+                final resultsReleased = exam['resultsReleased'] == true;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.fact_check_outlined, color: Colors.orange, size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(exam['title'] ?? 'Examination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${exam['courseCode'] ?? "CS"} • ${exam['courseName'] ?? ""} • Max Marks: ${exam['totalMarks'] ?? 100}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.people_outline, size: 16),
+                          label: const Text('Inspect Attempts'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.teacherPrimary,
+                            side: const BorderSide(color: AppColors.teacherPrimary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _showExamAttemptsDialog(exam),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          icon: Icon(resultsReleased ? Icons.lock : Icons.lock_open, size: 16),
+                          label: Text(resultsReleased ? 'Lock' : 'Release'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: resultsReleased ? Colors.orange.shade700 : Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _toggleReleaseResults(exam),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 2F. Results Screen
+  Widget _buildResultsScreen() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Examination Results & Publication', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Control scorecard release to students and view consolidated academic grading.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppColors.teacherPrimary),
+                tooltip: 'Refresh',
+                onPressed: _fetchTeacherExams,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherExams)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherExams.isEmpty)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No exams recorded.')))
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherExams.length,
+              itemBuilder: (ctx, idx) {
+                final exam = _teacherExams[idx];
+                final resultsReleased = exam['resultsReleased'] == true;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: resultsReleased ? Colors.green.shade50 : Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            resultsReleased ? Icons.emoji_events : Icons.lock_clock,
+                            color: resultsReleased ? Colors.green : Colors.amber.shade800,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(exam['title'] ?? 'Examination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    '${exam['courseCode'] ?? "CS"} • Total: ${exam['totalMarks'] ?? 100} Marks  •  ',
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: resultsReleased ? Colors.green.shade50 : Colors.amber.shade50,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: resultsReleased ? Colors.green : Colors.amber),
+                                    ),
+                                    child: Text(
+                                      resultsReleased ? 'RESULTS RELEASED' : 'WITHHELD / DRAFT',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: resultsReleased ? Colors.green.shade800 : Colors.amber.shade900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          icon: Icon(resultsReleased ? Icons.lock : Icons.lock_open, size: 16),
+                          label: Text(resultsReleased ? 'Lock Scorecards' : 'Release Scorecards'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: resultsReleased ? Colors.orange.shade700 : Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _toggleReleaseResults(exam),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   // 3. Students (Live CRUD from Backend)
   Widget _buildStudentsScreen() {
     final studentProv = Provider.of<StudentProvider>(context);
@@ -1068,12 +1889,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                   const Text('Student Directory', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   Text('${studentProv.students.length} students retrieved from backend database.', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
                 ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () => setState(() => _activeScreen = 'add-student'),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Student'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary),
               ),
             ],
           ),
@@ -1130,33 +1945,6 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                                 _selectedStudent = s;
                                 _activeScreen = 'student-detail';
                               });
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-                            tooltip: 'Delete Student',
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text('Delete Student?'),
-                                  content: Text('Are you sure you want to remove ${s.name}?'),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                                    ElevatedButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (confirm == true) {
-                                await studentProv.deleteStudent(s.id);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student deleted successfully')));
-                                }
-                              }
                             },
                           ),
                         ],

@@ -20,6 +20,7 @@ class StudentModel {
   final String? status;
   final String? instituteCode;
   final String? instituteName;
+  final String? initialPassword;
 
   StudentModel({
     required this.id,
@@ -43,6 +44,7 @@ class StudentModel {
     this.status = 'Active',
     this.instituteCode,
     this.instituteName,
+    this.initialPassword,
   });
 
   factory StudentModel.fromJson(Map<String, dynamic> json) {
@@ -68,6 +70,7 @@ class StudentModel {
       status: json['status']?.toString() ?? 'Active',
       instituteCode: json['instituteCode']?.toString(),
       instituteName: json['instituteName']?.toString(),
+      initialPassword: json['initialPassword']?.toString(),
     );
   }
 
@@ -93,9 +96,11 @@ class StudentModel {
       'motherPhone': motherPhone ?? '',
       'motherEmail': motherEmail ?? '',
       'status': status ?? 'Active',
-      'instituteCode': instituteCode ?? 'INST-2025',
-      'instituteName': instituteName ?? 'Apex Institute of Technology',
+      if (instituteCode != null) 'instituteCode': instituteCode,
+      if (instituteName != null) 'instituteName': instituteName,
       'role': 'student',
+      if (initialPassword != null && initialPassword!.isNotEmpty)
+        'password': initialPassword,
     };
   }
 }

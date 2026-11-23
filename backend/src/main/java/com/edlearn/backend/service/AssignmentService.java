@@ -6,7 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -22,19 +24,57 @@ public class AssignmentService {
     private final GradeRepository gradeRepository;
     private final ClassroomRepository classroomRepository;
     private final ClassroomMemberRepository memberRepository;
+    private final CloudinaryService cloudinaryService;
 
     public AssignmentService(AssignmentRepository assignmentRepository,
                              AssignmentSubmissionRepository submissionRepository,
                              AssignmentAttachmentRepository attachmentRepository,
                              GradeRepository gradeRepository,
                              ClassroomRepository classroomRepository,
-                             ClassroomMemberRepository memberRepository) {
+                             ClassroomMemberRepository memberRepository,
+                             CloudinaryService cloudinaryService) {
         this.assignmentRepository = assignmentRepository;
         this.submissionRepository = submissionRepository;
         this.attachmentRepository = attachmentRepository;
         this.gradeRepository = gradeRepository;
         this.classroomRepository = classroomRepository;
         this.memberRepository = memberRepository;
+        this.cloudinaryService = cloudinaryService;
+    }
+
+    public Map<String, Object> uploadAssignmentFile(UserEntity user, UUID classroomId, String purpose, MultipartFile file) {
+        ClassroomEntity classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
+        if ("ASSIGNMENT".equalsIgnoreCase(purpose)) {
+            checkTeacherOrAdmin(user, classroom);
+        } else if ("SUBMISSION".equalsIgnoreCase(purpose)) {
+            if (!"student".equalsIgnoreCase(user.getRole()) || !isActiveStudent(user, classroom)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only enrolled students can upload submission files for this class.");
+            }
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload purpose must be ASSIGNMENT or SUBMISSION.");
+        }
+        if (file == null || file.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a non-empty file to upload.");
+        if (file.getSize() > 25L * 1024 * 1024) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Assignment files must be 25 MB or smaller.");
+        String fileName = Objects.toString(file.getOriginalFilename(), "").toLowerCase(Locale.ROOT);
+        Set<String> allowedExtensions = Set.of("pdf", "doc", "docx", "odt", "rtf", "txt", "png", "jpg", "jpeg", "gif", "webp", "ppt", "pptx", "xls", "xlsx", "csv", "zip");
+        int extensionIndex = fileName.lastIndexOf('.');
+        if (extensionIndex < 0 || !allowedExtensions.contains(fileName.substring(extensionIndex + 1))) {
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported file type. Upload a document, PDF, image, spreadsheet, or archive.");
+        }
+        String folder = "educhain/assignments/" + classroomId + "/" + purpose.toLowerCase(Locale.ROOT);
+        try {
+            StoredFileEntity uploaded = cloudinaryService.uploadFile(file, folder, user.getId().toString());
+            Map<String, Object> result = new HashMap<>();
+            result.put("fileName", uploaded.getFileName());
+            result.put("fileUrl", uploaded.getFileUrl());
+            result.put("fileSize", uploaded.getFileSize());
+            result.put("fileType", uploaded.getContentType());
+            result.put("cloudinaryPublicId", uploaded.getFileKey());
+            return result;
+        } catch (IOException | RuntimeException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "File storage upload failed: " + ex.getMessage());
+        }
     }
 
     @Transactional
@@ -57,6 +97,10 @@ public class AssignmentService {
         if (body.get("pointsPossible") != null) {
             assignment.setPointsPossible(((Number) body.get("pointsPossible")).intValue());
         }
+        if (assignment.getPointsPossible() <= 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum marks must be positive.");
+        if (assignment.getPointsPossible() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Points possible must be greater than zero.");
+        }
         
         if (body.get("dueDate") != null) {
             assignment.setDueDate(parseDateTime((String) body.get("dueDate")));
@@ -70,7 +114,9 @@ public class AssignmentService {
             assignment.setAllowLateSubmissions(Boolean.TRUE.equals(body.get("allowLateSubmissions")));
         }
 
-        assignment.setStatus(body.get("status") != null ? (String) body.get("status") : "PUBLISHED");
+        String status = body.get("status") == null ? "PUBLISHED" : body.get("status").toString().toUpperCase(Locale.ROOT);
+        if (!Set.of("DRAFT", "PUBLISHED").contains(status)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignment status must be DRAFT or PUBLISHED.");
+        assignment.setStatus(status);
         assignment.setCreatedBy(user);
         assignment.setCreatedAt(LocalDateTime.now());
         assignment.setUpdatedAt(LocalDateTime.now());
@@ -84,7 +130,7 @@ public class AssignmentService {
                     AssignmentAttachmentEntity att = new AssignmentAttachmentEntity();
                     att.setAssignment(saved);
                     att.setFileName((String) m.get("fileName"));
-                    att.setFileUrl((String) m.get("fileUrl"));
+                    att.setFileUrl(requireFileUrl(m.get("fileUrl")));
                     att.setFileType((String) m.get("fileType"));
                     if (m.get("fileSize") != null) {
                         att.setFileSize(((Number) m.get("fileSize")).longValue());
@@ -98,10 +144,61 @@ public class AssignmentService {
         return formatAssignment(saved, user);
     }
 
+    @Transactional
+    public Map<String, Object> updateAssignment(UserEntity user, UUID assignmentId, Map<String, Object> body) {
+        AssignmentEntity assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found."));
+        checkTeacherOrAdmin(user, assignment.getClassroom());
+        if (body.get("title") != null) {
+            String title = body.get("title").toString().trim();
+            if (title.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignment title is required.");
+            assignment.setTitle(title);
+        }
+        if (body.containsKey("instructions")) assignment.setInstructions((String) body.get("instructions"));
+        if (body.get("pointsPossible") instanceof Number n) assignment.setPointsPossible(n.intValue());
+        if (assignment.getPointsPossible() <= 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maximum marks must be positive.");
+        if (assignment.getPointsPossible() <= 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Points possible must be greater than zero.");
+        if (body.containsKey("dueDate")) assignment.setDueDate(body.get("dueDate") == null ? null : parseDateTime(body.get("dueDate").toString()));
+        if (body.containsKey("topic")) assignment.setTopic(body.get("topic") == null ? "General" : body.get("topic").toString().trim());
+        if (body.get("allowLateSubmissions") != null) assignment.setAllowLateSubmissions(Boolean.TRUE.equals(body.get("allowLateSubmissions")));
+        if (body.get("status") != null) {
+            String status = body.get("status").toString().toUpperCase(Locale.ROOT);
+            if (!Set.of("DRAFT", "PUBLISHED").contains(status)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignment status must be Draft or Published.");
+            assignment.setStatus(status);
+        }
+        assignment.setUpdatedAt(LocalDateTime.now());
+        if (body.get("attachments") instanceof List<?> list) {
+            for (Object obj : list) if (obj instanceof Map<?, ?> m) {
+                AssignmentAttachmentEntity att = new AssignmentAttachmentEntity();
+                att.setAssignment(assignment); att.setFileName(Objects.toString(m.get("fileName"), "file"));
+                att.setFileUrl(requireFileUrl(m.get("fileUrl"))); att.setFileType((String) m.get("fileType"));
+                if (m.get("fileSize") instanceof Number n) att.setFileSize(n.longValue());
+                att.setCloudinaryPublicId((String) m.get("cloudinaryPublicId")); attachmentRepository.save(att);
+            }
+        }
+        return formatAssignment(assignmentRepository.save(assignment), user);
+    }
+
+    @Transactional
+    public void deleteAssignment(UserEntity user, UUID assignmentId) {
+        AssignmentEntity assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found."));
+        checkTeacherOrAdmin(user, assignment.getClassroom());
+        List<AssignmentSubmissionEntity> submissions = submissionRepository.findByAssignmentIdOrderBySubmittedAtAsc(assignmentId);
+        for (AssignmentSubmissionEntity submission : submissions) {
+            gradeRepository.findBySubmissionId(submission.getId()).ifPresent(gradeRepository::delete);
+            attachmentRepository.deleteAll(attachmentRepository.findBySubmissionIdOrderByUploadedAtAsc(submission.getId()));
+        }
+        attachmentRepository.deleteAll(attachmentRepository.findByAssignmentIdOrderByUploadedAtAsc(assignmentId));
+        submissionRepository.deleteAll(submissions);
+        assignmentRepository.delete(assignment);
+    }
+
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getClassroomAssignments(UserEntity user, UUID classroomId, String topic) {
-        classroomRepository.findById(classroomId)
+        ClassroomEntity classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
+        checkClassAccess(user, classroom);
 
         List<AssignmentEntity> list;
         if (topic != null && !topic.trim().isEmpty()) {
@@ -110,13 +207,17 @@ public class AssignmentService {
             list = assignmentRepository.findByClassroomIdOrderByCreatedAtDesc(classroomId);
         }
 
-        return list.stream().map(a -> formatAssignment(a, user)).collect(Collectors.toList());
+        return list.stream().filter(a -> canManage(user, classroom) || "PUBLISHED".equalsIgnoreCase(a.getStatus()))
+                .map(a -> formatAssignment(a, user)).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> getAssignmentDetails(UserEntity user, UUID assignmentId) {
         AssignmentEntity assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found."));
+        checkClassAccess(user, assignment.getClassroom());
+        if (!canManage(user, assignment.getClassroom()) && !"PUBLISHED".equalsIgnoreCase(assignment.getStatus()))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found.");
 
         Map<String, Object> result = formatAssignment(assignment, user);
         
@@ -150,6 +251,10 @@ public class AssignmentService {
         AssignmentEntity assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found."));
 
+        checkStudentAccess(student, assignment.getClassroom());
+        if (!"PUBLISHED".equalsIgnoreCase(assignment.getStatus())) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found.");
+        if (body == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Submission data is required.");
+
         LocalDateTime now = LocalDateTime.now();
         boolean isLate = assignment.getDueDate() != null && now.isAfter(assignment.getDueDate());
 
@@ -157,14 +262,16 @@ public class AssignmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The deadline for this assignment has passed and late submissions are not allowed.");
         }
 
-        AssignmentSubmissionEntity submission = submissionRepository
-                .findByAssignmentIdAndStudentId(assignmentId, student.getId())
-                .orElseGet(() -> {
-                    AssignmentSubmissionEntity s = new AssignmentSubmissionEntity();
-                    s.setAssignment(assignment);
-                    s.setStudent(student);
-                    return s;
-                });
+        Optional<AssignmentSubmissionEntity> existingSubmission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId());
+        if (existingSubmission.isPresent() && !"ASSIGNED".equalsIgnoreCase(existingSubmission.get().getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This assignment has already been submitted. Unsubmit it before making changes.");
+        }
+        AssignmentSubmissionEntity submission = existingSubmission.orElseGet(() -> {
+            AssignmentSubmissionEntity s = new AssignmentSubmissionEntity();
+            s.setAssignment(assignment);
+            s.setStudent(student);
+            return s;
+        });
 
         if (submission.getId() != null) {
             submission.setVersionNumber(submission.getVersionNumber() + 1);
@@ -183,7 +290,7 @@ public class AssignmentService {
                     AssignmentAttachmentEntity att = new AssignmentAttachmentEntity();
                     att.setSubmission(savedSubmission);
                     att.setFileName((String) m.get("fileName"));
-                    att.setFileUrl((String) m.get("fileUrl"));
+                    att.setFileUrl(requireFileUrl(m.get("fileUrl")));
                     att.setFileType((String) m.get("fileType"));
                     if (m.get("fileSize") != null) {
                         att.setFileSize(((Number) m.get("fileSize")).longValue());
@@ -242,11 +349,14 @@ public class AssignmentService {
                 .findByAssignmentIdAndStudentId(assignmentId, student.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No submission found to unsubmit."));
 
+        checkStudentAccess(student, submission.getAssignment().getClassroom());
+
         if ("GRADED".equals(submission.getStatus()) || "RETURNED".equals(submission.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot unsubmit an assignment that has already been graded or returned.");
         }
 
         submission.setStatus("ASSIGNED");
+        attachmentRepository.deleteAll(attachmentRepository.findBySubmissionIdOrderByUploadedAtAsc(submission.getId()));
         AssignmentSubmissionEntity saved = submissionRepository.save(submission);
 
         Map<String, Object> res = formatSubmission(saved);
@@ -263,6 +373,7 @@ public class AssignmentService {
             if (!att.getSubmission().getStudent().getId().equals(user.getId()) && !"admin".equalsIgnoreCase(user.getRole())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You cannot delete another student's attachment.");
             }
+            if ("student".equalsIgnoreCase(user.getRole())) checkStudentAccess(user, att.getSubmission().getAssignment().getClassroom());
         } else if (att.getAssignment() != null) {
             checkTeacherOrAdmin(user, att.getAssignment().getClassroom());
         }
@@ -272,7 +383,8 @@ public class AssignmentService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> getStudentTodoList(UserEntity student) {
-        List<ClassroomMemberEntity> memberships = memberRepository.findByUserIdAndStatus(student.getId(), "ACTIVE");
+        List<ClassroomMemberEntity> memberships = memberRepository.findByUserIdAndStatus(student.getId(), "ACTIVE").stream()
+                .filter(m -> "STUDENT".equalsIgnoreCase(m.getRole())).collect(Collectors.toList());
         List<UUID> classroomIds = memberships.stream().map(m -> m.getClassroom().getId()).collect(Collectors.toList());
 
         List<Map<String, Object>> assigned = new ArrayList<>();
@@ -284,6 +396,7 @@ public class AssignmentService {
             List<AssignmentEntity> allAssignments = assignmentRepository.findByClassroomIdInOrderByDueDateAsc(classroomIds);
 
             for (AssignmentEntity a : allAssignments) {
+                if (!"PUBLISHED".equalsIgnoreCase(a.getStatus())) continue;
                 Map<String, Object> aMap = formatAssignment(a, student);
                 aMap.put("classroomName", a.getClassroom().getName());
                 aMap.put("classroomThemeColor", a.getClassroom().getThemeColor());
@@ -364,7 +477,7 @@ public class AssignmentService {
         if ("admin".equalsIgnoreCase(user.getRole())) return true;
         if (classroom.getCreator().getId().equals(user.getId())) return true;
         return memberRepository.findByClassroomIdAndUserId(classroom.getId(), user.getId())
-                .map(m -> "TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole()))
+                .map(m -> "ACTIVE".equalsIgnoreCase(m.getStatus()) && ("TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole())))
                 .orElse(false);
     }
 
@@ -374,13 +487,32 @@ public class AssignmentService {
         }
     }
 
+    private void checkClassAccess(UserEntity user, ClassroomEntity classroom) {
+        if ("admin".equalsIgnoreCase(user.getRole())) return;
+        if ("student".equalsIgnoreCase(user.getRole())) { checkStudentAccess(user, classroom); return; }
+        if ("teacher".equalsIgnoreCase(user.getRole())) { checkTeacherOrAdmin(user, classroom); return; }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have access to this class.");
+    }
+
+    private void checkStudentAccess(UserEntity student, ClassroomEntity classroom) {
+        if (!isActiveStudent(student, classroom)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This assignment is not assigned to your class.");
+    }
+
+    private boolean isActiveStudent(UserEntity student, ClassroomEntity classroom) {
+        return memberRepository.findByClassroomIdAndUserId(classroom.getId(), student.getId())
+                .filter(m -> "ACTIVE".equalsIgnoreCase(m.getStatus()) && "STUDENT".equalsIgnoreCase(m.getRole())).isPresent();
+    }
+
     private Map<String, Object> formatAssignment(AssignmentEntity a, UserEntity user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", a.getId());
         map.put("classroomId", a.getClassroom().getId());
+        map.put("classroomName", a.getClassroom().getName());
+        map.put("subject", a.getClassroom().getSubject() != null ? a.getClassroom().getSubject() : "");
         map.put("title", a.getTitle());
         map.put("instructions", a.getInstructions());
         map.put("pointsPossible", a.getPointsPossible());
+        map.put("points", a.getPointsPossible());
         map.put("dueDate", a.getDueDate() != null ? a.getDueDate().toString() : null);
         map.put("topic", a.getTopic());
         map.put("allowLateSubmissions", a.isAllowLateSubmissions());
@@ -394,7 +526,10 @@ public class AssignmentService {
                 map.put("submittedAt", sub.getSubmittedAt().toString());
                 gradeRepository.findBySubmissionId(sub.getId()).ifPresent(g -> {
                     map.put("myScore", g.getScore());
+                    map.put("score", g.getScore());
                     map.put("isReturned", g.isReturned());
+                    map.put("feedback", g.getFeedback());
+                    map.put("grade", formatGrade(g));
                 });
             }, () -> {
                 boolean overdue = a.getDueDate() != null && LocalDateTime.now().isAfter(a.getDueDate());
@@ -455,11 +590,28 @@ public class AssignmentService {
         return map;
     }
 
+    private String requireFileUrl(Object value) {
+        String fileUrl = Objects.toString(value, "").trim();
+        try {
+            java.net.URI uri = java.net.URI.create(fileUrl);
+            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
+                throw new IllegalArgumentException();
+            }
+            return fileUrl;
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attachment must have a valid HTTPS URL.");
+        }
+    }
+
     private LocalDateTime parseDateTime(String text) {
         try {
             return LocalDateTime.parse(text, DateTimeFormatter.ISO_DATE_TIME);
         } catch (Exception ex) {
-            return LocalDateTime.parse(text, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            try {
+                return LocalDateTime.parse(text, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            } catch (Exception invalid) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Due date must be a valid ISO date and time.");
+            }
         }
     }
 }

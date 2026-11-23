@@ -177,7 +177,7 @@ public class UserEntity {
     }
 
     public String getInstituteCode() {
-        return instituteCode != null && !instituteCode.isBlank() ? instituteCode : "INST-2025";
+        return instituteCode;
     }
 
     public void setInstituteCode(String instituteCode) {

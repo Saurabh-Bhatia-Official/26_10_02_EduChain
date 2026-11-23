@@ -36,6 +36,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
   final _studentRollController = TextEditingController();
   final _studentClassController = TextEditingController(text: 'BCA - Sem 3');
   final _studentPhoneController = TextEditingController();
+  final _studentPasswordController = TextEditingController();
 
   // Form Controllers for Instructor
   final _instructorNameController = TextEditingController();
@@ -44,6 +45,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
   final _instructorDeptController = TextEditingController(text: 'Computer Science');
   final _instructorDesignationController = TextEditingController(text: 'Assistant Professor');
   final _instructorPhoneController = TextEditingController();
+  final _instructorPasswordController = TextEditingController();
 
   // Form Controllers for Exam
   final _examTitleController = TextEditingController();
@@ -140,12 +142,14 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     _studentRollController.dispose();
     _studentClassController.dispose();
     _studentPhoneController.dispose();
+    _studentPasswordController.dispose();
     _instructorNameController.dispose();
     _instructorEmailController.dispose();
     _instructorIdController.dispose();
     _instructorDeptController.dispose();
     _instructorDesignationController.dispose();
     _instructorPhoneController.dispose();
+    _instructorPasswordController.dispose();
     _examTitleController.dispose();
     _examDateController.dispose();
     _examRoomController.dispose();
@@ -200,7 +204,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
       {'id': 'instructor-records', 'title': 'Instructors', 'icon': Icons.badge_outlined},
       {'id': 'instructor-tracking', 'title': 'Faculty Workload', 'icon': Icons.timelapse_outlined},
       {'id': 'add-instructor', 'title': 'Add Instructor', 'icon': Icons.person_add_alt_1_outlined},
-      {'id': 'class-management', 'title': 'Class Management', 'icon': Icons.class_outlined},
       {'id': 'academic-planning', 'title': 'Academic Planning', 'icon': Icons.calendar_month_outlined},
       {'id': 'lecture-schedule', 'title': 'Lecture Schedule', 'icon': Icons.schedule_outlined},
       {'id': 'exam-timetable', 'title': 'Exam Timetable', 'icon': Icons.assignment_outlined},
@@ -425,8 +428,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         return 'Faculty Workload & Performance';
       case 'add-instructor':
         return 'Faculty Onboarding & Recruitment';
-      case 'class-management':
-        return 'Classroom & Batch Management';
       case 'academic-planning':
         return 'Academic Planning & Semesters';
       case 'lecture-schedule':
@@ -466,8 +467,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         return _buildInstructorTrackingScreen();
       case 'add-instructor':
         return _buildAddInstructorScreen();
-      case 'class-management':
-        return _buildClassManagementScreen();
       case 'academic-planning':
         return _buildAcademicPlanningScreen();
       case 'lecture-schedule':
@@ -736,16 +735,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Add Student to Database', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              TextButton(
-                onPressed: () {
-                  _studentNameController.text = 'Rohit Singhania';
-                  _studentEmailController.text = 'rohit.singhania@example.com';
-                  _studentRollController.text = 'BCA-${DateTime.now().millisecondsSinceEpoch % 1000}';
-                  _studentClassController.text = 'BCA - Sem 3';
-                  _studentPhoneController.text = '+91 98765 88990';
-                },
-                child: const Text('Demo Fill'),
-              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -766,10 +755,19 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
               Expanded(child: TextFormField(controller: _studentPhoneController, decoration: const InputDecoration(labelText: 'Phone Number'))),
             ],
           ),
+          const SizedBox(height: 14),
+          TextFormField(controller: _studentPasswordController, obscureText: true, decoration: const InputDecoration(labelText: 'Initial Password (at least 8 characters)')),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () async {
-              if (_studentNameController.text.trim().isEmpty) return;
+              if (_studentNameController.text.trim().isEmpty ||
+                  !_studentEmailController.text.trim().contains('@') ||
+                  _studentRollController.text.trim().isEmpty ||
+                  _studentClassController.text.trim().isEmpty ||
+                  _studentPasswordController.text.length < 8) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter student name, valid email, roll number, class, and a password of at least 8 characters.')));
+                return;
+              }
               final newStd = StudentModel(
                 id: '',
                 name: _studentNameController.text.trim(),
@@ -778,6 +776,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
                 className: _studentClassController.text.trim(),
                 course: _studentClassController.text.trim(),
                 phone: _studentPhoneController.text.trim(),
+                initialPassword: _studentPasswordController.text,
               );
               final ok = await studentProv.addStudent(newStd);
               if (ok && mounted) {
@@ -892,9 +891,39 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
                             ),
                           ],
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
-                          onPressed: () async {
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (i.status?.toLowerCase() != 'active')
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final approved = InstructorModel(
+                                    id: i.id,
+                                    name: i.name,
+                                    email: i.email,
+                                    instructorId: i.instructorId,
+                                    department: i.department,
+                                    designation: i.designation,
+                                    phone: i.phone,
+                                    qualification: i.qualification,
+                                    experience: i.experience,
+                                    about: i.about,
+                                    status: 'Active',
+                                    instituteCode: i.instituteCode,
+                                    instituteName: i.instituteName,
+                                  );
+                                  final success = await instructorProv.updateInstructor(i.id, approved);
+                                  if (success && mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${i.name} is now active.')));
+                                  }
+                                },
+                                icon: const Icon(Icons.check_circle_outline, size: 16),
+                                label: const Text('Approve'),
+                              ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                              tooltip: 'Delete instructor',
+                              onPressed: () async {
                             final ok = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
@@ -916,7 +945,9 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Instructor removed from database')));
                               }
                             }
-                          },
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -963,17 +994,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Add Faculty Member to Database', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              TextButton(
-                onPressed: () {
-                  _instructorNameController.text = 'Prof. Vikram Malhotra';
-                  _instructorEmailController.text = 'vikram.malhotra@institute.com';
-                  _instructorIdController.text = 'INS-${DateTime.now().millisecondsSinceEpoch % 1000}';
-                  _instructorDeptController.text = 'Computer Science';
-                  _instructorDesignationController.text = 'Associate Professor';
-                  _instructorPhoneController.text = '+91 98765 33445';
-                },
-                child: const Text('Demo Fill'),
-              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -994,10 +1014,17 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
               Expanded(child: TextFormField(controller: _instructorDesignationController, decoration: const InputDecoration(labelText: 'Designation'))),
             ],
           ),
+          const SizedBox(height: 14),
+          TextFormField(controller: _instructorPasswordController, obscureText: true, decoration: const InputDecoration(labelText: 'Initial Password (at least 8 characters)')),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () async {
-              if (_instructorNameController.text.trim().isEmpty) return;
+              if (_instructorNameController.text.trim().isEmpty ||
+                  !_instructorEmailController.text.trim().contains('@') ||
+                  _instructorPasswordController.text.length < 8) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter faculty name, valid email, and a password of at least 8 characters.')));
+                return;
+              }
               final newIns = InstructorModel(
                 id: '',
                 name: _instructorNameController.text.trim(),
@@ -1006,6 +1033,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
                 department: _instructorDeptController.text.trim(),
                 designation: _instructorDesignationController.text.trim(),
                 phone: _instructorPhoneController.text.trim(),
+                initialPassword: _instructorPasswordController.text,
               );
               final ok = await instructorProv.addInstructor(newIns);
               if (ok && mounted) {
@@ -1021,29 +1049,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     );
   }
 
-  // 8. Class Management
-  Widget _buildClassManagementScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Academic Class Batches & Section Roster', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 8),
-          Text('Manage classroom section allocations, maximum capacities, and batch coordinators.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          SizedBox(height: 20),
-          Text('• BCA Semester 3 (Section A): Capacity 60 • Enrolled: 48 • Coordinator: Dr. Amit Sharma'),
-          SizedBox(height: 10),
-          Text('• BCA Semester 3 (Section B): Capacity 60 • Enrolled: 52 • Coordinator: Prof. Rajesh Gupta'),
-          SizedBox(height: 10),
-          Text('• MCA Semester 1: Capacity 50 • Enrolled: 42 • Coordinator: Prof. Sunita Rao'),
-        ],
-      ),
-    );
-  }
-
-  // 9. Academic Planning
+  // 8. Academic Planning
   Widget _buildAcademicPlanningScreen() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1067,7 +1073,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     );
   }
 
-  // 10. Lecture Schedule
+  // 9. Lecture Schedule
   Widget _buildLectureScheduleScreen() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1077,7 +1083,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         children: [
           Text('Institute Master Lecture Timetable', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           SizedBox(height: 8),
-          Text('All classrooms and laboratory sessions active across campus.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          Text('All lecture halls and laboratory sessions active across campus.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
           SizedBox(height: 20),
           Text('• Hall 101: MCA Semester 1 (Advanced Software Engineering) - 09:00 AM'),
           SizedBox(height: 8),

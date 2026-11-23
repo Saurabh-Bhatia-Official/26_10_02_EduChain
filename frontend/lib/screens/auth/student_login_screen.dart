@@ -19,24 +19,12 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _showPassword = false;
-  bool _autoFilled = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _handleDemoFill() {
-    setState(() {
-      _emailController.text = 'rahul@institute.com';
-      _passwordController.text = 'password123';
-      _autoFilled = true;
-    });
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _autoFilled = false);
-    });
   }
 
   Future<void> _handleSubmit() async {
@@ -197,22 +185,6 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 const Text(
                   'Student Portal',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
-                ),
-                TextButton.icon(
-                  onPressed: _handleDemoFill,
-                  icon: Icon(
-                    _autoFilled ? Icons.check : Icons.bolt,
-                    size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.studentPrimary,
-                  ),
-                  label: Text(
-                    _autoFilled ? 'Filled!' : 'Demo Fill',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.studentPrimary,
-                    ),
-                  ),
                 ),
               ],
             ),

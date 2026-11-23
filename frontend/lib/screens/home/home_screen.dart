@@ -22,6 +22,17 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey _contactKey = GlobalKey();
 
   void scrollToSection(String sectionId) {
+    if (sectionId == 'home') {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 850),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+      return;
+    }
+
     final targetKey = switch (sectionId) {
       'about' => _aboutKey,
       'features' => _featuresKey,
@@ -29,14 +40,20 @@ class _HomeScreenState extends State<HomeScreen> {
       _ => null,
     };
 
-    if (targetKey != null && targetKey.currentContext != null) {
+    if (targetKey == null) return;
+
+    // Wait until popup menus close and the current frame has completed before
+    // asking the scrollable to reveal the target section.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final targetContext = targetKey.currentContext;
+      if (!mounted || targetContext == null) return;
       Scrollable.ensureVisible(
-        targetKey.currentContext!,
-        alignment: 0.02,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
+        targetContext,
+        alignment: 0,
+        duration: const Duration(milliseconds: 850),
+        curve: Curves.easeInOutCubic,
       );
-    }
+    });
   }
 
   @override

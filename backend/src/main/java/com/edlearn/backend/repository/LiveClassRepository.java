@@ -20,7 +20,7 @@ public interface LiveClassRepository extends JpaRepository<LiveClassEntity, UUID
     @Query("SELECT lc FROM LiveClassEntity lc WHERE lc.classroom.id = :classroomId AND lc.endTime >= :now AND lc.status != 'CANCELLED' ORDER BY lc.startTime ASC")
     List<LiveClassEntity> findUpcomingByClassroomId(@Param("classroomId") UUID classroomId, @Param("now") LocalDateTime now);
 
-    @Query("SELECT lc FROM LiveClassEntity lc JOIN ClassroomMemberEntity cm ON cm.classroom.id = lc.classroom.id " +
+    @Query("SELECT DISTINCT lc FROM LiveClassEntity lc JOIN ClassroomMemberEntity cm ON cm.classroom.id = lc.classroom.id " +
            "WHERE cm.user.id = :userId AND cm.status = 'ACTIVE' AND lc.endTime >= :now AND lc.status != 'CANCELLED' " +
            "ORDER BY lc.startTime ASC")
     List<LiveClassEntity> findUpcomingByUserId(@Param("userId") UUID userId, @Param("now") LocalDateTime now);

@@ -425,8 +425,8 @@ public class PortalModuleService {
 
     private void notifyAdmins(String instituteCode, UUID excludedUserId, String type, String message,
                               String targetId, String targetType) {
-        String code = instituteCode != null && !instituteCode.isBlank() ? instituteCode : "INST-2025";
-        userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCase(code, "admin").stream()
+        if (instituteCode == null || instituteCode.isBlank()) return;
+        userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCase(instituteCode, "admin").stream()
                 .filter(admin -> !admin.getId().equals(excludedUserId))
                 .forEach(admin -> createNotification(admin, type, message, targetId, targetType));
     }

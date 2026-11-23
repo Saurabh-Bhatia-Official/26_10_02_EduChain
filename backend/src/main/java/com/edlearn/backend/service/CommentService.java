@@ -36,9 +36,10 @@ public class CommentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
 
         boolean isMember = memberRepository.existsByClassroomIdAndUserIdAndStatus(classroomId, author.getId(), "ACTIVE");
-        boolean isAdmin = "admin".equalsIgnoreCase(author.getRole());
+        boolean isAdmin = "admin".equalsIgnoreCase(author.getRole())
+                && author.getInstituteCode() != null && author.getInstituteCode().equalsIgnoreCase(classroom.getInstituteCode());
 
-        if (!isMember && !isAdmin && !classroom.isPublic()) {
+        if (!isMember && !isAdmin) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You must be enrolled to post in this classroom.");
         }
 
@@ -53,15 +54,25 @@ public class CommentService {
         comment.setContent(content.trim());
 
         String targetType = (String) body.getOrDefault("targetType", "STREAM_POST");
+        if (!Set.of("STREAM_POST", "ANNOUNCEMENT", "ASSIGNMENT", "SUBMISSION", "COMMENT").contains(targetType)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported comment target type.");
+        }
         comment.setTargetType(targetType);
 
         if (body.get("targetId") != null) {
-            comment.setTargetId(UUID.fromString((String) body.get("targetId")));
+            comment.setTargetId(parseId(body.get("targetId"), "Invalid target id."));
         }
 
         if (body.get("parentId") != null) {
-            UUID parentId = UUID.fromString((String) body.get("parentId"));
-            commentRepository.findById(parentId).ifPresent(comment::setParent);
+            UUID parentId = parseId(body.get("parentId"), "Invalid parent comment id.");
+            CommentEntity parent = commentRepository.findById(parentId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent comment not found."));
+            if (!parent.getClassroom().getId().equals(classroomId)
+                    || !Objects.equals(parent.getTargetId(), comment.getTargetId())
+                    || !Objects.equals(parent.getTargetType(), comment.getTargetType())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent comment must belong to the same classroom thread.");
+            }
+            comment.setParent(parent);
         }
 
         comment.setCreatedAt(LocalDateTime.now());
@@ -72,6 +83,9 @@ public class CommentService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getComments(UUID classroomId, String targetType, UUID targetId) {
+        if (!Set.of("STREAM_POST", "ANNOUNCEMENT", "ASSIGNMENT", "SUBMISSION", "COMMENT").contains(targetType)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported comment target type.");
+        }
         List<CommentEntity> list;
         if (targetId != null) {
             list = commentRepository.findByClassroomIdAndTargetTypeAndTargetIdOrderByCreatedAtAsc(classroomId, targetType, targetId);
@@ -87,12 +101,15 @@ public class CommentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found."));
 
         boolean isAuthor = comment.getAuthor().getId().equals(user.getId());
-        boolean isAdmin = "admin".equalsIgnoreCase(user.getRole());
+        boolean sameInstitute = user.getInstituteCode() != null && comment.getClassroom().getInstituteCode() != null
+                && user.getInstituteCode().equalsIgnoreCase(comment.getClassroom().getInstituteCode());
+        boolean isAdmin = "admin".equalsIgnoreCase(user.getRole()) && sameInstitute;
         boolean isTeacher = memberRepository.findByClassroomIdAndUserId(comment.getClassroom().getId(), user.getId())
-                .map(m -> "TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole()))
+                .map(m -> "ACTIVE".equalsIgnoreCase(m.getStatus())
+                        && ("TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole())))
                 .orElse(false);
 
-        if (!isAuthor && !isAdmin && !isTeacher) {
+        if (!sameInstitute || (!isAuthor && !isAdmin && !isTeacher)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to delete this comment.");
         }
 
@@ -113,5 +130,10 @@ public class CommentService {
         map.put("parentId", c.getParent() != null ? c.getParent().getId() : null);
         map.put("createdAt", c.getCreatedAt().toString());
         return map;
+    }
+
+    private UUID parseId(Object value, String message) {
+        try { return UUID.fromString(Objects.toString(value)); }
+        catch (IllegalArgumentException ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
     }
 }

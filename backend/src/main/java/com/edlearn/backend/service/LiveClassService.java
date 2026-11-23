@@ -7,18 +7,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class LiveClassService {
-
-    private static final String MEET_CHARS = "abcdefghijklmnopqrstuvwxyz";
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final LiveClassRepository liveClassRepository;
     private final AttendanceRepository attendanceRepository;
@@ -33,19 +30,6 @@ public class LiveClassService {
         this.attendanceRepository = attendanceRepository;
         this.classroomRepository = classroomRepository;
         this.memberRepository = memberRepository;
-    }
-
-    /**
-     * Generates a 3-4-3 Google Meet link format: https://meet.google.com/abc-defg-hij
-     */
-    public static String generateGoogleMeetLink() {
-        StringBuilder sb = new StringBuilder("https://meet.google.com/");
-        for (int i = 0; i < 3; i++) sb.append(MEET_CHARS.charAt(RANDOM.nextInt(MEET_CHARS.length())));
-        sb.append('-');
-        for (int i = 0; i < 4; i++) sb.append(MEET_CHARS.charAt(RANDOM.nextInt(MEET_CHARS.length())));
-        sb.append('-');
-        for (int i = 0; i < 3; i++) sb.append(MEET_CHARS.charAt(RANDOM.nextInt(MEET_CHARS.length())));
-        return sb.toString();
     }
 
     @Transactional
@@ -73,10 +57,9 @@ public class LiveClassService {
 
         String meetLink = (String) body.get("meetLink");
         if (meetLink == null || meetLink.trim().isEmpty()) {
-            meetLink = generateGoogleMeetLink();
-        } else {
-            meetLink = meetLink.trim();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A Google Meet URL is required.");
         }
+        meetLink = validateMeetLink(meetLink);
 
         LiveClassEntity liveClass = new LiveClassEntity();
         liveClass.setClassroom(classroom);
@@ -96,11 +79,42 @@ public class LiveClassService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getClassroomLiveClasses(UserEntity user, UUID classroomId) {
-        classroomRepository.findById(classroomId)
+        ClassroomEntity classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
+        checkCanView(user, classroom);
 
         List<LiveClassEntity> list = liveClassRepository.findByClassroomIdOrderByStartTimeDesc(classroomId);
         return list.stream().map(this::formatLiveClass).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Map<String, Object> updateLiveClass(UserEntity user, UUID liveClassId, Map<String, Object> body) {
+        LiveClassEntity liveClass = liveClassRepository.findById(liveClassId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Live class not found."));
+        checkTeacherOrAdmin(user, liveClass.getClassroom());
+
+        if (body.containsKey("title")) {
+            String title = Objects.toString(body.get("title"), "").trim();
+            if (title.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Live class title is required.");
+            liveClass.setTitle(title);
+        }
+        if (body.containsKey("description")) liveClass.setDescription((String) body.get("description"));
+        if (body.containsKey("meetLink")) liveClass.setMeetLink(validateMeetLink(Objects.toString(body.get("meetLink"), "")));
+        if (body.containsKey("startTime")) liveClass.setStartTime(parseDateTime(Objects.toString(body.get("startTime"), "")));
+        if (body.containsKey("endTime")) liveClass.setEndTime(parseDateTime(Objects.toString(body.get("endTime"), "")));
+        if (!liveClass.getEndTime().isAfter(liveClass.getStartTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Class end time must be after start time.");
+        }
+        return formatLiveClass(liveClassRepository.save(liveClass));
+    }
+
+    @Transactional
+    public void deleteLiveClass(UserEntity user, UUID liveClassId) {
+        LiveClassEntity liveClass = liveClassRepository.findById(liveClassId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Live class not found."));
+        checkTeacherOrAdmin(user, liveClass.getClassroom());
+        attendanceRepository.deleteAll(attendanceRepository.findByLiveClassIdOrderByJoinTimeAsc(liveClassId));
+        liveClassRepository.delete(liveClass);
     }
 
     @Transactional(readOnly = true)
@@ -226,7 +240,8 @@ public class LiveClassService {
         if ("admin".equalsIgnoreCase(user.getRole())) return true;
         if (classroom.getCreator().getId().equals(user.getId())) return true;
         return memberRepository.findByClassroomIdAndUserId(classroom.getId(), user.getId())
-                .map(m -> "TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole()))
+                .map(m -> "ACTIVE".equalsIgnoreCase(m.getStatus())
+                        && ("TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole())))
                 .orElse(false);
     }
 
@@ -236,11 +251,39 @@ public class LiveClassService {
         }
     }
 
+    private void checkCanView(UserEntity user, ClassroomEntity classroom) {
+        if ("admin".equalsIgnoreCase(user.getRole()) || classroom.getCreator().getId().equals(user.getId())) return;
+        boolean isActiveMember = memberRepository.findByClassroomIdAndUserId(classroom.getId(), user.getId())
+                .map(member -> "ACTIVE".equalsIgnoreCase(member.getStatus()))
+                .orElse(false);
+        if (!isActiveMember) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You must be an active member of this classroom to view its meetings.");
+        }
+    }
+
+    private String validateMeetLink(String value) {
+        try {
+            URI uri = URI.create(value.trim());
+            if (!"https".equalsIgnoreCase(uri.getScheme())
+                    || !"meet.google.com".equalsIgnoreCase(uri.getHost())
+                    || uri.getPort() != -1
+                    || uri.getRawUserInfo() != null
+                    || uri.getPath() == null
+                    || uri.getPath().length() <= 1) {
+                throw new IllegalArgumentException();
+            }
+            return uri.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a valid Google Meet URL, such as https://meet.google.com/abc-defg-hij.");
+        }
+    }
+
     private Map<String, Object> formatLiveClass(LiveClassEntity lc) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", lc.getId());
         map.put("classroomId", lc.getClassroom().getId());
         map.put("classroomName", lc.getClassroom().getName());
+        map.put("subject", lc.getClassroom().getSubject() != null ? lc.getClassroom().getSubject() : "");
         map.put("title", lc.getTitle());
         map.put("description", lc.getDescription());
         map.put("meetLink", lc.getMeetLink());

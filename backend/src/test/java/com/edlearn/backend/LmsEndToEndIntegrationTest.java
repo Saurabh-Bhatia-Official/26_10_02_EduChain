@@ -18,7 +18,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-@EnabledIfEnvironmentVariable(named = "TEST_DATABASE_URL", matches = "jdbc:postgresql://.+")
+@EnabledIfEnvironmentVariable(named = "TEST_DATABASE_URL", matches = "jdbc:postgresql://(localhost|127[.]0[.]0[.]1)(:[0-9]+)?/[^?]*test[^?]*.*")
 public class LmsEndToEndIntegrationTest {
 
     @Autowired

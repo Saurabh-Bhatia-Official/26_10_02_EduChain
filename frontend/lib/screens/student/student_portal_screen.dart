@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/user_model.dart';
@@ -12,6 +13,7 @@ import '../../widgets/portal_notification_bell.dart';
 import '../../widgets/portal_announcement_preview.dart';
 import '../../services/api_service.dart';
 import '../classroom/classroom_hub_screen.dart';
+import '../classroom/assignment_view_screen.dart';
 
 class StudentPortalScreen extends StatefulWidget {
   final String initialTab;
@@ -33,6 +35,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   bool _instructionsAccepted = false;
   int _examTimeSeconds = 3600; // 60 mins
   Timer? _examTimer;
+  Timer? _meetingRefreshTimer;
+  List<Map<String, dynamic>> _upcomingMeetings = [];
+  bool _loadingMeetings = false;
 
   // Real backend exam integration state
   List<Map<String, dynamic>> _onlineExams = [];
@@ -43,11 +48,40 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   bool _submittingExam = false;
   String? _examError;
 
+  Map<String, dynamic>? _studentSubmissionsData;
+  bool _loadingSubmissions = false;
+  bool _fetchingSubmissions = false;
+
+  Future<void> _fetchSubmissionsData({bool showLoading = true}) async {
+    if (_fetchingSubmissions) return;
+    _fetchingSubmissions = true;
+    if (showLoading) setState(() => _loadingSubmissions = true);
+    try {
+      final res = await ApiService().getStudentTodoList();
+      if (mounted) {
+        setState(() {
+          _studentSubmissionsData = res;
+          if (showLoading) _loadingSubmissions = false;
+        });
+      }
+    } catch (_) {
+      if (mounted && showLoading) setState(() => _loadingSubmissions = false);
+    } finally {
+      _fetchingSubmissions = false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _activeTab = widget.initialTab.isNotEmpty ? widget.initialTab : 'dashboard';
     _fetchOnlineExams();
+    _fetchSubmissionsData();
+    _fetchUpcomingMeetings();
+    _meetingRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _fetchUpcomingMeetings();
+      _fetchSubmissionsData(showLoading: false);
+    });
   }
 
   @override
@@ -57,6 +91,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       setState(() => _activeTab = widget.initialTab);
       if (_activeTab == 'exams') {
         _fetchOnlineExams();
+      } else if (_activeTab == 'my-submissions') {
+        _fetchSubmissionsData();
       }
     }
   }
@@ -239,7 +275,31 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   @override
   void dispose() {
     _examTimer?.cancel();
+    _meetingRefreshTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _fetchUpcomingMeetings() async {
+    if (_loadingMeetings) return;
+    _loadingMeetings = true;
+    try {
+      final meetings = await ApiService().getUpcomingLiveClasses();
+      if (mounted) setState(() => _upcomingMeetings = meetings);
+    } catch (_) {
+      // Keep the last successful dashboard data visible if the network is unavailable.
+    } finally {
+      _loadingMeetings = false;
+    }
+  }
+
+  String _meetingTimeLabel(Map<String, dynamic> meeting) {
+    final start = DateTime.tryParse(meeting['startTime']?.toString() ?? '')?.toLocal();
+    final end = DateTime.tryParse(meeting['endTime']?.toString() ?? '')?.toLocal();
+    if (start == null) return 'Time to be confirmed';
+    final date = '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    final startTime = TimeOfDay.fromDateTime(start).format(context);
+    final endTime = end == null ? '' : ' – ${TimeOfDay.fromDateTime(end).format(context)}';
+    return '$date  $startTime$endTime';
   }
 
   String _formatTime(int totalSeconds) {
@@ -267,9 +327,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             child: Column(
               children: [
                 _buildTopBar(user, nav, auth, isDesktop),
-                if (_activeTab == 'classrooms')
-                  const Expanded(
-                    child: ClassroomHubScreen(userRole: 'student'),
+                if (_isClassroomHubTab(_activeTab))
+                  Expanded(
+                    child: _buildClassroomHubWidget(_activeTab),
                   )
                 else
                   Expanded(
@@ -292,19 +352,46 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     );
   }
 
+  bool _isClassroomHubTab(String tab) {
+    return tab == 'classrooms' ||
+        tab == 'join-classroom' ||
+        tab == 'assignments' ||
+        tab == 'meet';
+  }
+
+  Widget _buildClassroomHubWidget(String tab) {
+    int initialIdx = 0;
+    if (tab == 'assignments') {
+      initialIdx = 1;
+    } else if (tab == 'meet') {
+      initialIdx = 2;
+    } else if (tab == 'join-classroom') {
+      initialIdx = 3;
+    }
+    return ClassroomHubScreen(
+      key: ValueKey('student-classroom-$tab'),
+      userRole: 'student',
+      initialIndex: initialIdx,
+    );
+  }
+
   Widget _buildSidebar(UserModel? user, NavigationProvider nav) {
     final menuItems = [
       {'id': 'dashboard', 'title': 'Dashboard', 'icon': Icons.dashboard_outlined},
-      {'id': 'profile', 'title': 'My Profile', 'icon': Icons.person_outline},
-      {'id': 'attendance', 'title': 'Attendance', 'icon': Icons.fact_check_outlined},
-      {'id': 'grades', 'title': 'Grades & Results', 'icon': Icons.emoji_events_outlined},
-      {'id': 'schedule', 'title': 'Class Schedule', 'icon': Icons.calendar_today_outlined},
+      {'id': 'classrooms', 'title': 'My Classrooms', 'icon': Icons.school_outlined},
+      {'id': 'join-classroom', 'title': 'Join Classroom', 'icon': Icons.group_add_outlined},
+      {'id': 'assignments', 'title': 'Assignments', 'icon': Icons.assignment_turned_in_outlined},
+      {'id': 'my-submissions', 'title': 'My Submissions', 'icon': Icons.task_outlined},
+      {'id': 'exams', 'title': 'Examinations', 'icon': Icons.assignment_outlined},
+      {'id': 'exam-results', 'title': 'Exam Results', 'icon': Icons.emoji_events_outlined},
+      {'id': 'meet', 'title': 'Google Meet', 'icon': Icons.video_call_outlined},
+      {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
       {'id': 'materials', 'title': 'Study Materials', 'icon': Icons.menu_book_outlined},
+      {'id': 'attendance', 'title': 'Attendance', 'icon': Icons.fact_check_outlined},
+      {'id': 'schedule', 'title': 'Class Schedule', 'icon': Icons.calendar_today_outlined},
       {'id': 'timetable', 'title': 'Weekly Timetable', 'icon': Icons.grid_view_outlined},
       {'id': 'parents', 'title': 'Parent Portal', 'icon': Icons.family_restroom_outlined},
-      {'id': 'classrooms', 'title': 'Google Classroom', 'icon': Icons.school_outlined},
-      {'id': 'exams', 'title': 'Online Exams', 'icon': Icons.assignment_outlined},
-      {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
+      {'id': 'profile', 'title': 'My Profile', 'icon': Icons.person_outline},
       {'id': 'leaves', 'title': 'Leave Applications', 'icon': Icons.event_available_outlined},
     ];
 
@@ -392,27 +479,35 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 final isSelected = _activeTab == id || (_activeTab.startsWith('exam-') && id == 'exams');
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: ListTile(
-                    dense: true,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    tileColor: isSelected ? const Color(0xFFF3E8FF) : Colors.transparent,
-                    leading: Icon(
-                      item['icon'] as IconData,
-                      size: 20,
-                      color: isSelected ? AppColors.studentPrimary : AppColors.textMuted,
-                    ),
-                    title: Text(
-                      item['title'] as String,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? AppColors.studentPrimary : AppColors.textMain,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      dense: true,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      tileColor: isSelected ? const Color(0xFFF3E8FF) : Colors.transparent,
+                      leading: Icon(
+                        item['icon'] as IconData,
+                        size: 20,
+                        color: isSelected ? AppColors.studentPrimary : AppColors.textMuted,
                       ),
+                      title: Text(
+                        item['title'] as String,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? AppColors.studentPrimary : AppColors.textMain,
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() => _activeTab = id);
+                        nav.setPortalTab(id);
+                        if (id == 'exams') {
+                          _fetchOnlineExams();
+                        } else if (id == 'my-submissions') {
+                          _fetchSubmissionsData();
+                        }
+                      },
                     ),
-                    onTap: () {
-                      setState(() => _activeTab = id);
-                      nav.setPortalTab(id);
-                    },
                   ),
                 );
               }).toList(),
@@ -523,7 +618,15 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       case 'exams':
         return 'Online Examination Hall';
       case 'classrooms':
-        return 'Google Classroom & Meet Hub';
+        return 'My Classrooms (Google Classroom)';
+      case 'join-classroom':
+        return 'Join New Classroom';
+      case 'assignments':
+        return 'Assignments & To-Do List';
+      case 'my-submissions':
+        return 'My Submissions & Completed Work';
+      case 'meet':
+        return 'Google Meet Live Classes';
       case 'announcements':
         return 'Announcements';
       case 'leaves':
@@ -551,6 +654,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         return _buildAttendanceTab();
       case 'grades':
         return _buildGradesTab();
+      case 'my-submissions':
+        return _buildMySubmissionsTab();
       case 'schedule':
         return _buildScheduleTab();
       case 'materials':
@@ -637,6 +742,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 24),
+
+        _buildUpcomingAssignmentsCard(),
+        const SizedBox(height: 16),
+        _buildUpcomingMeetingsCard(),
         const SizedBox(height: 24),
 
         // 4 KPI Cards
@@ -744,6 +854,120 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildUpcomingAssignmentsCard() {
+    final assigned = (_studentSubmissionsData?['assigned'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final missing = (_studentSubmissionsData?['missing'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final done = (_studentSubmissionsData?['done'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final assignments = [...assigned, ...missing, ...done].take(6).toList();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.assignment_outlined, color: AppColors.studentPrimary),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('My Assignments', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+          IconButton(tooltip: 'Refresh assignments', onPressed: () => _fetchSubmissionsData(), icon: const Icon(Icons.refresh)),
+        ]),
+        if (_loadingSubmissions && _studentSubmissionsData == null)
+          const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator()))
+        else if (assignments.isEmpty)
+          const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('No pending assignments for your enrolled classes.', style: TextStyle(color: AppColors.textMuted)))
+        else
+          ...assignments.map((assignment) {
+            final assignmentId = assignment['id']?.toString() ?? '';
+            final classroomId = assignment['classroomId']?.toString() ?? '';
+            final isMissing = assignment['submissionStatus'] == 'MISSING';
+            final score = assignment['myScore'] ?? assignment['score'];
+            final feedback = assignment['feedback']?.toString();
+            final status = assignment['submissionStatus']?.toString() ?? 'ASSIGNED';
+            return Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: isMissing ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(10), border: Border.all(color: isMissing ? Colors.red.shade200 : AppColors.border)),
+              child: Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 12, runSpacing: 8, children: [
+                ConstrainedBox(constraints: const BoxConstraints(maxWidth: 460), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(assignment['title']?.toString() ?? 'Assignment', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  const SizedBox(height: 3),
+                  Text('Class: ${assignment['classroomName'] ?? 'Class'}  •  Subject: ${assignment['subject']?.toString().isNotEmpty == true ? assignment['subject'] : assignment['topic'] ?? 'General'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text('Due: ${assignment['dueDate'] ?? 'No due date'}', style: TextStyle(fontSize: 11, color: isMissing ? Colors.red.shade700 : AppColors.textMuted)),
+                  Text('Status: $status${score != null ? '  •  Score: $score / ${assignment['pointsPossible'] ?? 100}' : ''}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.studentPrimary)),
+                  if (feedback != null && feedback.trim().isNotEmpty)
+                    Text('Feedback: $feedback', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                ])),
+                OutlinedButton(
+                  onPressed: assignmentId.isEmpty ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => AssignmentViewScreen(assignmentId: assignmentId, classroomId: classroomId, userRole: 'student'))).then((_) => _fetchSubmissionsData()),
+                  child: const Text('Open Assignment'),
+                ),
+              ]),
+            );
+          }),
+      ]),
+    );
+  }
+
+  Widget _buildUpcomingMeetingsCard() {
+    final meetings = _upcomingMeetings
+        .where((meeting) => meeting['status']?.toString().toUpperCase() != 'CANCELLED')
+        .toList();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.video_call_outlined, color: AppColors.primary),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('Upcoming Google Meet Classes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+          IconButton(tooltip: 'Refresh meetings', onPressed: _fetchUpcomingMeetings, icon: const Icon(Icons.refresh)),
+        ]),
+        if (_loadingMeetings && meetings.isEmpty)
+          const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
+        else if (meetings.isEmpty)
+          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No upcoming meetings for your enrolled classes.', style: TextStyle(color: AppColors.textMuted)))
+        else
+          ...meetings.map((meeting) {
+            final isLive = meeting['isLiveNow'] == true;
+            return Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: isLive ? Colors.green.shade50 : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: isLive ? Colors.green.shade300 : AppColors.border)),
+              child: Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, runSpacing: 12, spacing: 16, children: [
+                ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(meeting['title']?.toString() ?? 'Live class', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text('Class: ${meeting['classroomName'] ?? 'Class'}  •  Subject: ${meeting['subject']?.toString().isNotEmpty == true ? meeting['subject'] : '—'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text('Teacher: ${meeting['hostName'] ?? 'Teacher'}  •  ${_meetingTimeLabel(meeting)}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  if (isLive) const Padding(padding: EdgeInsets.only(top: 4), child: Text('LIVE NOW', style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold))),
+                ])),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.open_in_new, size: 16),
+                  label: const Text('Join Google Meet'),
+                  style: ElevatedButton.styleFrom(backgroundColor: isLive ? Colors.green : AppColors.primary, foregroundColor: Colors.white),
+                  onPressed: () async {
+                    try {
+                      final result = await ApiService().joinLiveClass(meeting['id'].toString());
+                      final url = Uri.parse((result['meetLink'] ?? meeting['meetLink']).toString());
+                      if (!await launchUrl(url, mode: LaunchMode.externalApplication) && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open Google Meet.')));
+                      }
+                    } catch (e) {
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: AppColors.error));
+                    }
+                  },
+                ),
+              ]),
+            );
+          }),
+      ]),
     );
   }
 
@@ -1039,6 +1263,264 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               ),
             );
           }),
+        ],
+      ),
+    );
+  }
+
+  // 4B. My Submissions Tab
+  Widget _buildMySubmissionsTab() {
+    final doneList = (_studentSubmissionsData?['done'] as List?) ?? [];
+    final assignedList = (_studentSubmissionsData?['assigned'] as List?) ?? [];
+    final missingList = (_studentSubmissionsData?['missing'] as List?) ?? [];
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('My Assignment Submissions & Work History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Track turned-in assignments, inspect grades, evaluation remarks and private feedback.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppColors.studentPrimary),
+                tooltip: 'Refresh Submissions',
+                onPressed: _fetchSubmissionsData,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Counters Row
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Completed / Turned In', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green)),
+                      const SizedBox(height: 6),
+                      Text('${doneList.length}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.green.shade900)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Assigned Pending', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue)),
+                      const SizedBox(height: 6),
+                      Text('${assignedList.length}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.blue.shade900)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Missing Deadlines', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red)),
+                      const SizedBox(height: 6),
+                      Text('${missingList.length}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.red.shade900)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          if (_loadingSubmissions)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (doneList.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    const Icon(Icons.task_outlined, size: 54, color: AppColors.textMuted),
+                    const SizedBox(height: 12),
+                    const Text('No assignments turned in yet.', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                    const SizedBox(height: 8),
+                    const Text('Complete assigned coursework from your classes to see your submission history.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.assignment_turned_in_outlined),
+                      label: const Text('View Pending Assignments'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary, foregroundColor: Colors.white),
+                      onPressed: () => setState(() => _activeTab = 'assignments'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: doneList.length,
+              itemBuilder: (ctx, idx) {
+                final item = doneList[idx] as Map<String, dynamic>;
+                final classroomName = item['classroomName']?.toString() ?? 'Classroom';
+                final title = item['title']?.toString() ?? 'Assignment';
+                final dueDate = item['dueDate']?.toString() ?? '';
+                final submissionStatus = item['submissionStatus']?.toString() ?? item['status']?.toString() ?? 'TURNED_IN';
+                final isGraded = submissionStatus == 'GRADED' || submissionStatus == 'RETURNED' || item['score'] != null || item['myScore'] != null;
+                final score = item['score'] ?? item['myScore'];
+                final points = item['points'] ?? 100;
+                final submissionTime = item['submittedAt']?.toString() ?? '';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isGraded ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            isGraded ? Icons.verified : Icons.task_alt,
+                            color: isGraded ? Colors.green : Colors.blue,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$classroomName ${dueDate.isNotEmpty ? "• Due: $dueDate" : ""} ${submissionTime.isNotEmpty ? "• Submitted: $submissionTime" : ""}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                              ),
+                              if (item['feedback'] != null && item['feedback'].toString().isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.comment, size: 12, color: AppColors.textMuted),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Teacher feedback: "${item['feedback']}"',
+                                        style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textMain),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isGraded ? Colors.green.shade50 : Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: isGraded ? Colors.green : Colors.blue),
+                              ),
+                              child: Text(
+                                isGraded ? 'GRADED: $score / $points' : submissionStatus.replaceAll('_', ' '),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isGraded ? Colors.green.shade800 : Colors.blue.shade800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.open_in_new, size: 14),
+                              label: const Text('View Work'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.studentPrimary,
+                                side: const BorderSide(color: AppColors.studentPrimary),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              ),
+                              onPressed: () {
+                                final aId = item['assignmentId']?.toString() ?? item['id']?.toString() ?? '';
+                                final cId = item['classroomId']?.toString() ?? '';
+                                if (aId.isNotEmpty) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AssignmentViewScreen(
+                                        assignmentId: aId,
+                                        classroomId: cId,
+                                        userRole: 'student',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -1622,6 +2104,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
     final qIdx = (_currentQuestion - 1).clamp(0, _liveQuestions.length - 1);
     final currentQ = _liveQuestions[qIdx];
+    final questionType = currentQ['questionType']?.toString() ?? 'MCQ_SINGLE';
     final qText =
         currentQ['question']?.toString() ??
         currentQ['text']?.toString() ??
@@ -1775,16 +2258,46 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    ...optionsMap.entries.map((opt) {
+                    if (optionsMap.isEmpty)
+                      TextFormField(
+                        key: ValueKey('answer-$_currentQuestion'),
+                        initialValue: _selectedAnswers[_currentQuestion] ?? '',
+                        minLines: questionType == 'LONG_ANSWER' ? 4 : 1,
+                        maxLines: questionType == 'LONG_ANSWER' ? 8 : 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Your answer',
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) => _saveAnswerLocallyAndRemote(
+                          _currentQuestion,
+                          value,
+                        ),
+                      )
+                    else ...optionsMap.entries.map((opt) {
                       final isSelected =
-                          _selectedAnswers[_currentQuestion] == opt.key;
+                          (questionType == 'MCQ_MULTI'
+                                  ? (_selectedAnswers[_currentQuestion] ?? '')
+                                      .split(',')
+                                      .contains(opt.key)
+                                  : _selectedAnswers[_currentQuestion] == opt.key);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: InkWell(
-                          onTap: () => _saveAnswerLocallyAndRemote(
-                            _currentQuestion,
-                            opt.key,
-                          ),
+                          onTap: () {
+                            if (questionType == 'MCQ_MULTI') {
+                              final selected = (_selectedAnswers[_currentQuestion] ?? '')
+                                  .split(',')
+                                  .where((key) => key.isNotEmpty)
+                                  .toSet();
+                              if (!selected.add(opt.key)) selected.remove(opt.key);
+                              _saveAnswerLocallyAndRemote(
+                                _currentQuestion,
+                                (selected.toList()..sort()).join(','),
+                              );
+                            } else {
+                              _saveAnswerLocallyAndRemote(_currentQuestion, opt.key);
+                            }
+                          },
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             padding: const EdgeInsets.all(14),
@@ -1802,7 +2315,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                             ),
                             child: Row(
                               children: [
-                                Text(
+                                if (questionType == 'MCQ_MULTI')
+                                  Icon(isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                                      color: isSelected ? AppColors.studentPrimary : AppColors.textMuted)
+                                else
+                                  Text(
                                   '${opt.key}. ',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,

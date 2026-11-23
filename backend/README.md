@@ -128,6 +128,17 @@ Portal entities are created/updated by the existing Hibernate `ddl-auto=update` 
 - `POST /api/examinations/{id}/submit` - Submit live exam answers and calculate score
 - `GET /api/examinations/{id}/results/{studentId}` - Get exam results breakdown
 
+### Exam Question Bank (`/api/exam-questions`)
+- `GET /api/exam-questions` - Search/filter questions by subject, class, chapter, topic, difficulty, or type
+- `POST /api/exam-questions` - Add a question to the bank
+- `GET /api/exam-questions/{id}` - Read a question
+- `PUT /api/exam-questions/{id}` - Update a question and save a version snapshot
+- `GET /api/exam-questions/{id}/versions` - View prior question versions
+- `DELETE /api/exam-questions/{id}` - Remove a bank question (existing exams keep their own question snapshots)
+
+### Assignment and exam test setup
+Database integration tests are deliberately skipped unless `TEST_DATABASE_URL` points to an isolated PostgreSQL database whose database name contains `test`. Set `TEST_DATABASE_USERNAME` and `TEST_DATABASE_PASSWORD` for the connection. Remote test databases additionally require `ALLOW_REMOTE_TEST_DATABASES=true`. Never point these tests at a production or shared application database; some legacy migration tests intentionally alter schema and sample rows.
+
 ### Grades (`/api/grades`)
 - `GET /api/grades/student/{studentId}` - Get student marks and scorecards
 - `POST /api/grades` - Record grade and update CGPA

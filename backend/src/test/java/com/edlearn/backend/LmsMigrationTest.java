@@ -2,24 +2,15 @@ package com.edlearn.backend;
 
 import org.junit.jupiter.api.Test;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Properties;
 
 public class LmsMigrationTest {
 
-    private Connection getDbConnection() throws Exception {
-        String url = "jdbc:postgresql://ep-dark-lake-b3emihul-pooler.c-4.ap-southeast-1.aws.neon.tech:5432/edlearndb?sslmode=require&currentSchema=edlearn&socketFactory=com.edlearn.backend.config.NeonSocketFactory";
-        Properties props = new Properties();
-        props.setProperty("user", "neondb_owner");
-        props.setProperty("password", "npg_Vfwy7MXd2QuA");
-        return DriverManager.getConnection(url, props);
-    }
-
     @Test
     public void executeLmsSchemaMigration() throws Exception {
-        try (Connection conn = getDbConnection();
+        TestDatabaseSupport.assumeSafeTestDatabase();
+        try (Connection conn = TestDatabaseSupport.openConnection();
              Statement stmt = conn.createStatement()) {
 
             System.out.println("Beginning LMS schema migration on schema 'edlearn'...");

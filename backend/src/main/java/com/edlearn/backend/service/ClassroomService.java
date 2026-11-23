@@ -99,18 +99,29 @@ public class ClassroomService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
 
         Optional<ClassroomMemberEntity> memberOpt = memberRepository.findByClassroomIdAndUserId(classroomId, user.getId());
-        boolean isAdmin = "admin".equalsIgnoreCase(user.getRole());
+        boolean isAdmin = isInstituteAdmin(user, classroom);
 
-        if (memberOpt.isEmpty() && !isAdmin && !classroom.isPublic()) {
+        boolean activeMember = memberOpt.map(m -> "ACTIVE".equalsIgnoreCase(m.getStatus())).orElse(false);
+        if (!activeMember && !isAdmin && !classroom.isPublic()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have access to this classroom.");
         }
 
-        String userRole = memberOpt.map(ClassroomMemberEntity::getRole).orElse(isAdmin ? "ADMIN" : "GUEST");
+        String userRole = activeMember ? memberOpt.map(ClassroomMemberEntity::getRole).orElse("GUEST") : isAdmin ? "ADMIN" : "GUEST";
         String memberStatus = memberOpt.map(ClassroomMemberEntity::getStatus).orElse("NONE");
 
         Map<String, Object> map = formatClassroom(classroom, userRole);
         map.put("membershipStatus", memberStatus);
         return map;
+    }
+
+    @Transactional(readOnly = true)
+    public void requireClassroomAccess(UserEntity user, UUID classroomId) {
+        ClassroomEntity classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
+        requireSameInstitute(user, classroom);
+        if (isInstituteAdmin(user, classroom) || classroom.isPublic()
+                || memberRepository.existsByClassroomIdAndUserIdAndStatus(classroomId, user.getId(), "ACTIVE")) return;
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have access to this classroom.");
     }
 
     @Transactional
@@ -177,6 +188,12 @@ public class ClassroomService {
         ClassroomEntity classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
 
+        requireSameInstitute(user, classroom);
+        boolean activeMember = memberRepository.existsByClassroomIdAndUserIdAndStatus(classroomId, user.getId(), "ACTIVE");
+        if (!activeMember && !canManageClassroom(user, classroom)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only classroom members can view the roster.");
+        }
+
         List<ClassroomMemberEntity> allMembers = memberRepository.findByClassroomIdOrderByRoleAscEnrolledAtAsc(classroomId);
 
         List<Map<String, Object>> teachers = new ArrayList<>();
@@ -214,6 +231,7 @@ public class ClassroomService {
         ClassroomEntity classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found."));
 
+        requireSameInstitute(user, classroom);
         if (!canManageClassroom(user, classroom)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only teachers or administrators can approve or remove members.");
         }
@@ -221,14 +239,20 @@ public class ClassroomService {
         ClassroomMemberEntity member = memberRepository.findByClassroomIdAndUserId(classroomId, targetUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member record not found."));
 
+        if (!"STUDENT".equalsIgnoreCase(member.getRole())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only student membership can be changed here.");
+        }
+
         if ("REJECTED".equalsIgnoreCase(newStatus) || "REMOVED".equalsIgnoreCase(newStatus)) {
             memberRepository.delete(member);
             return Map.of("message", "Member removed successfully.", "status", "REMOVED");
-        } else {
-            member.setStatus(newStatus.toUpperCase(Locale.ROOT));
+        } else if ("ACTIVE".equalsIgnoreCase(newStatus)
+                && "PENDING_APPROVAL".equalsIgnoreCase(member.getStatus())) {
+            member.setStatus("ACTIVE");
             memberRepository.save(member);
             return Map.of("message", "Member status updated to " + member.getStatus(), "status", member.getStatus());
         }
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Membership can only be approved or removed.");
     }
 
     @Transactional
@@ -256,14 +280,29 @@ public class ClassroomService {
     }
 
     private boolean canManageClassroom(UserEntity user, ClassroomEntity classroom) {
-        if ("admin".equalsIgnoreCase(user.getRole())) return true;
+        if ("admin".equalsIgnoreCase(user.getRole())) return isInstituteAdmin(user, classroom);
         if (classroom.getCreator().getId().equals(user.getId())) return true;
         return memberRepository.findByClassroomIdAndUserId(classroom.getId(), user.getId())
-                .map(m -> "TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole()))
+                .map(m -> "ACTIVE".equalsIgnoreCase(m.getStatus())
+                        && ("TEACHER".equalsIgnoreCase(m.getRole()) || "CO_TEACHER".equalsIgnoreCase(m.getRole())))
                 .orElse(false);
     }
 
+    private boolean isInstituteAdmin(UserEntity user, ClassroomEntity classroom) {
+        return "admin".equalsIgnoreCase(user.getRole()) && user.getInstituteCode() != null
+                && classroom.getInstituteCode() != null
+                && user.getInstituteCode().equalsIgnoreCase(classroom.getInstituteCode());
+    }
+
+    private void requireSameInstitute(UserEntity user, ClassroomEntity classroom) {
+        if (user.getInstituteCode() == null || classroom.getInstituteCode() == null
+                || !user.getInstituteCode().equalsIgnoreCase(classroom.getInstituteCode())) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Classroom not found.");
+        }
+    }
+
     private void checkTeacherOrAdmin(UserEntity user, ClassroomEntity classroom) {
+        requireSameInstitute(user, classroom);
         if (!canManageClassroom(user, classroom)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only classroom teachers or administrators can perform this action.");
         }

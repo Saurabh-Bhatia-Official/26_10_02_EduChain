@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_colors.dart';
 import '../../services/api_service.dart';
 import 'assignment_view_screen.dart';
@@ -112,93 +114,193 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
     }
   }
 
-  void _showScheduleMeetDialog() {
-    final titleController = TextEditingController(text: 'Live Online Lecture & Discussion');
-    final descController = TextEditingController();
-    DateTime startDate = DateTime.now().add(const Duration(minutes: 5));
-    DateTime endDate = DateTime.now().add(const Duration(minutes: 65));
+  void _showScheduleMeetDialog([Map<String, dynamic>? meeting]) {
+    DateTime parseTime(dynamic value, DateTime fallback) =>
+        DateTime.tryParse(value?.toString() ?? '') ?? fallback;
+    final now = DateTime.now();
+    final titleController = TextEditingController(
+      text: meeting?['title']?.toString() ?? '',
+    );
+    final descController = TextEditingController(
+      text: meeting?['description']?.toString() ?? '',
+    );
+    final linkController = TextEditingController(
+      text: meeting?['meetLink']?.toString() ?? '',
+    );
+    var startDate = parseTime(meeting?['startTime'], now.add(const Duration(hours: 1)));
+    var endDate = parseTime(meeting?['endTime'], now.add(const Duration(hours: 2)));
+    var saving = false;
 
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.video_call, color: Colors.green),
-            SizedBox(width: 10),
-            Text('Schedule Google Meet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: SizedBox(
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Session Title',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          String formatDateTime(DateTime value) =>
+              '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}  ${TimeOfDay.fromDateTime(value).format(ctx)}';
+
+          Future<void> chooseDate(bool isStart) async {
+            final current = isStart ? startDate : endDate;
+            final date = await showDatePicker(
+              context: ctx,
+              initialDate: current,
+              firstDate: DateTime(now.year - 1),
+              lastDate: DateTime(now.year + 5),
+            );
+            if (date == null || !ctx.mounted) return;
+            final updated = DateTime(date.year, date.month, date.day, current.hour, current.minute);
+            setDialogState(() {
+              if (isStart) {
+                startDate = updated;
+                if (!endDate.isAfter(startDate)) endDate = startDate.add(const Duration(hours: 1));
+              } else {
+                endDate = updated;
+              }
+            });
+          }
+
+          Future<void> chooseTime(bool isStart) async {
+            final current = isStart ? startDate : endDate;
+            final time = await showTimePicker(context: ctx, initialTime: TimeOfDay.fromDateTime(current));
+            if (time == null || !ctx.mounted) return;
+            final updated = DateTime(current.year, current.month, current.day, time.hour, time.minute);
+            setDialogState(() {
+              if (isStart) {
+                startDate = updated;
+                if (!endDate.isAfter(startDate)) endDate = startDate.add(const Duration(hours: 1));
+              } else {
+                endDate = updated;
+              }
+            });
+          }
+
+          Widget timePickerRow(String label, DateTime value, bool isStart) => Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(children: [
+                  Expanded(child: Text('$label: ${formatDateTime(value)}', style: const TextStyle(fontSize: 13))),
+                  IconButton(tooltip: 'Choose date', onPressed: () => chooseDate(isStart), icon: const Icon(Icons.calendar_month_outlined)),
+                  IconButton(tooltip: 'Choose time', onPressed: () => chooseTime(isStart), icon: const Icon(Icons.schedule)),
+                ]),
+              );
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(children: [
+              const Icon(Icons.video_call, color: Colors.green),
+              const SizedBox(width: 10),
+              Text(meeting == null ? 'Schedule Google Meet' : 'Edit Google Meet', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ]),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Class / session name', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  Text('Subject: ${_classroom?['subject']?.toString().isNotEmpty == true ? _classroom!['subject'] : 'Not set for this class'}', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                  const SizedBox(height: 12),
+                  TextField(controller: descController, decoration: const InputDecoration(labelText: 'Topic / agenda', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: linkController, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Google Meet URL', hintText: 'https://meet.google.com/abc-defg-hij', border: OutlineInputBorder())),
+                  Align(alignment: Alignment.centerRight, child: TextButton.icon(
+                    onPressed: () => launchUrl(Uri.parse('https://meet.google.com/new'), mode: LaunchMode.externalApplication),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Create a link in Google Meet'),
+                  )),
+                  const Text('Create the meeting in Google Meet, then paste its real link here. Only active class members will see it.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  timePickerRow('Starts', startDate, true),
+                  timePickerRow('Ends', endDate, false),
+                ]),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                decoration: InputDecoration(
-                  labelText: 'Topic / Agenda',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'A secure Google Meet video link will be generated automatically and shared with all enrolled students.',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
+            actions: [
+              TextButton(onPressed: saving ? null : () => Navigator.pop(ctx), child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                onPressed: saving ? null : () async {
+                  final link = linkController.text.trim();
+                  final uri = Uri.tryParse(link);
+                  if (titleController.text.trim().isEmpty ||
+                      uri == null ||
+                      uri.scheme.toLowerCase() != 'https' ||
+                      uri.host.toLowerCase() != 'meet.google.com' ||
+                      uri.hasPort ||
+                      uri.userInfo.isNotEmpty ||
+                      uri.path.length <= 1) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a class name and a valid https://meet.google.com link.')));
+                    return;
+                  }
+                  if (!endDate.isAfter(startDate)) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('End time must be after start time.')));
+                    return;
+                  }
+                  setDialogState(() => saving = true);
+                  final data = {
+                    'title': titleController.text.trim(),
+                    'description': descController.text.trim(),
+                    'meetLink': link,
+                    'startTime': startDate.toIso8601String(),
+                    'endTime': endDate.toIso8601String(),
+                  };
+                  try {
+                    if (meeting == null) {
+                      await _apiService.scheduleLiveClass(widget.classroomId, data);
+                    } else {
+                      await _apiService.updateLiveClass(meeting['id'].toString(), data);
+                    }
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(meeting == null ? 'Google Meet scheduled.' : 'Google Meet updated.'), backgroundColor: Colors.green));
+                    _loadClassroom();
+                  } catch (e) {
+                    if (ctx.mounted) setDialogState(() => saving = false);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red));
+                  }
+                },
+                child: Text(saving ? 'Saving…' : meeting == null ? 'Schedule Meet' : 'Save Changes'),
               ),
             ],
-          ),
-        ),
+          );
+        },
+      ),
+    ).whenComplete(() {
+      titleController.dispose();
+      descController.dispose();
+      linkController.dispose();
+    });
+  }
+
+  Future<void> _deleteLiveClass(Map<String, dynamic> meeting) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete scheduled Meet?'),
+        content: Text('“${meeting['title'] ?? 'This meeting'}” will be removed for all students in this class.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await _apiService.scheduleLiveClass(widget.classroomId, {
-                  'title': titleController.text.trim(),
-                  'description': descController.text.trim(),
-                  'startTime': startDate.toIso8601String(),
-                  'endTime': endDate.toIso8601String(),
-                });
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Google Meet live class scheduled!'), backgroundColor: Colors.green),
-                );
-                _loadClassroom();
-              } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
-                );
-              }
-            },
-            child: const Text('Schedule Meet'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
         ],
       ),
     );
+    if (confirmed != true) return;
+    try {
+      await _apiService.deleteLiveClass(meeting['id'].toString());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Meeting deleted.')));
+      _loadClassroom();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red));
+    }
   }
 
   void _showCreateAssignmentDialog() {
     final titleController = TextEditingController();
     final instructionsController = TextEditingController();
     final pointsController = TextEditingController(text: '100');
-    final topicController = TextEditingController(text: 'General');
+    final topicController = TextEditingController(text: _classroom?['subject']?.toString() ?? 'General');
+    final attachments = <Map<String, dynamic>>[];
+    DateTime dueDate = DateTime.now().add(const Duration(days: 7));
     bool allowLate = true;
 
     showDialog(
@@ -210,7 +312,7 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
             children: [
               Icon(Icons.assignment_outlined, color: AppColors.primary),
               SizedBox(width: 10),
-              Text('Create Assignment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text('Upload Assignment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ],
           ),
           content: SizedBox(
@@ -237,6 +339,8 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                     ),
                   ),
                   const SizedBox(height: 12),
+                  Text('Class: ${_classroom?['name'] ?? 'Class'}  •  Subject: ${_classroom?['subject']?.toString().isNotEmpty == true ? _classroom!['subject'] : 'Not set'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -254,7 +358,7 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                         child: TextField(
                           controller: topicController,
                           decoration: InputDecoration(
-                            labelText: 'Topic',
+                            labelText: 'Subject / Topic',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                         ),
@@ -262,6 +366,49 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                     ],
                   ),
                   const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    label: Text('Due date: ${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}'),
+                    onPressed: () async {
+                      final selected = await showDatePicker(
+                        context: ctx,
+                        initialDate: dueDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      );
+                      if (selected != null && ctx.mounted) setDlgState(() => dueDate = DateTime(selected.year, selected.month, selected.day, 23, 59));
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.attach_file),
+                    label: Text(attachments.isEmpty ? 'Choose assignment files' : 'Add more files (${attachments.length} selected)'),
+                    onPressed: () async {
+                      final picked = await FilePicker.platform.pickFiles(withData: true, allowMultiple: true);
+                      if (picked == null) return;
+                      try {
+                        for (final file in picked.files) {
+                          final bytes = file.bytes;
+                          if (bytes == null) throw Exception('Could not read ${file.name}.');
+                          final uploaded = await _apiService.uploadAssignmentAttachment(
+                            classroomId: widget.classroomId,
+                            purpose: 'ASSIGNMENT',
+                            bytes: bytes,
+                            fileName: file.name,
+                          );
+                          attachments.add(uploaded);
+                        }
+                        if (ctx.mounted) setDlgState(() {});
+                      } catch (e) {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red));
+                      }
+                    },
+                  ),
+                  if (attachments.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    ...attachments.map((file) => Text('• ${file['fileName']}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: AppColors.textMuted))),
+                  ],
+                  const SizedBox(height: 8),
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Allow Late Submissions', style: TextStyle(fontSize: 13)),
@@ -282,16 +429,21 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
               ),
               onPressed: () async {
                 final title = titleController.text.trim();
-                if (title.isEmpty) return;
+                final points = int.tryParse(pointsController.text) ?? 100;
+                if (title.isEmpty || points <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a title and a positive points value.')));
+                  return;
+                }
                 Navigator.pop(ctx);
                 try {
                   await _apiService.createAssignment(widget.classroomId, {
                     'title': title,
                     'instructions': instructionsController.text.trim(),
-                    'pointsPossible': int.tryParse(pointsController.text) ?? 100,
+                    'pointsPossible': points,
                     'topic': topicController.text.trim(),
                     'allowLateSubmissions': allowLate,
-                    'dueDate': DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+                    'dueDate': dueDate.toIso8601String(),
+                    'attachments': attachments,
                   });
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -305,7 +457,7 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                   );
                 }
               },
-              child: const Text('Publish'),
+              child: const Text('Upload Assignment'),
             ),
           ],
         ),
@@ -423,7 +575,8 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
     final hexColor = _classroom!['themeColor'] as String? ?? '#1967d2';
     final themeColor = Color(int.parse(hexColor.replaceFirst('#', '0xff')));
     final invitationCode = _classroom!['invitationCode'] as String? ?? '';
-    final isTeacher = widget.userRole == 'teacher' || widget.userRole == 'admin' || _classroom!['myRole'] == 'TEACHER';
+    final myRole = _classroom!['myRole']?.toString().toUpperCase();
+    final isTeacher = widget.userRole == 'teacher' || widget.userRole == 'admin' || myRole == 'TEACHER' || myRole == 'CO_TEACHER';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -540,68 +693,51 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
           ),
           const SizedBox(height: 16),
 
-          // Google Meet Card if any active/scheduled
           if (_liveClasses.isNotEmpty) ...[
-            ..._liveClasses.take(1).map((lc) {
+            ..._liveClasses.map((lc) {
               final isLive = lc['isLiveNow'] == true;
+              final start = DateTime.tryParse(lc['startTime']?.toString() ?? '')?.toLocal();
+              final end = DateTime.tryParse(lc['endTime']?.toString() ?? '')?.toLocal();
+              final dateTime = start == null ? '' : '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}  ${TimeOfDay.fromDateTime(start).format(context)}${end == null ? '' : ' – ${TimeOfDay.fromDateTime(end).format(context)}'}';
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isLive ? Colors.green.shade50 : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isLive ? Colors.green : const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.video_camera_front, color: isLive ? Colors.green : AppColors.primary, size: 28),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              if (isLive)
-                                Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)),
-                                  child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                                ),
-                              Text(lc['title'] ?? 'Google Meet Session', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                            ],
-                          ),
-                          Text('Meet link: ${lc['meetLink']}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                        ],
-                      ),
-                    ),
+                decoration: BoxDecoration(color: isLive ? Colors.green.shade50 : const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12), border: Border.all(color: isLive ? Colors.green : const Color(0xFFE2E8F0))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Icon(Icons.video_camera_front, color: isLive ? Colors.green : AppColors.primary, size: 26),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(lc['title']?.toString() ?? 'Google Meet Session', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                    if (isLive) const Chip(label: Text('LIVE NOW'), visualDensity: VisualDensity.compact),
+                    if (isTeacher) ...[
+                      IconButton(tooltip: 'Edit meeting', onPressed: () => _showScheduleMeetDialog(lc), icon: const Icon(Icons.edit_outlined)),
+                      IconButton(tooltip: 'Delete meeting', onPressed: () => _deleteLiveClass(lc), icon: const Icon(Icons.delete_outline, color: Colors.red)),
+                    ],
+                  ]),
+                  const SizedBox(height: 6),
+                  Text('Class: ${_classroom?['name'] ?? ''}  •  Subject: ${_classroom?['subject'] ?? '—'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text('Teacher: ${lc['hostName'] ?? _classroom?['creatorName'] ?? ''}  •  $dateTime', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 8, children: [
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.open_in_new, size: 14),
-                      label: Text(isLive ? 'Join Meet' : 'Open Link'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isLive ? Colors.green : AppColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
+                      icon: const Icon(Icons.video_call, size: 16),
+                      label: const Text('Join Google Meet'),
+                      style: ElevatedButton.styleFrom(backgroundColor: isLive ? Colors.green : AppColors.primary, foregroundColor: Colors.white),
                       onPressed: () async {
                         try {
                           final joinRes = await _apiService.joinLiveClass(lc['id'].toString());
-                          final link = joinRes['meetLink'] ?? lc['meetLink'];
-                          Clipboard.setData(ClipboardData(text: link));
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Meet link copied to clipboard: $link'), backgroundColor: Colors.green),
-                          );
+                          final link = Uri.parse((joinRes['meetLink'] ?? lc['meetLink']).toString());
+                          if (!await launchUrl(link, mode: LaunchMode.externalApplication) && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open Google Meet.')));
+                          }
                         } catch (e) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red),
-                          );
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red));
                         }
                       },
                     ),
-                  ],
-                ),
+                    TextButton.icon(onPressed: () => Clipboard.setData(ClipboardData(text: lc['meetLink'].toString())), icon: const Icon(Icons.copy, size: 16), label: const Text('Copy link')),
+                  ]),
+                ]),
               );
             }),
           ],
@@ -720,7 +856,7 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
               if (isTeacher)
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Create Assignment'),
+                  label: const Text('Upload Assignment'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: themeColor,
                     foregroundColor: Colors.white,

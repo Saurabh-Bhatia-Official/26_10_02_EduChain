@@ -15,7 +15,13 @@ class Navbar extends StatelessWidget {
     final auth = Provider.of<AuthProvider>(context);
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final brand = InkWell(
-      onTap: () => nav.navigateTo('home'),
+      onTap: () {
+        if (nav.currentPage == 'home' && onScrollToSection != null) {
+          onScrollToSection!('home');
+        } else {
+          nav.navigateTo('home');
+        }
+      },
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -101,13 +107,20 @@ class Navbar extends StatelessWidget {
                 _NavLink(
                   title: 'Home',
                   isActive: nav.currentPage == 'home',
-                  onTap: () => nav.navigateTo('home'),
+                  onTap: () {
+                    if (nav.currentPage == 'home' && onScrollToSection != null) {
+                      onScrollToSection!('home');
+                    } else {
+                      nav.navigateTo('home');
+                    }
+                  },
                 ),
-                _NavLink(
-                  title: 'Classrooms',
-                  isActive: nav.currentPage == 'classroom-hub',
-                  onTap: () => nav.navigateTo('classroom-hub'),
-                ),
+                if (!auth.isAdmin && !auth.isInstitute && (auth.isTeacher || auth.isStudent))
+                  _NavLink(
+                    title: 'Classrooms',
+                    isActive: nav.currentPage == 'classroom-hub',
+                    onTap: () => nav.navigateTo('classroom-hub'),
+                  ),
                 _NavLink(
                   title: 'About',
                   isActive: false,
@@ -131,7 +144,8 @@ class Navbar extends StatelessWidget {
               tooltip: 'Open navigation menu',
               icon: const Icon(Icons.menu, color: AppColors.textMain),
               onSelected: (selection) async {
-                if (selection == 'about' ||
+                if (selection == 'home' ||
+                    selection == 'about' ||
                     selection == 'features' ||
                     selection == 'contact') {
                   onScrollToSection?.call(selection);
@@ -150,6 +164,7 @@ class Navbar extends StatelessWidget {
                 }
               },
               itemBuilder: (context) => [
+                const PopupMenuItem(value: 'home', child: Text('Home')),
                 const PopupMenuItem(value: 'about', child: Text('About')),
                 const PopupMenuItem(value: 'features', child: Text('Features')),
                 const PopupMenuItem(value: 'contact', child: Text('Contact')),

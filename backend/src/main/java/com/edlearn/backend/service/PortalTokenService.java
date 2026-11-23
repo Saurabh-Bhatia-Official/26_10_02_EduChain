@@ -36,7 +36,11 @@ public class PortalTokenService {
     }
 
     public String issue(UserEntity user) {
-        String payload = user.getId() + "|" + user.getRole().toLowerCase() + "|"
+        return issue(user, user.getRole());
+    }
+
+    public String issue(UserEntity user, String tokenRole) {
+        String payload = user.getId() + "|" + tokenRole.toLowerCase() + "|"
                 + (System.currentTimeMillis() / 1000 + TOKEN_LIFETIME_SECONDS);
         String encodedPayload = Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(payload.getBytes(StandardCharsets.UTF_8));

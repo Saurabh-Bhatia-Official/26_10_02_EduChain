@@ -91,7 +91,8 @@ public class ClassroomController {
                                                  @PathVariable UUID id,
                                                  @RequestParam(defaultValue = "STREAM_POST") String targetType,
                                                  @RequestParam(required = false) UUID targetId) {
-        accessService.require(request, "teacher", "student", "admin");
+        UserEntity user = accessService.require(request, "teacher", "student", "admin");
+        classroomService.requireClassroomAccess(user, id);
         return commentService.getComments(id, targetType, targetId);
     }
 

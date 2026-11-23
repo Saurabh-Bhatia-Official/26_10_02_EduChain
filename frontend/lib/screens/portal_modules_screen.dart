@@ -64,6 +64,16 @@ class _PortalModulesScreenState extends State<PortalModulesScreen> {
   }
 
   @override
+  void didUpdateWidget(PortalModulesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.module != widget.module ||
+        oldWidget.role != widget.role ||
+        oldWidget.targetId != widget.targetId) {
+      _load();
+    }
+  }
+
+  @override
   void dispose() {
     _title.dispose();
     _description.dispose();

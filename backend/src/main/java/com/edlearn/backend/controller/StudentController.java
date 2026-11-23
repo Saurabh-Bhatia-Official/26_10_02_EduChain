@@ -1,7 +1,12 @@
 package com.edlearn.backend.controller;
 
 import com.edlearn.backend.model.UserEntity;
+import com.edlearn.backend.model.ClassroomEntity;
+import com.edlearn.backend.model.ClassroomMemberEntity;
+import com.edlearn.backend.repository.ClassroomMemberRepository;
 import com.edlearn.backend.repository.UserRepository;
+import com.edlearn.backend.service.PortalAccessService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,16 +16,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.LinkedHashMap;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @RestController
 @RequestMapping("/api/students")
 @CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class StudentController {
+    private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
     private final UserRepository userRepository;
+    private final PortalAccessService accessService;
+    private final ClassroomMemberRepository classroomMemberRepository;
 
-    public StudentController(UserRepository userRepository) {
+    public StudentController(UserRepository userRepository, PortalAccessService accessService,
+                             ClassroomMemberRepository classroomMemberRepository) {
         this.userRepository = userRepository;
+        this.accessService = accessService;
+        this.classroomMemberRepository = classroomMemberRepository;
     }
 
     private UserEntity findStudent(String id) {
@@ -40,11 +53,11 @@ public class StudentController {
     }
 
     @GetMapping
-    public List<UserEntity> getAllStudents(@RequestParam(required = false) String search) {
-        List<UserEntity> list = userRepository.findByRoleIgnoreCaseOrderByCreatedAtDesc("student");
-        if (list.isEmpty()) {
-            list = userRepository.findByRoleIgnoreCase("student");
-        }
+    public List<UserEntity> getAllStudents(HttpServletRequest request, @RequestParam(required = false) String search) {
+        UserEntity actor = accessService.require(request, "admin", "teacher");
+        List<UserEntity> list = "admin".equalsIgnoreCase(actor.getRole())
+                ? userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "student")
+                : studentsInTeacherClassrooms(actor);
         if (search != null && !search.isBlank()) {
             String q = search.toLowerCase();
             return list.stream()
@@ -60,13 +73,36 @@ public class StudentController {
     }
 
     @GetMapping("/{id}")
-    public UserEntity getStudent(@PathVariable String id) {
-        return findStudent(id);
+    public UserEntity getStudent(HttpServletRequest request, @PathVariable String id) {
+        UserEntity actor = accessService.require(request, "admin", "teacher");
+        UserEntity student = findStudent(id);
+        if ("admin".equalsIgnoreCase(actor.getRole()) && !sameInstitute(actor, student)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found.");
+        }
+        if ("teacher".equalsIgnoreCase(actor.getRole()) && studentsInTeacherClassrooms(actor).stream()
+                .noneMatch(visible -> visible.getId().equals(student.getId()))) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found.");
+        }
+        return student;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserEntity createStudent(@RequestBody UserEntity student) {
+    public UserEntity createStudent(HttpServletRequest request, @RequestBody UserEntity student) {
+        UserEntity actor = accessService.require(request, "admin");
+        if (actor.getInstituteCode() == null || actor.getInstituteCode().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your admin account is not linked to an institute.");
+        }
+        if (student.getEmail() == null || student.getEmail().isBlank() || !student.getEmail().contains("@")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A valid student email is required.");
+        }
+        if (student.getName() == null || student.getName().isBlank() || student.getRollNumber() == null || student.getRollNumber().isBlank()
+                || student.getClassName() == null || student.getClassName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student name, roll number, and class are required.");
+        }
+        if (student.getPassword() == null || student.getPassword().length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 8 characters.");
+        }
         if (student.getEmail() != null && !student.getEmail().isBlank()) {
             if (userRepository.existsByEmailIgnoreCase(student.getEmail().trim())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + student.getEmail());
@@ -94,15 +130,9 @@ public class StudentController {
         }
         student.setName(name.trim());
 
-        if (student.getPassword() == null || student.getPassword().isBlank()) {
-            student.setPassword("password123");
-        }
-        if (student.getInstituteCode() == null || student.getInstituteCode().isBlank()) {
-            student.setInstituteCode("INST-2025");
-        }
-        if (student.getInstituteName() == null || student.getInstituteName().isBlank()) {
-            student.setInstituteName("Apex Institute of Technology");
-        }
+        student.setPassword(PASSWORD_ENCODER.encode(student.getPassword()));
+        student.setInstituteCode(actor.getInstituteCode());
+        student.setInstituteName(actor.getInstituteName());
         if (student.getStatus() == null || student.getStatus().isBlank()) {
             student.setStatus("Active");
         }
@@ -118,43 +148,14 @@ public class StudentController {
         if (student.getSemester() == null || student.getSemester().isBlank()) {
             student.setSemester("Semester 1");
         }
-        if (student.getPhone() == null || student.getPhone().isBlank()) {
-            student.setPhone("+91 98765 00000");
-        }
-        if (student.getGender() == null || student.getGender().isBlank()) {
-            student.setGender("Not Specified");
-        }
-        if (student.getDob() == null || student.getDob().isBlank()) {
-            student.setDob("2005-01-01");
-        }
-        if (student.getAddress() == null || student.getAddress().isBlank()) {
-            student.setAddress("Campus Residential");
-        }
-        if (student.getFatherName() == null || student.getFatherName().isBlank()) {
-            student.setFatherName("Guardian of " + student.getName());
-        }
-        if (student.getFatherPhone() == null || student.getFatherPhone().isBlank()) {
-            student.setFatherPhone(student.getPhone());
-        }
-        if (student.getFatherEmail() == null || student.getFatherEmail().isBlank()) {
-            student.setFatherEmail(student.getEmail() != null && student.getEmail().contains("@") ? student.getEmail().replace("@", ".parent@") : "parent@example.com");
-        }
-        if (student.getMotherName() == null || student.getMotherName().isBlank()) {
-            student.setMotherName("Guardian");
-        }
-        if (student.getMotherPhone() == null || student.getMotherPhone().isBlank()) {
-            student.setMotherPhone(student.getPhone());
-        }
-        if (student.getMotherEmail() == null || student.getMotherEmail().isBlank()) {
-            student.setMotherEmail(student.getEmail() != null && student.getEmail().contains("@") ? student.getEmail().replace("@", ".mother@") : "mother@example.com");
-        }
-
         return userRepository.save(student);
     }
 
     @PutMapping("/{id}")
-    public UserEntity updateStudent(@PathVariable String id, @RequestBody UserEntity updated) {
+    public UserEntity updateStudent(HttpServletRequest request, @PathVariable String id, @RequestBody UserEntity updated) {
+        UserEntity actor = accessService.require(request, "admin");
         UserEntity student = findStudent(id);
+        requireSameInstitute(actor, student);
 
         if (updated.getName() != null && !updated.getName().isBlank()) {
             student.setName(updated.getName().trim());
@@ -177,14 +178,49 @@ public class StudentController {
         if (updated.getGender() != null && !updated.getGender().isBlank()) student.setGender(updated.getGender().trim());
         if (updated.getDob() != null && !updated.getDob().isBlank()) student.setDob(updated.getDob().trim());
         if (updated.getStatus() != null && !updated.getStatus().isBlank()) student.setStatus(updated.getStatus().trim());
+        if (updated.getPassword() != null && !updated.getPassword().isBlank()) {
+            if (updated.getPassword().length() < 8) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must contain at least 8 characters.");
+            student.setPassword(PASSWORD_ENCODER.encode(updated.getPassword()));
+        }
 
         return userRepository.save(student);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> deleteStudent(@PathVariable String id) {
+    public ResponseEntity<Map<String, Object>> deleteStudent(HttpServletRequest request, @PathVariable String id) {
+        UserEntity actor = accessService.require(request, "admin");
         UserEntity student = findStudent(id);
+        requireSameInstitute(actor, student);
         userRepository.delete(student);
         return ResponseEntity.ok(Map.of("success", true, "message", "Student deleted successfully", "id", id));
+    }
+
+    private List<UserEntity> studentsInTeacherClassrooms(UserEntity teacher) {
+        Map<UUID, UserEntity> students = new LinkedHashMap<>();
+        for (ClassroomMemberEntity teachingMembership : classroomMemberRepository.findByUserIdAndStatus(teacher.getId(), "ACTIVE")) {
+            ClassroomEntity classroom = teachingMembership.getClassroom();
+            boolean isOwner = classroom.getCreator() != null && classroom.getCreator().getId().equals(teacher.getId());
+            boolean isTeacherMember = "TEACHER".equalsIgnoreCase(teachingMembership.getRole())
+                    || "CO_TEACHER".equalsIgnoreCase(teachingMembership.getRole());
+            if (classroom.isArchived() || (!isOwner && !isTeacherMember)) continue;
+            for (ClassroomMemberEntity membership : classroomMemberRepository.findByClassroomIdAndStatus(classroom.getId(), "ACTIVE")) {
+                UserEntity student = membership.getUser();
+                if ("STUDENT".equalsIgnoreCase(membership.getRole()) && student != null
+                        && "student".equalsIgnoreCase(student.getRole())
+                        && Objects.equals(student.getInstituteCode(), teacher.getInstituteCode())) {
+                    students.put(student.getId(), student);
+                }
+            }
+        }
+        return List.copyOf(students.values());
+    }
+
+    private boolean sameInstitute(UserEntity first, UserEntity second) {
+        return first.getInstituteCode() != null && second.getInstituteCode() != null
+                && first.getInstituteCode().equalsIgnoreCase(second.getInstituteCode());
+    }
+
+    private void requireSameInstitute(UserEntity actor, UserEntity target) {
+        if (!sameInstitute(actor, target)) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found.");
     }
 }

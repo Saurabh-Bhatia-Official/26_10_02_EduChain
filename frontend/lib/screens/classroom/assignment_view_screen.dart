@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../constants/app_colors.dart';
 import '../../services/api_service.dart';
@@ -188,6 +189,7 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
     final urlController = TextEditingController();
     final nameController = TextEditingController();
     String fileType = 'LINK';
+    bool uploading = false;
 
     showDialog(
       context: context,
@@ -223,6 +225,41 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
                 onChanged: (v) => setDlgState(() => fileType = v ?? 'LINK'),
               ),
               const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: uploading
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.upload_file),
+                label: Text(uploading ? 'Uploading…' : 'Choose and upload a file'),
+                onPressed: uploading
+                    ? null
+                    : () async {
+                        final picked = await FilePicker.platform.pickFiles(withData: true, allowMultiple: true);
+                        if (picked == null) return;
+                        setDlgState(() => uploading = true);
+                        try {
+                          for (final file in picked.files) {
+                            final bytes = file.bytes;
+                            if (bytes == null) throw Exception('Could not read ${file.name}.');
+                            final uploaded = await _apiService.uploadAssignmentAttachment(
+                              classroomId: widget.classroomId,
+                              purpose: 'SUBMISSION',
+                              bytes: bytes,
+                              fileName: file.name,
+                            );
+                            if (!mounted) return;
+                            setState(() => _stagedAttachments.add(uploaded));
+                          }
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        } catch (e) {
+                          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: Colors.red));
+                        } finally {
+                          if (ctx.mounted) setDlgState(() => uploading = false);
+                        }
+                      },
+              ),
+              const SizedBox(height: 4),
+              const Text('Uploaded files are limited to 25 MB each.', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+              const SizedBox(height: 12),
               TextField(
                 controller: nameController,
                 decoration: InputDecoration(
@@ -244,7 +281,7 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: uploading ? null : () => Navigator.pop(ctx),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -253,7 +290,7 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              onPressed: () {
+              onPressed: uploading ? null : () {
                 final url = urlController.text.trim();
                 if (url.isEmpty) return;
                 final name = nameController.text.trim().isNotEmpty
@@ -303,7 +340,7 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(hasAttachments ? 'Turn In' : 'Mark as Done'),
+            child: const Text('Submit Assignment'),
           ),
         ],
       ),
@@ -665,6 +702,11 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
                   const SizedBox(height: 4),
                   Text(
                     '$teacher • ${_assignment!['createdAt']?.toString().split('T').first ?? 'Recent'}',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Class: ${_assignment!['classroomName'] ?? 'Class'}  •  Subject: ${_assignment!['subject']?.toString().isNotEmpty == true ? _assignment!['subject'] : _assignment!['topic'] ?? 'General'}',
                     style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 6),
@@ -1032,7 +1074,7 @@ class _AssignmentViewScreenState extends State<AssignmentViewScreen> with Single
               ),
               onPressed: () => _submitWork(),
               child: Text(
-                _stagedAttachments.isNotEmpty || serverAttachments.isNotEmpty ? 'Turn in' : 'Mark as done',
+                'Submit Assignment',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),

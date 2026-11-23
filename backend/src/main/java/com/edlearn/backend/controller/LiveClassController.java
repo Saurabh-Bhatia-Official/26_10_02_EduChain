@@ -33,6 +33,21 @@ public class LiveClassController {
         return liveClassService.scheduleLiveClass(host, classroomId, body);
     }
 
+    @PutMapping("/{id}")
+    public Map<String, Object> updateLiveClass(HttpServletRequest request,
+                                               @PathVariable UUID id,
+                                               @RequestBody Map<String, Object> body) {
+        UserEntity teacher = accessService.require(request, "teacher", "admin");
+        return liveClassService.updateLiveClass(teacher, id, body);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteLiveClass(HttpServletRequest request, @PathVariable UUID id) {
+        UserEntity teacher = accessService.require(request, "teacher", "admin");
+        liveClassService.deleteLiveClass(teacher, id);
+    }
+
     @GetMapping("/classroom/{classroomId}")
     public List<Map<String, Object>> getClassroomLiveClasses(HttpServletRequest request,
                                                              @PathVariable UUID classroomId) {

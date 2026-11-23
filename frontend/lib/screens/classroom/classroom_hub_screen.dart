@@ -9,11 +9,13 @@ import 'assignment_view_screen.dart';
 class ClassroomHubScreen extends StatefulWidget {
   final String userRole; // student, teacher, admin
   final VoidCallback? onBack;
+  final int initialIndex;
 
   const ClassroomHubScreen({
     super.key,
     required this.userRole,
     this.onBack,
+    this.initialIndex = 0,
   });
 
   @override
@@ -36,8 +38,19 @@ class _ClassroomHubScreenState extends State<ClassroomHubScreen> with SingleTick
   void initState() {
     super.initState();
     // 4 tabs: Classes, To-do, Live Classes, Discover
-    _tabController = TabController(length: 4, vsync: this);
+    final startIdx = (widget.initialIndex >= 0 && widget.initialIndex < 4) ? widget.initialIndex : 0;
+    _tabController = TabController(length: 4, vsync: this, initialIndex: startIdx);
     _loadAllData();
+  }
+
+  @override
+  void didUpdateWidget(ClassroomHubScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialIndex != oldWidget.initialIndex &&
+        widget.initialIndex >= 0 &&
+        widget.initialIndex < _tabController.length) {
+      _tabController.animateTo(widget.initialIndex);
+    }
   }
 
   @override

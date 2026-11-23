@@ -215,7 +215,7 @@ class ApiService {
         'email': email,
         'password': password,
         'role': 'admin',
-        'instituteCode': instituteCode ?? 'INST-2025',
+        if (instituteCode != null && instituteCode.isNotEmpty) 'instituteCode': instituteCode,
       },
     );
     if (res is Map<String, dynamic>) {
@@ -245,7 +245,7 @@ class ApiService {
     }
     if (role == 'institute') {
       return loginInstitute(
-        instituteCode: instituteCode ?? 'INST-2025',
+        instituteCode: instituteCode ?? '',
         email: email,
         password: password,
       );
@@ -257,7 +257,7 @@ class ApiService {
         'email': email,
         'password': password,
         'role': role,
-        'instituteCode': instituteCode ?? 'INST-2025',
+        if (instituteCode != null && instituteCode.isNotEmpty) 'instituteCode': instituteCode,
       },
     );
     if (res is Map<String, dynamic>) {
@@ -654,6 +654,40 @@ class ApiService {
     return [];
   }
 
+  Future<List<Map<String, dynamic>>> getExamQuestions({String? search, String? subject, String? className, String? chapter, String? topic, String? difficulty, String? questionType}) async {
+    final filters = <String, String>{
+      if (search?.trim().isNotEmpty == true) 'search': search!.trim(),
+      if (subject?.trim().isNotEmpty == true) 'subject': subject!.trim(),
+      if (className?.trim().isNotEmpty == true) 'className': className!.trim(),
+      if (chapter?.trim().isNotEmpty == true) 'chapter': chapter!.trim(),
+      if (topic?.trim().isNotEmpty == true) 'topic': topic!.trim(),
+      if (difficulty?.trim().isNotEmpty == true) 'difficulty': difficulty!.trim(),
+      if (questionType?.trim().isNotEmpty == true) 'questionType': questionType!.trim(),
+    };
+    final query = filters.isEmpty ? '' : '?${Uri(queryParameters: filters).query}';
+    final response = await request('/exam-questions$query');
+    return response is List ? response.cast<Map<String, dynamic>>() : [];
+  }
+
+  Future<Map<String, dynamic>> createExamQuestion(Map<String, dynamic> data) async {
+    final response = await request('/exam-questions', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateExamQuestion(String id, Map<String, dynamic> data) async {
+    final response = await request('/exam-questions/$id', method: 'PUT', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<void> deleteExamQuestion(String id) async {
+    await request('/exam-questions/$id', method: 'DELETE');
+  }
+
+  Future<List<Map<String, dynamic>>> getExamQuestionVersions(String id) async {
+    final response = await request('/exam-questions/$id/versions');
+    return response is List ? response.cast<Map<String, dynamic>>() : [];
+  }
+
   Future<Map<String, dynamic>> createExam(Map<String, dynamic> data) async {
     final response = await request('/portal/exams', method: 'POST', body: data);
     return response as Map<String, dynamic>;
@@ -752,6 +786,9 @@ class ApiService {
     return [];
   }
 
+  Future<List<Map<String, dynamic>>> getClassroomAssignments(String classroomId, {String? topic}) =>
+      getAssignments(classroomId, topic: topic);
+
   Future<Map<String, dynamic>> getAssignmentDetails(String id) async {
     final response = await request('/assignments/$id');
     return response as Map<String, dynamic>;
@@ -760,6 +797,49 @@ class ApiService {
   Future<Map<String, dynamic>> createAssignment(String classroomId, Map<String, dynamic> data) async {
     final response = await request('/assignments?classroomId=$classroomId', method: 'POST', body: data);
     return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> uploadAssignmentAttachment({
+    required String classroomId,
+    required String purpose,
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    final uri = Uri.parse('$_baseUrl/assignments/attachments/upload').replace(
+      queryParameters: {'classroomId': classroomId, 'purpose': purpose},
+    );
+    final multipart = http.MultipartRequest('POST', uri);
+    final token = await StorageService.getToken();
+    if (token != null && token.isNotEmpty) {
+      multipart.headers['Authorization'] = 'Bearer $token';
+    }
+    multipart.files.add(http.MultipartFile.fromBytes('file', bytes, filename: fileName));
+    final streamed = await _client.send(multipart).timeout(const Duration(minutes: 2));
+    final response = await http.Response.fromStream(streamed);
+    final data = response.body.isEmpty ? null : jsonDecode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300 && data is Map<String, dynamic>) {
+      return data;
+    }
+    final message = data is Map<String, dynamic> ? data['message']?.toString() : null;
+    throw Exception(message ?? 'Assignment file upload failed with status ${response.statusCode}.');
+  }
+
+  Future<Map<String, dynamic>> updateAssignment(String id, Map<String, dynamic> data) async {
+    final response = await request('/assignments/$id', method: 'PUT', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<void> deleteAssignment(String id) async {
+    await request('/assignments/$id', method: 'DELETE');
+  }
+
+  Future<Map<String, dynamic>> uploadAssignmentFile(Uint8List bytes, String fileName, {required String classroomId, required String purpose}) async {
+    return uploadAssignmentAttachment(
+      classroomId: classroomId,
+      purpose: purpose,
+      bytes: bytes,
+      fileName: fileName,
+    );
   }
 
   Future<Map<String, dynamic>> submitAssignment(String id, Map<String, dynamic> data) async {
@@ -796,6 +876,15 @@ class ApiService {
   Future<Map<String, dynamic>> scheduleLiveClass(String classroomId, Map<String, dynamic> data) async {
     final response = await request('/live-classes?classroomId=$classroomId', method: 'POST', body: data);
     return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateLiveClass(String id, Map<String, dynamic> data) async {
+    final response = await request('/live-classes/$id', method: 'PUT', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<void> deleteLiveClass(String id) async {
+    await request('/live-classes/$id', method: 'DELETE');
   }
 
   Future<List<Map<String, dynamic>>> getClassroomLiveClasses(String classroomId) async {
