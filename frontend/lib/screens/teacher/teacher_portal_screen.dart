@@ -969,7 +969,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                         context: ctx,
                         initialTime: TimeOfDay.fromDateTime(due),
                       );
-                      if (time != null)
+                      if (time != null) {
                         refresh(
                           () => due = DateTime(
                             day.year,
@@ -979,6 +979,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                             time.minute,
                           ),
                         );
+                      }
                     },
                   ),
                   OutlinedButton.icon(
@@ -996,10 +997,11 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                           );
                           refresh(() => attachment = f);
                         } catch (e) {
-                          if (mounted)
+                          if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(e.toString())),
                             );
+                          }
                         }
                       }
                     },
@@ -1039,10 +1041,11 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                   await _fetchTeacherAssignments();
                 } catch (e) {
-                  if (mounted)
+                  if (mounted) {
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
                 }
               },
               child: Text(existing == null ? 'Publish' : 'Save changes'),
@@ -1086,11 +1089,12 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     if (mounted) setState(() => _loadingQuestionBank = true);
     try {
       final questions = await ApiService().getExamQuestions();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _questionBank = questions;
           _loadingQuestionBank = false;
         });
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _loadingQuestionBank = false);
@@ -1322,7 +1326,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                   'correctAnswer': answer.text.trim(),
                   'explanation': explanation.text.trim(),
                 };
-                if (hasOptions())
+                if (hasOptions()) {
                   data['options'] = type == 'TRUE_FALSE'
                       ? ['True', 'False']
                       : options.text
@@ -1330,6 +1334,7 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                             .map((value) => value.trim())
                             .where((value) => value.isNotEmpty)
                             .toList();
+                }
                 try {
                   if (existing == null) {
                     await ApiService().createExamQuestion(data);
@@ -1342,10 +1347,11 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                   await _fetchQuestionBank();
                 } catch (e) {
-                  if (mounted)
+                  if (mounted) {
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  }
                 }
               },
               child: Text(existing == null ? 'Save question' : 'Save changes'),

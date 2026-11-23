@@ -22,7 +22,36 @@ public class EdLearnBackendApplication {
             databaseUrl = configuredValue("SPRING_DATASOURCE_URL");
         }
         if (databaseUrl != null && !databaseUrl.isBlank()) {
+            databaseUrl = databaseUrl.trim();
+            String schemeLess = databaseUrl.replaceFirst("^jdbc:", "");
+            if (schemeLess.startsWith("postgres://") || schemeLess.startsWith("postgresql://")) {
+                try {
+                    URI uri = URI.create(schemeLess);
+                    if (uri.getUserInfo() != null) {
+                        String[] userParts = uri.getUserInfo().split(":", 2);
+                        if (configuredValue("DATABASE_USERNAME") == null && configuredValue("SPRING_DATASOURCE_USERNAME") == null) {
+                            System.setProperty("spring.datasource.username", userParts[0]);
+                        }
+                        if (userParts.length > 1 && configuredValue("DATABASE_PASSWORD") == null && configuredValue("SPRING_DATASOURCE_PASSWORD") == null) {
+                            System.setProperty("spring.datasource.password", userParts[1]);
+                        }
+                        databaseUrl = databaseUrl.replace(uri.getUserInfo() + "@", "");
+                    }
+                } catch (Exception ignored) {}
+            }
             System.setProperty("spring.datasource.url", normalizeDatabaseUrl(databaseUrl));
+        }
+
+        String username = configuredValue("DATABASE_USERNAME");
+        if (username == null || username.isBlank()) username = configuredValue("SPRING_DATASOURCE_USERNAME");
+        if (username != null && !username.isBlank()) {
+            System.setProperty("spring.datasource.username", username.trim());
+        }
+
+        String password = configuredValue("DATABASE_PASSWORD");
+        if (password == null || password.isBlank()) password = configuredValue("SPRING_DATASOURCE_PASSWORD");
+        if (password != null && !password.isBlank()) {
+            System.setProperty("spring.datasource.password", password.trim());
         }
 
         SpringApplication.run(EdLearnBackendApplication.class, args);
@@ -57,25 +86,41 @@ public class EdLearnBackendApplication {
             throw new IllegalArgumentException("DATABASE_URL must be a PostgreSQL connection URL");
         }
 
+        if (jdbcUrl.contains("@")) {
+            int atIndex = jdbcUrl.indexOf('@');
+            int slashIndex = jdbcUrl.indexOf("://");
+            if (slashIndex >= 0 && atIndex > slashIndex) {
+                jdbcUrl = jdbcUrl.substring(0, slashIndex + 3) + jdbcUrl.substring(atIndex + 1);
+            }
+        }
+
         jdbcUrl = jdbcUrl.replace("&channel_binding=require", "")
                 .replace("channel_binding=require&", "")
                 .replace("channel_binding=require", "");
         if (!isLocalDatabase(jdbcUrl)) {
             jdbcUrl = setParameter(jdbcUrl, "sslmode", "require");
         }
+        if (jdbcUrl.contains(".neon.tech") && !jdbcUrl.contains("socketFactory=")) {
+            jdbcUrl = addParameterIfMissing(jdbcUrl, "socketFactory", "com.edlearn.backend.config.NeonSocketFactory");
+            System.setProperty("spring.datasource.hikari.data-source-properties.socketFactory", "com.edlearn.backend.config.NeonSocketFactory");
+        }
         jdbcUrl = addParameterIfMissing(jdbcUrl, "currentSchema", "edlearn");
         return jdbcUrl;
     }
 
     private static boolean isLocalDatabase(String jdbcUrl) {
-        String host = URI.create(jdbcUrl.substring("jdbc:".length())).getHost();
-        if (host == null) {
+        try {
+            String host = URI.create(jdbcUrl.substring("jdbc:".length())).getHost();
+            if (host == null) {
+                return false;
+            }
+            String normalizedHost = host.toLowerCase(Locale.ROOT);
+            return normalizedHost.equals("localhost")
+                    || normalizedHost.equals("127.0.0.1")
+                    || normalizedHost.equals("::1");
+        } catch (Exception e) {
             return false;
         }
-        String normalizedHost = host.toLowerCase(Locale.ROOT);
-        return normalizedHost.equals("localhost")
-                || normalizedHost.equals("127.0.0.1")
-                || normalizedHost.equals("::1");
     }
 
     private static String configuredValue(String name) {

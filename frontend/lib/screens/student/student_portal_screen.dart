@@ -1351,7 +1351,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                             );
                           }
                         } catch (e) {
-                          if (mounted)
+                          if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
@@ -1360,6 +1360,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                                 backgroundColor: AppColors.error,
                               ),
                             );
+                          }
                         }
                       },
                     ),
@@ -3620,8 +3621,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                                         .split(',')
                                         .where((key) => key.isNotEmpty)
                                         .toSet();
-                                if (!selected.add(opt.key))
+                                if (!selected.add(opt.key)) {
                                   selected.remove(opt.key);
+                                }
                                 _saveAnswerLocallyAndRemote(
                                   _currentQuestion,
                                   (selected.toList()..sort()).join(','),

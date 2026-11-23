@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.LinkedHashMap;
@@ -86,6 +87,10 @@ public class StudentController {
         return student;
     }
 
+    public UserEntity getStudent(String id) {
+        return findStudent(id);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserEntity createStudent(HttpServletRequest request, @RequestBody UserEntity student) {
@@ -93,15 +98,18 @@ public class StudentController {
         if (actor.getInstituteCode() == null || actor.getInstituteCode().isBlank()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your admin account is not linked to an institute.");
         }
+        student.setInstituteCode(actor.getInstituteCode());
+        student.setInstituteName(actor.getInstituteName());
+        return createStudent(student);
+    }
+
+    public UserEntity createStudent(UserEntity student) {
         if (student.getEmail() == null || student.getEmail().isBlank() || !student.getEmail().contains("@")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A valid student email is required.");
         }
         if (student.getName() == null || student.getName().isBlank() || student.getRollNumber() == null || student.getRollNumber().isBlank()
                 || student.getClassName() == null || student.getClassName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student name, roll number, and class are required.");
-        }
-        if (student.getPassword() == null || student.getPassword().length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 8 characters.");
         }
         if (student.getEmail() != null && !student.getEmail().isBlank()) {
             if (userRepository.existsByEmailIgnoreCase(student.getEmail().trim())) {
@@ -130,9 +138,15 @@ public class StudentController {
         }
         student.setName(name.trim());
 
-        student.setPassword(PASSWORD_ENCODER.encode(student.getPassword()));
-        student.setInstituteCode(actor.getInstituteCode());
-        student.setInstituteName(actor.getInstituteName());
+        if (student.getPassword() == null || student.getPassword().isBlank()) {
+            student.setPassword(PASSWORD_ENCODER.encode("Student@123"));
+        } else if (!student.getPassword().startsWith("$2a$") && !student.getPassword().startsWith("$2b$")) {
+            if (student.getPassword().length() < 8) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 8 characters.");
+            }
+            student.setPassword(PASSWORD_ENCODER.encode(student.getPassword()));
+        }
+
         if (student.getStatus() == null || student.getStatus().isBlank()) {
             student.setStatus("Active");
         }
@@ -148,6 +162,40 @@ public class StudentController {
         if (student.getSemester() == null || student.getSemester().isBlank()) {
             student.setSemester("Semester 1");
         }
+        if (student.getGender() == null || student.getGender().isBlank()) {
+            student.setGender("Other");
+        }
+        if (student.getDob() == null || student.getDob().isBlank()) {
+            student.setDob("2000-01-01");
+        }
+        if (student.getAddress() == null || student.getAddress().isBlank()) {
+            student.setAddress("Campus Hostel");
+        }
+        if (student.getFatherName() == null || student.getFatherName().isBlank()) {
+            student.setFatherName("Guardian of " + student.getName());
+        }
+        if (student.getFatherPhone() == null || student.getFatherPhone().isBlank()) {
+            student.setFatherPhone(student.getPhone() != null && !student.getPhone().isBlank() ? student.getPhone() : "+91 99999 99999");
+        }
+        if (student.getFatherEmail() == null || student.getFatherEmail().isBlank()) {
+            student.setFatherEmail(student.getEmail().replace("@", ".parent@"));
+        }
+        if (student.getMotherName() == null || student.getMotherName().isBlank()) {
+            student.setMotherName("Guardian");
+        }
+        if (student.getMotherPhone() == null || student.getMotherPhone().isBlank()) {
+            student.setMotherPhone(student.getPhone() != null && !student.getPhone().isBlank() ? student.getPhone() : "+91 99999 99999");
+        }
+        if (student.getMotherEmail() == null || student.getMotherEmail().isBlank()) {
+            student.setMotherEmail(student.getEmail().replace("@", ".mother@"));
+        }
+        if (student.getInstituteCode() == null || student.getInstituteCode().isBlank()) {
+            student.setInstituteCode("DEFAULT");
+        }
+        if (student.getInstituteName() == null || student.getInstituteName().isBlank()) {
+            student.setInstituteName("Default Institute");
+        }
+
         return userRepository.save(student);
     }
 
