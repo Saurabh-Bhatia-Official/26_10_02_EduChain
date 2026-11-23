@@ -108,14 +108,17 @@ class Navbar extends StatelessWidget {
                   title: 'Home',
                   isActive: nav.currentPage == 'home',
                   onTap: () {
-                    if (nav.currentPage == 'home' && onScrollToSection != null) {
+                    if (nav.currentPage == 'home' &&
+                        onScrollToSection != null) {
                       onScrollToSection!('home');
                     } else {
                       nav.navigateTo('home');
                     }
                   },
                 ),
-                if (!auth.isAdmin && !auth.isInstitute && (auth.isTeacher || auth.isStudent))
+                if (!auth.isAdmin &&
+                    !auth.isInstitute &&
+                    (auth.isTeacher || auth.isStudent))
                   _NavLink(
                     title: 'Classrooms',
                     isActive: nav.currentPage == 'classroom-hub',

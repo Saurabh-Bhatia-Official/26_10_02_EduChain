@@ -30,15 +30,16 @@ Set-Location backend
 mvn spring-boot:run
 ```
 
-The backend listens on port `5000` by default (or the configured `PORT` / `SERVER_PORT`). The Flutter frontend is in `../frontend`.
+The backend listens on port `5002` by default (or the configured `PORT` / `SERVER_PORT`). The Flutter frontend is in `../frontend`.
+To run the frontend locally, use `Set-Location ..\frontend; flutter run -d web-server --web-port 8080`. The backend landing page links to this URL by default; set `EDLEARN_FRONTEND_URL` to the deployed frontend URL outside local development.
 
 ---
 
 ## 4. Swagger / OpenAPI 3.0 Documentation
 
 Interactive API documentation with JWT Bearer token authorization:
-- **Swagger UI**: [http://localhost:5000/api/swagger-ui.html](http://localhost:5000/api/swagger-ui.html)
-- **OpenAPI JSON Spec**: [http://localhost:5000/api/v3/api-docs](http://localhost:5000/api/v3/api-docs)
+- **Swagger UI**: [http://localhost:5002/api/swagger-ui.html](http://localhost:5002/api/swagger-ui.html)
+- **OpenAPI JSON Spec**: [http://localhost:5002/api/v3/api-docs](http://localhost:5002/api/v3/api-docs)
 
 ---
 

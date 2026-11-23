@@ -18,7 +18,11 @@ import '../classroom/assignment_view_screen.dart';
 class StudentPortalScreen extends StatefulWidget {
   final String initialTab;
   final String? initialTargetId;
-  const StudentPortalScreen({super.key, this.initialTab = 'dashboard', this.initialTargetId});
+  const StudentPortalScreen({
+    super.key,
+    this.initialTab = 'dashboard',
+    this.initialTargetId,
+  });
 
   @override
   State<StudentPortalScreen> createState() => _StudentPortalScreenState();
@@ -293,12 +297,19 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   }
 
   String _meetingTimeLabel(Map<String, dynamic> meeting) {
-    final start = DateTime.tryParse(meeting['startTime']?.toString() ?? '')?.toLocal();
-    final end = DateTime.tryParse(meeting['endTime']?.toString() ?? '')?.toLocal();
+    final start = DateTime.tryParse(
+      meeting['startTime']?.toString() ?? '',
+    )?.toLocal();
+    final end = DateTime.tryParse(
+      meeting['endTime']?.toString() ?? '',
+    )?.toLocal();
     if (start == null) return 'Time to be confirmed';
-    final date = '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
+    final date =
+        '${start.year}-${start.month.toString().padLeft(2, '0')}-${start.day.toString().padLeft(2, '0')}';
     final startTime = TimeOfDay.fromDateTime(start).format(context);
-    final endTime = end == null ? '' : ' – ${TimeOfDay.fromDateTime(end).format(context)}';
+    final endTime = end == null
+        ? ''
+        : ' – ${TimeOfDay.fromDateTime(end).format(context)}';
     return '$date  $startTime$endTime';
   }
 
@@ -328,9 +339,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               children: [
                 _buildTopBar(user, nav, auth, isDesktop),
                 if (_isClassroomHubTab(_activeTab))
-                  Expanded(
-                    child: _buildClassroomHubWidget(_activeTab),
-                  )
+                  Expanded(child: _buildClassroomHubWidget(_activeTab))
                 else
                   Expanded(
                     child: SingleChildScrollView(
@@ -377,22 +386,78 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   Widget _buildSidebar(UserModel? user, NavigationProvider nav) {
     final menuItems = [
-      {'id': 'dashboard', 'title': 'Dashboard', 'icon': Icons.dashboard_outlined},
-      {'id': 'classrooms', 'title': 'My Classrooms', 'icon': Icons.school_outlined},
-      {'id': 'join-classroom', 'title': 'Join Classroom', 'icon': Icons.group_add_outlined},
-      {'id': 'assignments', 'title': 'Assignments', 'icon': Icons.assignment_turned_in_outlined},
-      {'id': 'my-submissions', 'title': 'My Submissions', 'icon': Icons.task_outlined},
-      {'id': 'exams', 'title': 'Examinations', 'icon': Icons.assignment_outlined},
-      {'id': 'exam-results', 'title': 'Exam Results', 'icon': Icons.emoji_events_outlined},
+      {
+        'id': 'dashboard',
+        'title': 'Dashboard',
+        'icon': Icons.dashboard_outlined,
+      },
+      {
+        'id': 'classrooms',
+        'title': 'My Classrooms',
+        'icon': Icons.school_outlined,
+      },
+      {
+        'id': 'join-classroom',
+        'title': 'Join Classroom',
+        'icon': Icons.group_add_outlined,
+      },
+      {
+        'id': 'assignments',
+        'title': 'Assignments',
+        'icon': Icons.assignment_turned_in_outlined,
+      },
+      {
+        'id': 'my-submissions',
+        'title': 'My Submissions',
+        'icon': Icons.task_outlined,
+      },
+      {
+        'id': 'exams',
+        'title': 'Examinations',
+        'icon': Icons.assignment_outlined,
+      },
+      {
+        'id': 'exam-results',
+        'title': 'Exam Results',
+        'icon': Icons.emoji_events_outlined,
+      },
       {'id': 'meet', 'title': 'Google Meet', 'icon': Icons.video_call_outlined},
-      {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
-      {'id': 'materials', 'title': 'Study Materials', 'icon': Icons.menu_book_outlined},
-      {'id': 'attendance', 'title': 'Attendance', 'icon': Icons.fact_check_outlined},
-      {'id': 'schedule', 'title': 'Class Schedule', 'icon': Icons.calendar_today_outlined},
-      {'id': 'timetable', 'title': 'Weekly Timetable', 'icon': Icons.grid_view_outlined},
-      {'id': 'parents', 'title': 'Parent Portal', 'icon': Icons.family_restroom_outlined},
+      {
+        'id': 'announcements',
+        'title': 'Announcements',
+        'icon': Icons.campaign_outlined,
+      },
+      {
+        'id': 'materials',
+        'title': 'Study Materials',
+        'icon': Icons.menu_book_outlined,
+      },
+      {
+        'id': 'attendance',
+        'title': 'Attendance',
+        'icon': Icons.fact_check_outlined,
+      },
+      {
+        'id': 'schedule',
+        'title': 'Class Schedule',
+        'icon': Icons.calendar_today_outlined,
+      },
+      {
+        'id': 'timetable',
+        'title': 'Weekly Timetable',
+        'icon': Icons.grid_view_outlined,
+      },
+      {
+        'id': 'parents',
+        'title': 'Parent Portal',
+        'icon': Icons.family_restroom_outlined,
+      },
       {'id': 'profile', 'title': 'My Profile', 'icon': Icons.person_outline},
-      {'id': 'leaves', 'title': 'Leave Applications', 'icon': Icons.event_available_outlined},
+      {
+        'id': 'leaves',
+        'title': 'Leave Applications',
+        'icon': Icons.event_available_outlined,
+      },
     ];
 
     return Container(
@@ -421,8 +486,21 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('EduChain', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF00337F))),
-                    Text('Student Academic Desk', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
+                    Text(
+                      'EduChain',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: Color(0xFF00337F),
+                      ),
+                    ),
+                    Text(
+                      'Student Academic Desk',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textLight,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -444,8 +522,13 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 CircleAvatar(
                   backgroundColor: AppColors.studentPrimary,
                   child: Text(
-                    user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'S',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    user?.name.isNotEmpty == true
+                        ? user!.name[0].toUpperCase()
+                        : 'S',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -455,13 +538,21 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     children: [
                       Text(
                         user?.name ?? 'Rahul Sharma',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textMain),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: AppColors.textMain,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         'Roll: ${user?.rollNumber ?? "1023"}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.studentPrimary, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.studentPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -476,26 +567,38 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: menuItems.map((item) {
                 final id = item['id'] as String;
-                final isSelected = _activeTab == id || (_activeTab.startsWith('exam-') && id == 'exams');
+                final isSelected =
+                    _activeTab == id ||
+                    (_activeTab.startsWith('exam-') && id == 'exams');
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Material(
                     color: Colors.transparent,
                     child: ListTile(
                       dense: true,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      tileColor: isSelected ? const Color(0xFFF3E8FF) : Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      tileColor: isSelected
+                          ? const Color(0xFFF3E8FF)
+                          : Colors.transparent,
                       leading: Icon(
                         item['icon'] as IconData,
                         size: 20,
-                        color: isSelected ? AppColors.studentPrimary : AppColors.textMuted,
+                        color: isSelected
+                            ? AppColors.studentPrimary
+                            : AppColors.textMuted,
                       ),
                       title: Text(
                         item['title'] as String,
                         style: TextStyle(
                           fontSize: 13,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? AppColors.studentPrimary : AppColors.textMain,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.studentPrimary
+                              : AppColors.textMain,
                         ),
                       ),
                       onTap: () {
@@ -532,7 +635,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     );
   }
 
-  Widget _buildTopBar(UserModel? user, NavigationProvider nav, AuthProvider auth, bool isDesktop) {
+  Widget _buildTopBar(
+    UserModel? user,
+    NavigationProvider nav,
+    AuthProvider auth,
+    bool isDesktop,
+  ) {
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -554,7 +662,11 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               ],
               Text(
                 _getTabTitle(_activeTab),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMain,
+                ),
               ),
             ],
           ),
@@ -564,7 +676,10 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               const SizedBox(width: 8),
               // User Chip
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.bgPage,
                   borderRadius: BorderRadius.circular(20),
@@ -572,18 +687,30 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.account_balance, size: 14, color: AppColors.primary),
+                    const Icon(
+                      Icons.account_balance,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       user?.instituteCode ?? 'INST-2025',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMain),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textMain,
+                      ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
               IconButton(
-                icon: const Icon(Icons.logout, size: 20, color: AppColors.error),
+                icon: const Icon(
+                  Icons.logout,
+                  size: 20,
+                  color: AppColors.error,
+                ),
                 tooltip: 'Logout',
                 onPressed: () async {
                   await auth.logout();
@@ -713,11 +840,18 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Welcome Back!', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const Text(
+                    'Welcome Back!',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     user?.name ?? 'Rahul Sharma',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -727,15 +861,32 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Column(
                   children: [
-                    Text('TERM STATUS', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w700)),
-                    Text('Semester 3', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                    Text(
+                      'TERM STATUS',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Semester 3',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -812,13 +963,34 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Today's Lectures", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    const Text(
+                      "Today's Lectures",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    _buildLectureItem('10:00 AM - 11:30 AM', 'Database Systems (CS-301)', 'Hall 302 • Dr. Amit Sharma', 'Scheduled'),
+                    _buildLectureItem(
+                      '10:00 AM - 11:30 AM',
+                      'Database Systems (CS-301)',
+                      'Hall 302 • Dr. Amit Sharma',
+                      'Scheduled',
+                    ),
                     const Divider(color: AppColors.border),
-                    _buildLectureItem('11:45 AM - 01:15 PM', 'Data Structures & Algorithms', 'Lab 2 • Prof. Rajesh Gupta', 'In Progress'),
+                    _buildLectureItem(
+                      '11:45 AM - 01:15 PM',
+                      'Data Structures & Algorithms',
+                      'Lab 2 • Prof. Rajesh Gupta',
+                      'In Progress',
+                    ),
                     const Divider(color: AppColors.border),
-                    _buildLectureItem('02:00 PM - 03:30 PM', 'Computer Networks (CS-303)', 'Hall 105 • Prof. Sunita Rao', 'Upcoming'),
+                    _buildLectureItem(
+                      '02:00 PM - 03:30 PM',
+                      'Computer Networks (CS-303)',
+                      'Hall 105 • Prof. Sunita Rao',
+                      'Upcoming',
+                    ),
                   ],
                 ),
               ),
@@ -838,15 +1010,37 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Quick Access', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    const Text(
+                      'Quick Access',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    _buildQuickAction('Take Online Exam', Icons.quiz_outlined, () => setState(() => _activeTab = 'exams')),
+                    _buildQuickAction(
+                      'Take Online Exam',
+                      Icons.quiz_outlined,
+                      () => setState(() => _activeTab = 'exams'),
+                    ),
                     const SizedBox(height: 10),
-                    _buildQuickAction('View Grade Card', Icons.grade_outlined, () => setState(() => _activeTab = 'grades')),
+                    _buildQuickAction(
+                      'View Grade Card',
+                      Icons.grade_outlined,
+                      () => setState(() => _activeTab = 'grades'),
+                    ),
                     const SizedBox(height: 10),
-                    _buildQuickAction('Download Study Notes', Icons.download_outlined, () => setState(() => _activeTab = 'materials')),
+                    _buildQuickAction(
+                      'Download Study Notes',
+                      Icons.download_outlined,
+                      () => setState(() => _activeTab = 'materials'),
+                    ),
                     const SizedBox(height: 10),
-                    _buildQuickAction('Parent Meeting Request', Icons.connect_without_contact, () => setState(() => _activeTab = 'parents')),
+                    _buildQuickAction(
+                      'Parent Meeting Request',
+                      Icons.connect_without_contact,
+                      () => setState(() => _activeTab = 'parents'),
+                    ),
                   ],
                 ),
               ),
@@ -858,61 +1052,170 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   }
 
   Widget _buildUpcomingAssignmentsCard() {
-    final assigned = (_studentSubmissionsData?['assigned'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final missing = (_studentSubmissionsData?['missing'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final done = (_studentSubmissionsData?['done'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    final assigned =
+        (_studentSubmissionsData?['assigned'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
+    final missing =
+        (_studentSubmissionsData?['missing'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
+    final done =
+        (_studentSubmissionsData?['done'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        [];
     final assignments = [...assigned, ...missing, ...done].take(6).toList();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Icon(Icons.assignment_outlined, color: AppColors.studentPrimary),
-          const SizedBox(width: 8),
-          const Expanded(child: Text('My Assignments', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
-          IconButton(tooltip: 'Refresh assignments', onPressed: () => _fetchSubmissionsData(), icon: const Icon(Icons.refresh)),
-        ]),
-        if (_loadingSubmissions && _studentSubmissionsData == null)
-          const Padding(padding: EdgeInsets.all(12), child: Center(child: CircularProgressIndicator()))
-        else if (assignments.isEmpty)
-          const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Text('No pending assignments for your enrolled classes.', style: TextStyle(color: AppColors.textMuted)))
-        else
-          ...assignments.map((assignment) {
-            final assignmentId = assignment['id']?.toString() ?? '';
-            final classroomId = assignment['classroomId']?.toString() ?? '';
-            final isMissing = assignment['submissionStatus'] == 'MISSING';
-            final score = assignment['myScore'] ?? assignment['score'];
-            final feedback = assignment['feedback']?.toString();
-            final status = assignment['submissionStatus']?.toString() ?? 'ASSIGNED';
-            return Container(
-              margin: const EdgeInsets.only(top: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: isMissing ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(10), border: Border.all(color: isMissing ? Colors.red.shade200 : AppColors.border)),
-              child: Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, spacing: 12, runSpacing: 8, children: [
-                ConstrainedBox(constraints: const BoxConstraints(maxWidth: 460), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(assignment['title']?.toString() ?? 'Assignment', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                  const SizedBox(height: 3),
-                  Text('Class: ${assignment['classroomName'] ?? 'Class'}  •  Subject: ${assignment['subject']?.toString().isNotEmpty == true ? assignment['subject'] : assignment['topic'] ?? 'General'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                  Text('Due: ${assignment['dueDate'] ?? 'No due date'}', style: TextStyle(fontSize: 11, color: isMissing ? Colors.red.shade700 : AppColors.textMuted)),
-                  Text('Status: $status${score != null ? '  •  Score: $score / ${assignment['pointsPossible'] ?? 100}' : ''}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.studentPrimary)),
-                  if (feedback != null && feedback.trim().isNotEmpty)
-                    Text('Feedback: $feedback', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                ])),
-                OutlinedButton(
-                  onPressed: assignmentId.isEmpty ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => AssignmentViewScreen(assignmentId: assignmentId, classroomId: classroomId, userRole: 'student'))).then((_) => _fetchSubmissionsData()),
-                  child: const Text('Open Assignment'),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.assignment_outlined,
+                color: AppColors.studentPrimary,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'My Assignments',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
-              ]),
-            );
-          }),
-      ]),
+              ),
+              IconButton(
+                tooltip: 'Refresh assignments',
+                onPressed: () => _fetchSubmissionsData(),
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          if (_loadingSubmissions && _studentSubmissionsData == null)
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (assignments.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                'No pending assignments for your enrolled classes.',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+            )
+          else
+            ...assignments.map((assignment) {
+              final assignmentId = assignment['id']?.toString() ?? '';
+              final classroomId = assignment['classroomId']?.toString() ?? '';
+              final isMissing = assignment['submissionStatus'] == 'MISSING';
+              final score = assignment['myScore'] ?? assignment['score'];
+              final feedback = assignment['feedback']?.toString();
+              final status =
+                  assignment['submissionStatus']?.toString() ?? 'ASSIGNED';
+              return Container(
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isMissing
+                      ? const Color(0xFFFEF2F2)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: isMissing ? Colors.red.shade200 : AppColors.border,
+                  ),
+                ),
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            assignment['title']?.toString() ?? 'Assignment',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Class: ${assignment['classroomName'] ?? 'Class'}  •  Subject: ${assignment['subject']?.toString().isNotEmpty == true ? assignment['subject'] : assignment['topic'] ?? 'General'}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          Text(
+                            'Due: ${assignment['dueDate'] ?? 'No due date'}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isMissing
+                                  ? Colors.red.shade700
+                                  : AppColors.textMuted,
+                            ),
+                          ),
+                          Text(
+                            'Status: $status${score != null ? '  •  Score: $score / ${assignment['pointsPossible'] ?? 100}' : ''}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.studentPrimary,
+                            ),
+                          ),
+                          if (feedback != null && feedback.trim().isNotEmpty)
+                            Text(
+                              'Feedback: $feedback',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: assignmentId.isEmpty
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AssignmentViewScreen(
+                                  assignmentId: assignmentId,
+                                  classroomId: classroomId,
+                                  userRole: 'student',
+                                ),
+                              ),
+                            ).then((_) => _fetchSubmissionsData()),
+                      child: const Text('Open Assignment'),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
   Widget _buildUpcomingMeetingsCard() {
     final meetings = _upcomingMeetings
-        .where((meeting) => meeting['status']?.toString().toUpperCase() != 'CANCELLED')
+        .where(
+          (meeting) =>
+              meeting['status']?.toString().toUpperCase() != 'CANCELLED',
+        )
         .toList();
     return Container(
       width: double.infinity,
@@ -922,56 +1225,159 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Icon(Icons.video_call_outlined, color: AppColors.primary),
-          const SizedBox(width: 8),
-          const Expanded(child: Text('Upcoming Google Meet Classes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
-          IconButton(tooltip: 'Refresh meetings', onPressed: _fetchUpcomingMeetings, icon: const Icon(Icons.refresh)),
-        ]),
-        if (_loadingMeetings && meetings.isEmpty)
-          const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
-        else if (meetings.isEmpty)
-          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('No upcoming meetings for your enrolled classes.', style: TextStyle(color: AppColors.textMuted)))
-        else
-          ...meetings.map((meeting) {
-            final isLive = meeting['isLiveNow'] == true;
-            return Container(
-              margin: const EdgeInsets.only(top: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: isLive ? Colors.green.shade50 : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12), border: Border.all(color: isLive ? Colors.green.shade300 : AppColors.border)),
-              child: Wrap(alignment: WrapAlignment.spaceBetween, crossAxisAlignment: WrapCrossAlignment.center, runSpacing: 12, spacing: 16, children: [
-                ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(meeting['title']?.toString() ?? 'Live class', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                  const SizedBox(height: 4),
-                  Text('Class: ${meeting['classroomName'] ?? 'Class'}  •  Subject: ${meeting['subject']?.toString().isNotEmpty == true ? meeting['subject'] : '—'}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                  Text('Teacher: ${meeting['hostName'] ?? 'Teacher'}  •  ${_meetingTimeLabel(meeting)}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                  if (isLive) const Padding(padding: EdgeInsets.only(top: 4), child: Text('LIVE NOW', style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold))),
-                ])),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.open_in_new, size: 16),
-                  label: const Text('Join Google Meet'),
-                  style: ElevatedButton.styleFrom(backgroundColor: isLive ? Colors.green : AppColors.primary, foregroundColor: Colors.white),
-                  onPressed: () async {
-                    try {
-                      final result = await ApiService().joinLiveClass(meeting['id'].toString());
-                      final url = Uri.parse((result['meetLink'] ?? meeting['meetLink']).toString());
-                      if (!await launchUrl(url, mode: LaunchMode.externalApplication) && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open Google Meet.')));
-                      }
-                    } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: AppColors.error));
-                    }
-                  },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.video_call_outlined, color: AppColors.primary),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Upcoming Google Meet Classes',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                 ),
-              ]),
-            );
-          }),
-      ]),
+              ),
+              IconButton(
+                tooltip: 'Refresh meetings',
+                onPressed: _fetchUpcomingMeetings,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          if (_loadingMeetings && meetings.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (meetings.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'No upcoming meetings for your enrolled classes.',
+                style: TextStyle(color: AppColors.textMuted),
+              ),
+            )
+          else
+            ...meetings.map((meeting) {
+              final isLive = meeting['isLiveNow'] == true;
+              return Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isLive
+                      ? Colors.green.shade50
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isLive ? Colors.green.shade300 : AppColors.border,
+                  ),
+                ),
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  runSpacing: 12,
+                  spacing: 16,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            meeting['title']?.toString() ?? 'Live class',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Class: ${meeting['classroomName'] ?? 'Class'}  •  Subject: ${meeting['subject']?.toString().isNotEmpty == true ? meeting['subject'] : '—'}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          Text(
+                            'Teacher: ${meeting['hostName'] ?? 'Teacher'}  •  ${_meetingTimeLabel(meeting)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          if (isLive)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 4),
+                              child: Text(
+                                'LIVE NOW',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text('Join Google Meet'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isLive
+                            ? Colors.green
+                            : AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        try {
+                          final result = await ApiService().joinLiveClass(
+                            meeting['id'].toString(),
+                          );
+                          final url = Uri.parse(
+                            (result['meetLink'] ?? meeting['meetLink'])
+                                .toString(),
+                          );
+                          if (!await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              ) &&
+                              mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Could not open Google Meet.'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted)
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceFirst('Exception: ', ''),
+                                ),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
-  Widget _buildLectureItem(String time, String title, String subtitle, String status) {
+  Widget _buildLectureItem(
+    String time,
+    String title,
+    String subtitle,
+    String status,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -981,16 +1387,36 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.studentPrimary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.access_time, color: AppColors.studentPrimary, size: 18),
+                decoration: BoxDecoration(
+                  color: AppColors.studentPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.access_time,
+                  color: AppColors.studentPrimary,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('$time • $subtitle', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    '$time • $subtitle',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -1016,8 +1442,20 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           children: [
             Icon(icon, size: 18, color: AppColors.studentPrimary),
             const SizedBox(width: 12),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.textLight),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: AppColors.textLight,
+            ),
           ],
         ),
       ),
@@ -1042,19 +1480,37 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 radius: 36,
                 backgroundColor: AppColors.studentPrimary,
                 child: Text(
-                  user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'R',
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Colors.white),
+                  user?.name.isNotEmpty == true
+                      ? user!.name[0].toUpperCase()
+                      : 'R',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(width: 20),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user?.name ?? 'Rahul Sharma', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                  Text(
+                    user?.name ?? 'Rahul Sharma',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('Roll Number: ${user?.rollNumber ?? "1023"} • ${user?.className ?? "BCA - Sem 3"}', style: const TextStyle(color: AppColors.textMuted)),
+                  Text(
+                    'Roll Number: ${user?.rollNumber ?? "1023"} • ${user?.className ?? "BCA - Sem 3"}',
+                    style: const TextStyle(color: AppColors.textMuted),
+                  ),
                   const SizedBox(height: 6),
-                  const StatusBadge(label: 'Enrolled & Verified', status: 'active'),
+                  const StatusBadge(
+                    label: 'Enrolled & Verified',
+                    status: 'active',
+                  ),
                 ],
               ),
             ],
@@ -1062,20 +1518,38 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           const SizedBox(height: 28),
           const Divider(color: AppColors.border),
           const SizedBox(height: 20),
-          const Text('Academic Information', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const Text(
+            'Academic Information',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 14),
-          _buildInfoRow('Registered Email', user?.email ?? 'rahul@institute.com'),
-          _buildInfoRow('Course / Degree', user?.course ?? 'Bachelor of Computer Applications'),
+          _buildInfoRow(
+            'Registered Email',
+            user?.email ?? 'rahul@institute.com',
+          ),
+          _buildInfoRow(
+            'Course / Degree',
+            user?.course ?? 'Bachelor of Computer Applications',
+          ),
           _buildInfoRow('Current Semester', user?.semester ?? 'Semester 3'),
-          _buildInfoRow('Institute Name', user?.instituteName ?? 'Apex Institute of Technology'),
+          _buildInfoRow(
+            'Institute Name',
+            user?.instituteName ?? 'Apex Institute of Technology',
+          ),
           _buildInfoRow('Institute Code', user?.instituteCode ?? 'INST-2025'),
           const SizedBox(height: 24),
-          const Text('Parent / Guardian Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          const Text(
+            'Parent / Guardian Details',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 14),
           _buildInfoRow('Father Name', user?.fatherName ?? 'Rakesh Sharma'),
           _buildInfoRow('Father Phone', user?.fatherPhone ?? '+91 98765 43210'),
           _buildInfoRow('Mother Name', user?.motherName ?? 'Pooja Sharma'),
-          _buildInfoRow('Residential Address', user?.address ?? '123, Green Park, Delhi - 110016'),
+          _buildInfoRow(
+            'Residential Address',
+            user?.address ?? '123, Green Park, Delhi - 110016',
+          ),
         ],
       ),
     );
@@ -1088,9 +1562,25 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         children: [
           SizedBox(
             width: 180,
-            child: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w600)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(color: AppColors.textMain, fontSize: 13, fontWeight: FontWeight.w600))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.textMain,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1100,7 +1590,12 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildAttendanceTab() {
     final subjects = [
       {'name': 'Database Systems', 'held': 40, 'attended': 38, 'rate': 95.0},
-      {'name': 'Data Structures & Algorithms', 'held': 44, 'attended': 40, 'rate': 90.9},
+      {
+        'name': 'Data Structures & Algorithms',
+        'held': 44,
+        'attended': 40,
+        'rate': 90.9,
+      },
       {'name': 'Operating Systems', 'held': 36, 'attended': 32, 'rate': 88.8},
       {'name': 'Web Technologies', 'held': 35, 'attended': 33, 'rate': 94.2},
       {'name': 'Applied Mathematics', 'held': 38, 'attended': 34, 'rate': 89.4},
@@ -1115,15 +1610,39 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 4,
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Cumulative Attendance', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                    const Text(
+                      'Cumulative Attendance',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                     const SizedBox(height: 10),
-                    const Text('92.4%', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.accentGreen)),
+                    const Text(
+                      '92.4%',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.accentGreen,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    const Text('Status: Eligible for final examinations (Threshold: 75%)', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    const Text(
+                      'Status: Eligible for final examinations (Threshold: 75%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1133,15 +1652,37 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               flex: 8,
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Attendance Rules', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                    Text(
+                      'Attendance Rules',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     SizedBox(height: 8),
-                    Text('• Minimum 75% attendance mandatory in each course to sit for semester exams.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    Text(
+                      '• Minimum 75% attendance mandatory in each course to sit for semester exams.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                     SizedBox(height: 4),
-                    Text('• Medical leaves must be approved by class coordinator within 3 working days.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    Text(
+                      '• Medical leaves must be approved by class coordinator within 3 working days.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1152,11 +1693,18 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Course Attendance Breakdown', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              const Text(
+                'Course Attendance Breakdown',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 16),
               ...subjects.map((s) {
                 final rate = s['rate'] as double;
@@ -1168,15 +1716,29 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(s['name'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                          Text('${s['attended']} / ${s['held']} (${rate.toStringAsFixed(1)}%)', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          Text(
+                            s['name'] as String,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          Text(
+                            '${s['attended']} / ${s['held']} (${rate.toStringAsFixed(1)}%)',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
                       LinearProgressIndicator(
                         value: rate / 100,
                         backgroundColor: AppColors.bgPage,
-                        valueColor: AlwaysStoppedAnimation<Color>(rate >= 75 ? AppColors.accentGreen : AppColors.error),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          rate >= 75 ? AppColors.accentGreen : AppColors.error,
+                        ),
                         minHeight: 8,
                         borderRadius: BorderRadius.circular(4),
                       ),
@@ -1194,16 +1756,50 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   // 4. Grades Tab
   Widget _buildGradesTab() {
     final grades = [
-      {'code': 'CS-301', 'title': 'Database Management Systems', 'credits': 4, 'grade': 'A+', 'score': 92},
-      {'code': 'CS-302', 'title': 'Data Structures & Algorithms', 'credits': 4, 'grade': 'A', 'score': 88},
-      {'code': 'CS-303', 'title': 'Operating Systems', 'credits': 4, 'grade': 'B+', 'score': 79},
-      {'code': 'CS-304', 'title': 'Web Technologies & Frameworks', 'credits': 3, 'grade': 'A+', 'score': 95},
-      {'code': 'MA-301', 'title': 'Applied Numerical Mathematics', 'credits': 4, 'grade': 'A', 'score': 85},
+      {
+        'code': 'CS-301',
+        'title': 'Database Management Systems',
+        'credits': 4,
+        'grade': 'A+',
+        'score': 92,
+      },
+      {
+        'code': 'CS-302',
+        'title': 'Data Structures & Algorithms',
+        'credits': 4,
+        'grade': 'A',
+        'score': 88,
+      },
+      {
+        'code': 'CS-303',
+        'title': 'Operating Systems',
+        'credits': 4,
+        'grade': 'B+',
+        'score': 79,
+      },
+      {
+        'code': 'CS-304',
+        'title': 'Web Technologies & Frameworks',
+        'credits': 3,
+        'grade': 'A+',
+        'score': 95,
+      },
+      {
+        'code': 'MA-301',
+        'title': 'Applied Numerical Mathematics',
+        'credits': 4,
+        'grade': 'A',
+        'score': 85,
+      },
     ];
 
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1213,17 +1809,29 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Semester Grade Report', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  Text('Semester 2 Result Card • Official Transcript', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    'Semester Grade Report',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    'Semester 2 Result Card • Official Transcript',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Grade report downloaded as PDF!')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Grade report downloaded as PDF!'),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.download, size: 16),
                 label: const Text('Download PDF'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.studentPrimary,
+                ),
               ),
             ],
           ),
@@ -1238,23 +1846,51 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(g['title'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                      Text('${g['code']} • Credits: ${g['credits']}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      Text(
+                        g['title'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        '${g['code']} • Credits: ${g['credits']}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
                   ),
                   Row(
                     children: [
-                      Text('${g['score']}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                      Text(
+                        '${g['score']}%',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: AppColors.studentPrimary.withValues(alpha: 0.1),
+                          color: AppColors.studentPrimary.withValues(
+                            alpha: 0.1,
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           g['grade'] as String,
-                          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.studentPrimary, fontSize: 14),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.studentPrimary,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
@@ -1290,13 +1926,26 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('My Assignment Submissions & Work History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMain)),
+                  Text(
+                    'My Assignment Submissions & Work History',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
                   SizedBox(height: 4),
-                  Text('Track turned-in assignments, inspect grades, evaluation remarks and private feedback.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                    'Track turned-in assignments, inspect grades, evaluation remarks and private feedback.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.refresh, color: AppColors.studentPrimary),
+                icon: const Icon(
+                  Icons.refresh,
+                  color: AppColors.studentPrimary,
+                ),
                 tooltip: 'Refresh Submissions',
                 onPressed: _fetchSubmissionsData,
               ),
@@ -1318,9 +1967,23 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Completed / Turned In', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.green)),
+                      const Text(
+                        'Completed / Turned In',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text('${doneList.length}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.green.shade900)),
+                      Text(
+                        '${doneList.length}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.green.shade900,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1337,9 +2000,23 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Assigned Pending', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blue)),
+                      const Text(
+                        'Assigned Pending',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text('${assignedList.length}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.blue.shade900)),
+                      Text(
+                        '${assignedList.length}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.blue.shade900,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1356,9 +2033,23 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Missing Deadlines', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.red)),
+                      const Text(
+                        'Missing Deadlines',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text('${missingList.length}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.red.shade900)),
+                      Text(
+                        '${missingList.length}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.red.shade900,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1368,24 +2059,49 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           const SizedBox(height: 24),
 
           if (_loadingSubmissions)
-            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else if (doneList.isEmpty)
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(40),
                 child: Column(
                   children: [
-                    const Icon(Icons.task_outlined, size: 54, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.task_outlined,
+                      size: 54,
+                      color: AppColors.textMuted,
+                    ),
                     const SizedBox(height: 12),
-                    const Text('No assignments turned in yet.', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                    const Text(
+                      'No assignments turned in yet.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    const Text('Complete assigned coursework from your classes to see your submission history.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    const Text(
+                      'Complete assigned coursework from your classes to see your submission history.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       icon: const Icon(Icons.assignment_turned_in_outlined),
                       label: const Text('View Pending Assignments'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary, foregroundColor: Colors.white),
-                      onPressed: () => setState(() => _activeTab = 'assignments'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.studentPrimary,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () =>
+                          setState(() => _activeTab = 'assignments'),
                     ),
                   ],
                 ),
@@ -1398,11 +2114,19 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               itemCount: doneList.length,
               itemBuilder: (ctx, idx) {
                 final item = doneList[idx] as Map<String, dynamic>;
-                final classroomName = item['classroomName']?.toString() ?? 'Classroom';
+                final classroomName =
+                    item['classroomName']?.toString() ?? 'Classroom';
                 final title = item['title']?.toString() ?? 'Assignment';
                 final dueDate = item['dueDate']?.toString() ?? '';
-                final submissionStatus = item['submissionStatus']?.toString() ?? item['status']?.toString() ?? 'TURNED_IN';
-                final isGraded = submissionStatus == 'GRADED' || submissionStatus == 'RETURNED' || item['score'] != null || item['myScore'] != null;
+                final submissionStatus =
+                    item['submissionStatus']?.toString() ??
+                    item['status']?.toString() ??
+                    'TURNED_IN';
+                final isGraded =
+                    submissionStatus == 'GRADED' ||
+                    submissionStatus == 'RETURNED' ||
+                    item['score'] != null ||
+                    item['myScore'] != null;
                 final score = item['score'] ?? item['myScore'];
                 final points = item['points'] ?? 100;
                 final submissionTime = item['submittedAt']?.toString() ?? '';
@@ -1421,7 +2145,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isGraded ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+                            color: isGraded
+                                ? const Color(0xFFF0FDF4)
+                                : const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -1435,29 +2161,53 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 '$classroomName ${dueDate.isNotEmpty ? "• Due: $dueDate" : ""} ${submissionTime.isNotEmpty ? "• Submitted: $submissionTime" : ""}',
-                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
                               ),
-                              if (item['feedback'] != null && item['feedback'].toString().isNotEmpty) ...[
+                              if (item['feedback'] != null &&
+                                  item['feedback'].toString().isNotEmpty) ...[
                                 const SizedBox(height: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade100,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.grey.shade300),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.comment, size: 12, color: AppColors.textMuted),
+                                      const Icon(
+                                        Icons.comment,
+                                        size: 12,
+                                        color: AppColors.textMuted,
+                                      ),
                                       const SizedBox(width: 6),
                                       Text(
                                         'Teacher feedback: "${item['feedback']}"',
-                                        style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textMain),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic,
+                                          color: AppColors.textMain,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -1471,18 +2221,29 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: isGraded ? Colors.green.shade50 : Colors.blue.shade50,
+                                color: isGraded
+                                    ? Colors.green.shade50
+                                    : Colors.blue.shade50,
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: isGraded ? Colors.green : Colors.blue),
+                                border: Border.all(
+                                  color: isGraded ? Colors.green : Colors.blue,
+                                ),
                               ),
                               child: Text(
-                                isGraded ? 'GRADED: $score / $points' : submissionStatus.replaceAll('_', ' '),
+                                isGraded
+                                    ? 'GRADED: $score / $points'
+                                    : submissionStatus.replaceAll('_', ' '),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: isGraded ? Colors.green.shade800 : Colors.blue.shade800,
+                                  color: isGraded
+                                      ? Colors.green.shade800
+                                      : Colors.blue.shade800,
                                 ),
                               ),
                             ),
@@ -1492,13 +2253,24 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                               label: const Text('View Work'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.studentPrimary,
-                                side: const BorderSide(color: AppColors.studentPrimary),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                side: const BorderSide(
+                                  color: AppColors.studentPrimary,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                               ),
                               onPressed: () {
-                                final aId = item['assignmentId']?.toString() ?? item['id']?.toString() ?? '';
-                                final cId = item['classroomId']?.toString() ?? '';
+                                final aId =
+                                    item['assignmentId']?.toString() ??
+                                    item['id']?.toString() ??
+                                    '';
+                                final cId =
+                                    item['classroomId']?.toString() ?? '';
                                 if (aId.isNotEmpty) {
                                   Navigator.push(
                                     context,
@@ -1531,22 +2303,62 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
     final scheduleMap = {
       'Mon': [
-        {'time': '09:00 - 10:30', 'course': 'Database Systems', 'room': 'Hall 302', 'faculty': 'Dr. Amit Sharma'},
-        {'time': '11:00 - 12:30', 'course': 'Data Structures Lab', 'room': 'Lab 1', 'faculty': 'Prof. Rajesh Gupta'},
+        {
+          'time': '09:00 - 10:30',
+          'course': 'Database Systems',
+          'room': 'Hall 302',
+          'faculty': 'Dr. Amit Sharma',
+        },
+        {
+          'time': '11:00 - 12:30',
+          'course': 'Data Structures Lab',
+          'room': 'Lab 1',
+          'faculty': 'Prof. Rajesh Gupta',
+        },
       ],
       'Tue': [
-        {'time': '10:00 - 11:30', 'course': 'Operating Systems', 'room': 'Hall 105', 'faculty': 'Prof. Sunita Rao'},
-        {'time': '01:00 - 02:30', 'course': 'Web Technologies', 'room': 'Lab 3', 'faculty': 'Dr. Amit Sharma'},
+        {
+          'time': '10:00 - 11:30',
+          'course': 'Operating Systems',
+          'room': 'Hall 105',
+          'faculty': 'Prof. Sunita Rao',
+        },
+        {
+          'time': '01:00 - 02:30',
+          'course': 'Web Technologies',
+          'room': 'Lab 3',
+          'faculty': 'Dr. Amit Sharma',
+        },
       ],
       'Wed': [
-        {'time': '09:00 - 10:30', 'course': 'Applied Mathematics', 'room': 'Hall 201', 'faculty': 'Dr. Ramanujan'},
-        {'time': '11:00 - 12:30', 'course': 'Database Lab', 'room': 'Lab 2', 'faculty': 'Dr. Amit Sharma'},
+        {
+          'time': '09:00 - 10:30',
+          'course': 'Applied Mathematics',
+          'room': 'Hall 201',
+          'faculty': 'Dr. Ramanujan',
+        },
+        {
+          'time': '11:00 - 12:30',
+          'course': 'Database Lab',
+          'room': 'Lab 2',
+          'faculty': 'Dr. Amit Sharma',
+        },
       ],
       'Thu': [
-        {'time': '10:00 - 11:30', 'course': 'Data Structures & Algorithms', 'room': 'Hall 302', 'faculty': 'Prof. Rajesh Gupta'},
+        {
+          'time': '10:00 - 11:30',
+          'course': 'Data Structures & Algorithms',
+          'room': 'Hall 302',
+          'faculty': 'Prof. Rajesh Gupta',
+        },
       ],
       'Fri': [
-        {'time': '09:00 - 10:30', 'course': 'Web Development Workshop', 'room': 'Seminar Hall', 'faculty': 'Guest Faculty'},
+        {
+          'time': '09:00 - 10:30',
+          'course': 'Web Development Workshop',
+          'room': 'Seminar Hall',
+          'faculty': 'Guest Faculty',
+        },
       ],
     };
 
@@ -1563,10 +2375,14 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
               child: ElevatedButton(
                 onPressed: () => setState(() => _selectedDay = d),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isSel ? AppColors.studentPrimary : Colors.white,
+                  backgroundColor: isSel
+                      ? AppColors.studentPrimary
+                      : Colors.white,
                   foregroundColor: isSel ? Colors.white : AppColors.textMain,
                   elevation: 0,
-                  side: BorderSide(color: isSel ? AppColors.studentPrimary : AppColors.border),
+                  side: BorderSide(
+                    color: isSel ? AppColors.studentPrimary : AppColors.border,
+                  ),
                 ),
                 child: Text(d),
               ),
@@ -1576,41 +2392,78 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         const SizedBox(height: 20),
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("$_selectedDay's Timetable", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              Text(
+                "$_selectedDay's Timetable",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 16),
-              ...currentList.map((c) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.bgPage,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(c['course']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                              const SizedBox(height: 4),
-                              Text('${c['room']} • Faculty: ${c['faculty']}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                            child: Text(c['time']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.studentPrimary)),
-                          ),
-                        ],
-                      ),
+              ...currentList.map(
+                (c) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgPage,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
                     ),
-                  )),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              c['course']!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${c['room']} • Faculty: ${c['faculty']}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            c['time']!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.studentPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1621,21 +2474,51 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   // 6. Materials Tab
   Widget _buildMaterialsTab() {
     final materials = [
-      {'title': 'Relational Schema & 3NF Normalization.pdf', 'course': 'Database Systems', 'size': '4.2 MB', 'date': 'May 02, 2025'},
-      {'title': 'Balanced BST & Graph Algorithms.pdf', 'course': 'Algorithms', 'size': '6.8 MB', 'date': 'Apr 28, 2025'},
-      {'title': 'Virtual Memory & Page Replacement.pdf', 'course': 'Operating Systems', 'size': '3.1 MB', 'date': 'Apr 24, 2025'},
-      {'title': 'REST API Architecture & JSON Schemas.pdf', 'course': 'Web Technologies', 'size': '2.5 MB', 'date': 'Apr 20, 2025'},
+      {
+        'title': 'Relational Schema & 3NF Normalization.pdf',
+        'course': 'Database Systems',
+        'size': '4.2 MB',
+        'date': 'May 02, 2025',
+      },
+      {
+        'title': 'Balanced BST & Graph Algorithms.pdf',
+        'course': 'Algorithms',
+        'size': '6.8 MB',
+        'date': 'Apr 28, 2025',
+      },
+      {
+        'title': 'Virtual Memory & Page Replacement.pdf',
+        'course': 'Operating Systems',
+        'size': '3.1 MB',
+        'date': 'Apr 24, 2025',
+      },
+      {
+        'title': 'REST API Architecture & JSON Schemas.pdf',
+        'course': 'Web Technologies',
+        'size': '2.5 MB',
+        'date': 'Apr 20, 2025',
+      },
     ];
 
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Lecture Materials & Resources', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const Text(
+            'Lecture Materials & Resources',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 6),
-          const Text('Download notes, slides and reference materials uploaded by instructors.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          const Text(
+            'Download notes, slides and reference materials uploaded by instructors.',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 20),
           ...materials.map((m) {
             return Padding(
@@ -1654,24 +2537,50 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                          child: const Icon(Icons.picture_as_pdf, color: AppColors.error, size: 20),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.picture_as_pdf,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(m['title']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                            Text(
+                              m['title']!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('${m['course']} • ${m['size']} • Uploaded: ${m['date']}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                            Text(
+                              '${m['course']} • ${m['size']} • Uploaded: ${m['date']}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
                           ],
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.download, color: AppColors.studentPrimary),
+                      icon: const Icon(
+                        Icons.download,
+                        color: AppColors.studentPrimary,
+                      ),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Downloading ${m["title"]}...')));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Downloading ${m["title"]}...'),
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -1684,28 +2593,436 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     );
   }
 
+  // Retained as a named legacy implementation while the active tab uses the primary method above.
+  // ignore: unused_element
+  Widget _buildMySubmissionsTabLegacy() {
+    final doneList = (_studentSubmissionsData?['done'] as List?) ?? [];
+    final assignedList = (_studentSubmissionsData?['assigned'] as List?) ?? [];
+    final missingList = (_studentSubmissionsData?['missing'] as List?) ?? [];
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Assignment Submissions & Work History',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textMain,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Track turned-in assignments, inspect grades, evaluation remarks and private feedback.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.refresh,
+                  color: AppColors.studentPrimary,
+                ),
+                tooltip: 'Refresh Submissions',
+                onPressed: _fetchSubmissionsData,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Counters Row
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Completed / Turned In',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${doneList.length}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.green.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Assigned Pending',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${assignedList.length}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.blue.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Missing Deadlines',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${missingList.length}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.red.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          if (_loadingSubmissions)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (doneList.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.task_outlined,
+                      size: 54,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'No assignments turned in yet.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Complete assigned coursework from your classes to see your submission history.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.assignment_turned_in_outlined),
+                      label: const Text('View Pending Assignments'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.studentPrimary,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () =>
+                          setState(() => _activeTab = 'assignments'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: doneList.length,
+              itemBuilder: (ctx, idx) {
+                final item = doneList[idx] as Map<String, dynamic>;
+                final classroomName =
+                    item['classroomName']?.toString() ?? 'Classroom';
+                final title = item['title']?.toString() ?? 'Assignment';
+                final dueDate = item['dueDate']?.toString() ?? '';
+                final isGraded =
+                    item['status'] == 'GRADED' || item['score'] != null;
+                final score = item['score'];
+                final points = item['points'] ?? 100;
+                final submissionTime = item['submittedAt']?.toString() ?? '';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isGraded
+                                ? const Color(0xFFF0FDF4)
+                                : const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            isGraded ? Icons.verified : Icons.task_alt,
+                            color: isGraded ? Colors.green : Colors.blue,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: AppColors.textMain,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$classroomName ${dueDate.isNotEmpty ? "• Due: $dueDate" : ""} ${submissionTime.isNotEmpty ? "• Submitted: $submissionTime" : ""}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                              if (item['feedback'] != null &&
+                                  item['feedback'].toString().isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.comment,
+                                        size: 12,
+                                        color: AppColors.textMuted,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Teacher feedback: "${item['feedback']}"',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic,
+                                          color: AppColors.textMain,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isGraded
+                                    ? Colors.green.shade50
+                                    : Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: isGraded ? Colors.green : Colors.blue,
+                                ),
+                              ),
+                              child: Text(
+                                isGraded
+                                    ? 'GRADED: $score / $points'
+                                    : 'TURNED IN',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isGraded
+                                      ? Colors.green.shade800
+                                      : Colors.blue.shade800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              icon: const Icon(Icons.open_in_new, size: 14),
+                              label: const Text('View Work'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.studentPrimary,
+                                side: const BorderSide(
+                                  color: AppColors.studentPrimary,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                              ),
+                              onPressed: () {
+                                final aId =
+                                    item['assignmentId']?.toString() ??
+                                    item['id']?.toString() ??
+                                    '';
+                                final cId =
+                                    item['classroomId']?.toString() ?? '';
+                                if (aId.isNotEmpty) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AssignmentViewScreen(
+                                        assignmentId: aId,
+                                        classroomId: cId,
+                                        userRole: 'student',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   // 7. Timetable Tab
   Widget _buildTimetableTab() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Weekly Academic Timetable Matrix', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          Text(
+            'Weekly Academic Timetable Matrix',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
           SizedBox(height: 8),
-          Text('Complete 5-day class matrix for BCA Semester 3 (Section A)', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          Text(
+            'Complete 5-day class matrix for BCA Semester 3 (Section A)',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
           SizedBox(height: 24),
           // Simple visual timetable grid
-          Text('• Monday: 09:00 DBMS (H-302) | 11:00 DSA Lab (L-1) | 02:00 Web Tech (H-102)'),
+          Text(
+            '• Monday: 09:00 DBMS (H-302) | 11:00 DSA Lab (L-1) | 02:00 Web Tech (H-102)',
+          ),
           SizedBox(height: 10),
-          Text('• Tuesday: 10:00 OS (H-105) | 01:00 Web Tech Lab (L-3) | 03:00 Maths (H-201)'),
+          Text(
+            '• Tuesday: 10:00 OS (H-105) | 01:00 Web Tech Lab (L-3) | 03:00 Maths (H-201)',
+          ),
           SizedBox(height: 10),
-          Text('• Wednesday: 09:00 Maths (H-201) | 11:00 DBMS Lab (L-2) | 02:00 DSA (H-302)'),
+          Text(
+            '• Wednesday: 09:00 Maths (H-201) | 11:00 DBMS Lab (L-2) | 02:00 DSA (H-302)',
+          ),
           SizedBox(height: 10),
-          Text('• Thursday: 10:00 DSA (H-302) | 01:00 OS Lab (L-1) | 03:00 DBMS (H-302)'),
+          Text(
+            '• Thursday: 10:00 DSA (H-302) | 01:00 OS Lab (L-1) | 03:00 DBMS (H-302)',
+          ),
           SizedBox(height: 10),
-          Text('• Friday: 09:00 Workshop (Seminar Hall) | 02:00 Faculty Mentoring'),
+          Text(
+            '• Friday: 09:00 Workshop (Seminar Hall) | 02:00 Faculty Mentoring',
+          ),
         ],
       ),
     );
@@ -1715,27 +3032,48 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   Widget _buildParentsTab(UserModel? user) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Parent & Guardian Portal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const Text(
+            'Parent & Guardian Portal',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 8),
-          const Text('Registered contact information and Parent-Teacher Meeting (PTM) records.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          const Text(
+            'Registered contact information and Parent-Teacher Meeting (PTM) records.',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
           const SizedBox(height: 24),
           _buildInfoRow('Father Name', user?.fatherName ?? 'Rakesh Sharma'),
           _buildInfoRow('Father Phone', user?.fatherPhone ?? '+91 98765 43210'),
-          _buildInfoRow('Father Email', user?.fatherEmail ?? 'rakesh@example.com'),
+          _buildInfoRow(
+            'Father Email',
+            user?.fatherEmail ?? 'rakesh@example.com',
+          ),
           _buildInfoRow('Mother Name', user?.motherName ?? 'Pooja Sharma'),
           _buildInfoRow('Mother Phone', user?.motherPhone ?? '+91 98765 43211'),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PTM meeting scheduled for next Friday 04:00 PM.')));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'PTM meeting scheduled for next Friday 04:00 PM.',
+                  ),
+                ),
+              );
             },
             icon: const Icon(Icons.event, size: 16),
             label: const Text('Schedule PTM Meeting'),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.studentPrimary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.studentPrimary,
+            ),
           ),
         ],
       ),
@@ -1837,8 +3175,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   final subject = exam['subject']?.toString() ?? '';
                   final duration = exam['durationMinutes']?.toString() ?? '60';
                   final totalMarks = exam['totalMarks']?.toString() ?? '100';
-                  final passingMarks =
-                      exam['passingMarks']?.toString() ?? '40';
+                  final passingMarks = exam['passingMarks']?.toString() ?? '40';
                   final attemptStatus =
                       exam['attemptStatus']?.toString() ?? 'NOT_ATTEMPTED';
                   final resultsReleased = exam['resultsReleased'] == true;
@@ -2060,10 +3397,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             onPressed: _instructionsAccepted ? _startLiveExam : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.studentPrimary,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 14,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             ),
             child: const Text('Agree & Launch Examination Hall'),
           ),
@@ -2074,8 +3408,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // 11. Exam Live Tab
   Widget _buildExamLiveTab() {
-    final title =
-        _selectedExam?['title']?.toString() ?? 'Online Examination';
+    final title = _selectedExam?['title']?.toString() ?? 'Online Examination';
     if (_liveQuestions.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(32),
@@ -2152,10 +3485,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     const SizedBox(height: 2),
                     const Text(
                       'Live Examination Session • Auto-proctored & Persistent',
-                      style: TextStyle(
-                        color: Color(0xFF94A3B8),
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                     ),
                   ],
                 ),
@@ -2273,78 +3603,89 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                           value,
                         ),
                       )
-                    else ...optionsMap.entries.map((opt) {
-                      final isSelected =
-                          (questionType == 'MCQ_MULTI'
-                                  ? (_selectedAnswers[_currentQuestion] ?? '')
-                                      .split(',')
-                                      .contains(opt.key)
-                                  : _selectedAnswers[_currentQuestion] == opt.key);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: InkWell(
-                          onTap: () {
-                            if (questionType == 'MCQ_MULTI') {
-                              final selected = (_selectedAnswers[_currentQuestion] ?? '')
+                    else
+                      ...optionsMap.entries.map((opt) {
+                        final isSelected = (questionType == 'MCQ_MULTI'
+                            ? (_selectedAnswers[_currentQuestion] ?? '')
                                   .split(',')
-                                  .where((key) => key.isNotEmpty)
-                                  .toSet();
-                              if (!selected.add(opt.key)) selected.remove(opt.key);
-                              _saveAnswerLocallyAndRemote(
-                                _currentQuestion,
-                                (selected.toList()..sort()).join(','),
-                              );
-                            } else {
-                              _saveAnswerLocallyAndRemote(_currentQuestion, opt.key);
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFFF3E8FF)
-                                  : AppColors.bgPage,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
+                                  .contains(opt.key)
+                            : _selectedAnswers[_currentQuestion] == opt.key);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: InkWell(
+                            onTap: () {
+                              if (questionType == 'MCQ_MULTI') {
+                                final selected =
+                                    (_selectedAnswers[_currentQuestion] ?? '')
+                                        .split(',')
+                                        .where((key) => key.isNotEmpty)
+                                        .toSet();
+                                if (!selected.add(opt.key))
+                                  selected.remove(opt.key);
+                                _saveAnswerLocallyAndRemote(
+                                  _currentQuestion,
+                                  (selected.toList()..sort()).join(','),
+                                );
+                              } else {
+                                _saveAnswerLocallyAndRemote(
+                                  _currentQuestion,
+                                  opt.key,
+                                );
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.studentPrimary
-                                    : AppColors.border,
-                                width: isSelected ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                if (questionType == 'MCQ_MULTI')
-                                  Icon(isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-                                      color: isSelected ? AppColors.studentPrimary : AppColors.textMuted)
-                                else
-                                  Text(
-                                  '${opt.key}. ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: isSelected
-                                        ? AppColors.studentPrimary
-                                        : AppColors.textMain,
-                                  ),
+                                    ? const Color(0xFFF3E8FF)
+                                    : AppColors.bgPage,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.studentPrimary
+                                      : AppColors.border,
+                                  width: isSelected ? 1.5 : 1,
                                 ),
-                                Expanded(
-                                  child: Text(
-                                    opt.value,
-                                    style: TextStyle(
-                                      fontSize: 14,
+                              ),
+                              child: Row(
+                                children: [
+                                  if (questionType == 'MCQ_MULTI')
+                                    Icon(
+                                      isSelected
+                                          ? Icons.check_box
+                                          : Icons.check_box_outline_blank,
                                       color: isSelected
                                           ? AppColors.studentPrimary
-                                          : AppColors.textMain,
+                                          : AppColors.textMuted,
+                                    )
+                                  else
+                                    Text(
+                                      '${opt.key}. ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: isSelected
+                                            ? AppColors.studentPrimary
+                                            : AppColors.textMain,
+                                      ),
+                                    ),
+                                  Expanded(
+                                    child: Text(
+                                      opt.value,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: isSelected
+                                            ? AppColors.studentPrimary
+                                            : AppColors.textMain,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }),
+                        );
+                      }),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2357,8 +3698,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                         ),
                         if (_currentQuestion < _liveQuestions.length)
                           ElevatedButton(
-                            onPressed: () =>
-                                setState(() => _currentQuestion++),
+                            onPressed: () => setState(() => _currentQuestion++),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.studentPrimary,
                             ),
@@ -2366,8 +3706,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                           )
                         else
                           ElevatedButton(
-                            onPressed:
-                                _submittingExam ? null : _submitLiveExam,
+                            onPressed: _submittingExam ? null : _submitLiveExam,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.success,
                             ),
@@ -2416,10 +3755,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                       runSpacing: 8,
                       children: List.generate(_liveQuestions.length, (idx) {
                         final qNum = idx + 1;
-                        final isAnswered =
-                            _selectedAnswers.containsKey(qNum);
-                        final isFlagged =
-                            _flaggedQuestions.contains(qNum);
+                        final isAnswered = _selectedAnswers.containsKey(qNum);
+                        final isFlagged = _flaggedQuestions.contains(qNum);
                         final isCur = _currentQuestion == qNum;
 
                         Color bg = AppColors.bgPage;
@@ -2432,8 +3769,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                         }
 
                         return InkWell(
-                          onTap: () =>
-                              setState(() => _currentQuestion = qNum),
+                          onTap: () => setState(() => _currentQuestion = qNum),
                           child: Container(
                             width: 36,
                             height: 36,
@@ -2559,8 +3895,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // 13. Exam Results Tab
   Widget _buildExamResultsTab() {
-    final title =
-        _selectedExam?['title']?.toString() ?? 'Online Examination';
+    final title = _selectedExam?['title']?.toString() ?? 'Online Examination';
     final resultsReleased = _examAttempt?['resultsReleased'] == true;
 
     if (!resultsReleased) {
@@ -2643,10 +3978,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 children: [
                   const Text(
                     'Examination Scorecard',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -2737,9 +4069,23 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textMuted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

@@ -14,10 +14,10 @@ class ApiConfig {
 
     // If running on Android emulator, localhost is mapped to 10.0.2.2
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000/api';
+      return 'http://10.0.2.2:5002/api';
     }
     // Web, Windows Desktop, macOS, Linux, iOS
-    return 'http://localhost:5000/api';
+    return 'http://localhost:5002/api';
   }
 
   /// Timeout for HTTP requests
