@@ -200,7 +200,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
       {'id': 'instructor-records', 'title': 'Instructors', 'icon': Icons.badge_outlined},
       {'id': 'instructor-tracking', 'title': 'Faculty Workload', 'icon': Icons.timelapse_outlined},
       {'id': 'add-instructor', 'title': 'Add Instructor', 'icon': Icons.person_add_alt_1_outlined},
-      {'id': 'class-management', 'title': 'Class Management', 'icon': Icons.class_outlined},
       {'id': 'academic-planning', 'title': 'Academic Planning', 'icon': Icons.calendar_month_outlined},
       {'id': 'lecture-schedule', 'title': 'Lecture Schedule', 'icon': Icons.schedule_outlined},
       {'id': 'exam-timetable', 'title': 'Exam Timetable', 'icon': Icons.assignment_outlined},
@@ -425,8 +424,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         return 'Faculty Workload & Performance';
       case 'add-instructor':
         return 'Faculty Onboarding & Recruitment';
-      case 'class-management':
-        return 'Classroom & Batch Management';
       case 'academic-planning':
         return 'Academic Planning & Semesters';
       case 'lecture-schedule':
@@ -466,8 +463,6 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         return _buildInstructorTrackingScreen();
       case 'add-instructor':
         return _buildAddInstructorScreen();
-      case 'class-management':
-        return _buildClassManagementScreen();
       case 'academic-planning':
         return _buildAcademicPlanningScreen();
       case 'lecture-schedule':
@@ -1021,29 +1016,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     );
   }
 
-  // 8. Class Management
-  Widget _buildClassManagementScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Academic Class Batches & Section Roster', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          SizedBox(height: 8),
-          Text('Manage classroom section allocations, maximum capacities, and batch coordinators.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
-          SizedBox(height: 20),
-          Text('• BCA Semester 3 (Section A): Capacity 60 • Enrolled: 48 • Coordinator: Dr. Amit Sharma'),
-          SizedBox(height: 10),
-          Text('• BCA Semester 3 (Section B): Capacity 60 • Enrolled: 52 • Coordinator: Prof. Rajesh Gupta'),
-          SizedBox(height: 10),
-          Text('• MCA Semester 1: Capacity 50 • Enrolled: 42 • Coordinator: Prof. Sunita Rao'),
-        ],
-      ),
-    );
-  }
-
-  // 9. Academic Planning
+  // 8. Academic Planning
   Widget _buildAcademicPlanningScreen() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1067,7 +1040,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
     );
   }
 
-  // 10. Lecture Schedule
+  // 9. Lecture Schedule
   Widget _buildLectureScheduleScreen() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -1077,7 +1050,7 @@ class _AdminPortalScreenState extends State<AdminPortalScreen> {
         children: [
           Text('Institute Master Lecture Timetable', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           SizedBox(height: 8),
-          Text('All classrooms and laboratory sessions active across campus.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
+          Text('All lecture halls and laboratory sessions active across campus.', style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
           SizedBox(height: 20),
           Text('• Hall 101: MCA Semester 1 (Advanced Software Engineering) - 09:00 AM'),
           SizedBox(height: 8),

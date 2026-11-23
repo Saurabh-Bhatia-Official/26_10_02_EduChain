@@ -14,6 +14,7 @@ import '../portal_modules_screen.dart';
 import '../../widgets/portal_notification_bell.dart';
 import '../../widgets/portal_announcement_preview.dart';
 import '../classroom/classroom_hub_screen.dart';
+import '../classroom/assignment_view_screen.dart';
 import '../../services/api_service.dart';
 
 class TeacherPortalScreen extends StatefulWidget {
@@ -69,6 +70,8 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     _activeScreen = widget.initialTab.isNotEmpty ? widget.initialTab : 'dashboard';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<StudentProvider>(context, listen: false).fetchStudents();
+      _fetchTeacherExams();
+      _fetchTeacherAssignments();
     });
   }
 
@@ -116,9 +119,9 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
             child: Column(
               children: [
                 _buildTopBar(user, nav, auth, isDesktop),
-                if (_activeScreen == 'classes')
-                  const Expanded(
-                    child: ClassroomHubScreen(userRole: 'teacher'),
+                if (_isClassroomHubTab(_activeScreen))
+                  Expanded(
+                    child: _buildClassroomHubWidget(_activeScreen),
                   )
                 else
                   Expanded(
@@ -141,19 +144,43 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
     );
   }
 
+  bool _isClassroomHubTab(String screen) {
+    return screen == 'classes' ||
+        screen == 'my-classrooms' ||
+        screen == 'assignments' ||
+        screen == 'meet';
+  }
+
+  Widget _buildClassroomHubWidget(String screen) {
+    int initialIdx = 0;
+    if (screen == 'assignments') {
+      initialIdx = 1;
+    } else if (screen == 'meet') {
+      initialIdx = 2;
+    }
+    return ClassroomHubScreen(
+      key: ValueKey('teacher-classroom-$screen'),
+      userRole: 'teacher',
+      initialIndex: initialIdx,
+    );
+  }
+
   Widget _buildSidebar(UserModel? user, NavigationProvider nav) {
     final menuItems = [
       {'id': 'dashboard', 'title': 'Dashboard', 'icon': Icons.dashboard_outlined},
-      {'id': 'classes', 'title': 'Google Classroom', 'icon': Icons.school_outlined},
+      {'id': 'classes', 'title': 'My Classrooms', 'icon': Icons.school_outlined},
+      {'id': 'assignments', 'title': 'Assignments', 'icon': Icons.assignment_turned_in_outlined},
+      {'id': 'assignment-eval', 'title': 'Assignment Evaluation', 'icon': Icons.rate_review_outlined},
       {'id': 'exams', 'title': 'Examinations', 'icon': Icons.assignment_outlined},
-      {'id': 'students', 'title': 'Student Records', 'icon': Icons.people_outline},
-      {'id': 'add-student', 'title': 'Add New Student', 'icon': Icons.person_add_outlined},
-      {'id': 'courses', 'title': 'Courses & Curriculum', 'icon': Icons.menu_book_outlined},
-      {'id': 'add-course', 'title': 'Add Course', 'icon': Icons.post_add_outlined},
-      {'id': 'lectures', 'title': 'Lecture Schedules', 'icon': Icons.event_note_outlined},
-      {'id': 'update-lecture', 'title': 'Update Lecture', 'icon': Icons.edit_calendar_outlined},
+      {'id': 'question-mgmt', 'title': 'Question Management', 'icon': Icons.quiz_outlined},
+      {'id': 'exam-eval', 'title': 'Exam Evaluation', 'icon': Icons.fact_check_outlined},
+      {'id': 'results', 'title': 'Results', 'icon': Icons.emoji_events_outlined},
+      {'id': 'meet', 'title': 'Google Meet', 'icon': Icons.video_call_outlined},
       {'id': 'announcements', 'title': 'Announcements', 'icon': Icons.campaign_outlined},
-      {'id': 'leaves', 'title': 'Leave Requests & Leave', 'icon': Icons.event_available_outlined},
+      {'id': 'study-materials', 'title': 'Study Materials', 'icon': Icons.menu_book_outlined},
+      {'id': 'students', 'title': 'Student Records', 'icon': Icons.people_outline},
+      {'id': 'lectures', 'title': 'Lecture Schedules', 'icon': Icons.event_note_outlined},
+      {'id': 'leaves', 'title': 'Leave Requests', 'icon': Icons.event_available_outlined},
       {'id': 'profile', 'title': 'Faculty Profile', 'icon': Icons.badge_outlined},
     ];
 
@@ -354,17 +381,31 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       case 'dashboard':
         return 'Instructor Dashboard';
       case 'classes':
-        return 'Google Classroom & Meet Hub';
+      case 'my-classrooms':
+        return 'My Classrooms (Google Classroom)';
+      case 'assignments':
+        return 'Assignments Stream & Review';
+      case 'assignment-eval':
+        return 'Assignment Submissions & Evaluation';
       case 'exams':
-        return 'Online Examinations & Evaluations';
+        return 'Online Examinations';
+      case 'question-mgmt':
+        return 'Question Management & Question Bank';
+      case 'exam-eval':
+        return 'Student Exam Evaluation & Grading';
+      case 'results':
+        return 'Academic Results & Scorecard Publication';
+      case 'meet':
+        return 'Google Meet Live Classes';
+      case 'study-materials':
+      case 'courses':
+        return 'Study Materials & Curriculum';
       case 'students':
         return 'Student Directory & Records';
       case 'add-student':
         return 'Enroll New Student';
       case 'student-detail':
         return 'Student Profile Details';
-      case 'courses':
-        return 'Assigned Courses & Curriculum';
       case 'add-course':
         return 'Add Academic Course';
       case 'remove-course':
@@ -391,17 +432,27 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
       case 'dashboard':
         return _buildDashboardScreen();
       case 'classes':
+      case 'my-classrooms':
         return _buildClassesScreen();
+      case 'assignment-eval':
+        return _buildAssignmentEvaluationScreen();
       case 'exams':
         return _buildTeacherExamsScreen();
+      case 'question-mgmt':
+        return _buildQuestionManagementScreen();
+      case 'exam-eval':
+        return _buildExamEvaluationScreen();
+      case 'results':
+        return _buildResultsScreen();
+      case 'study-materials':
+      case 'courses':
+        return _buildCoursesScreen();
       case 'students':
         return _buildStudentsScreen();
       case 'add-student':
         return _buildAddStudentScreen();
       case 'student-detail':
         return _buildStudentDetailScreen();
-      case 'courses':
-        return _buildCoursesScreen();
       case 'add-course':
         return _buildAddCourseScreen();
       case 'remove-course':
@@ -503,6 +554,39 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
   List<Map<String, dynamic>> _teacherExams = [];
   bool _loadingTeacherExams = false;
   String? _teacherExamError;
+
+  List<Map<String, dynamic>> _teacherAssignments = [];
+  bool _loadingTeacherAssignments = false;
+
+  Future<void> _fetchTeacherAssignments() async {
+    setState(() => _loadingTeacherAssignments = true);
+    try {
+      final classrooms = await ApiService().getClassrooms();
+      final List<Map<String, dynamic>> list = [];
+      for (final c in classrooms) {
+        final cId = c['id']?.toString() ?? '';
+        if (cId.isNotEmpty) {
+          final asgns = await ApiService().getClassroomAssignments(cId);
+          for (final a in asgns) {
+            list.add({
+              ...a,
+              'classroomId': cId,
+              'classroomName': c['name'] ?? 'Classroom',
+              'classroomSection': c['section'] ?? '',
+            });
+          }
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _teacherAssignments = list;
+          _loadingTeacherAssignments = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingTeacherAssignments = false);
+    }
+  }
 
   Future<void> _fetchTeacherExams() async {
     setState(() {
@@ -1037,6 +1121,536 @@ class _TeacherPortalScreenState extends State<TeacherPortalScreen> {
                               onPressed: () => _deleteExam(exam),
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 2C. Assignment Evaluation Screen
+  Widget _buildAssignmentEvaluationScreen() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Assignment Evaluation & Grading Desk', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Review student submissions, evaluate attachments, assign marks and return feedback.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppColors.teacherPrimary),
+                tooltip: 'Refresh Assignments',
+                onPressed: _fetchTeacherAssignments,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherAssignments)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherAssignments.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    const Icon(Icons.assignment_turned_in_outlined, size: 54, color: AppColors.textMuted),
+                    const SizedBox(height: 12),
+                    const Text('No assignments found to evaluate.', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.school_outlined),
+                      label: const Text('Open Classrooms Hub'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary, foregroundColor: Colors.white),
+                      onPressed: () => setState(() => _activeScreen = 'classes'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherAssignments.length,
+              itemBuilder: (ctx, idx) {
+                final a = _teacherAssignments[idx];
+                final dueDate = a['dueDate']?.toString() ?? 'No deadline';
+                final points = a['points'] ?? 100;
+                final classroomName = a['classroomName'] ?? 'Classroom';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.rate_review_outlined, color: Colors.green, size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(a['title'] ?? 'Assignment', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$classroomName • Due: $dueDate • Total: $points pts',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.grading, size: 16),
+                          label: const Text('Evaluate Submissions'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.teacherPrimary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () {
+                            final cId = a['classroomId']?.toString() ?? '';
+                            final aId = a['id']?.toString() ?? '';
+                            if (cId.isNotEmpty && aId.isNotEmpty) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AssignmentViewScreen(
+                                    assignmentId: aId,
+                                    classroomId: cId,
+                                    userRole: 'teacher',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 2D. Question Management Screen
+  Widget _buildQuestionManagementScreen() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Question Management & Question Bank', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Review exam question sets, answer options, correct choices, and scoring weights.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('New Assessment with Questions'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.teacherPrimary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: _showCreateExamDialog,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherExams)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherExams.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    const Icon(Icons.quiz_outlined, size: 54, color: AppColors.textMuted),
+                    const SizedBox(height: 12),
+                    const Text('No questions created yet. Schedule an assessment to build questions.', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Exam & Questions'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.teacherPrimary, foregroundColor: Colors.white),
+                      onPressed: _showCreateExamDialog,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherExams.length,
+              itemBuilder: (ctx, idx) {
+                final exam = _teacherExams[idx];
+                final qs = exam['questions'] as List? ?? [];
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: ExpansionTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E8FF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.quiz_outlined, color: Colors.purple, size: 22),
+                    ),
+                    title: Text(exam['title'] ?? 'Assessment', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    subtitle: Text('${exam['courseCode'] ?? "CS"} • ${qs.length} Questions • Total ${exam['totalMarks'] ?? 100} Marks', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Column(
+                          children: qs.asMap().entries.map((entry) {
+                            final qIdx = entry.key + 1;
+                            final q = entry.value as Map<String, dynamic>;
+                            final opts = (q['options'] as List?) ?? [];
+                            final correct = q['correctAnswer']?.toString() ?? '';
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text('Q$qIdx: ', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                                      Expanded(
+                                        child: Text(q['question']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(4)),
+                                        child: Text('${q['marks'] ?? 25} pts', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade800)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 6,
+                                    children: opts.map((opt) {
+                                      final isCorrect = opt.toString() == correct;
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isCorrect ? Colors.green.shade50 : Colors.white,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: isCorrect ? Colors.green : AppColors.border),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (isCorrect) const Icon(Icons.check_circle, size: 14, color: Colors.green),
+                                            if (isCorrect) const SizedBox(width: 4),
+                                            Text(
+                                              opt.toString(),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: isCorrect ? FontWeight.bold : FontWeight.normal,
+                                                color: isCorrect ? Colors.green.shade900 : AppColors.textMain,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 2E. Exam Evaluation Screen
+  Widget _buildExamEvaluationScreen() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Exam Evaluation & Student Attempts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Review student submissions, inspect chosen responses, and verify automated marks.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppColors.teacherPrimary),
+                tooltip: 'Refresh',
+                onPressed: _fetchTeacherExams,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherExams)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherExams.isEmpty)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No exams scheduled yet.')))
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherExams.length,
+              itemBuilder: (ctx, idx) {
+                final exam = _teacherExams[idx];
+                final resultsReleased = exam['resultsReleased'] == true;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.fact_check_outlined, color: Colors.orange, size: 24),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(exam['title'] ?? 'Examination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${exam['courseCode'] ?? "CS"} • ${exam['courseName'] ?? ""} • Max Marks: ${exam['totalMarks'] ?? 100}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.people_outline, size: 16),
+                          label: const Text('Inspect Attempts'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.teacherPrimary,
+                            side: const BorderSide(color: AppColors.teacherPrimary),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _showExamAttemptsDialog(exam),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          icon: Icon(resultsReleased ? Icons.lock : Icons.lock_open, size: 16),
+                          label: Text(resultsReleased ? 'Lock' : 'Release'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: resultsReleased ? Colors.orange.shade700 : Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _toggleReleaseResults(exam),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 2F. Results Screen
+  Widget _buildResultsScreen() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Examination Results & Publication', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textMain)),
+                  SizedBox(height: 4),
+                  Text('Control scorecard release to students and view consolidated academic grading.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppColors.teacherPrimary),
+                tooltip: 'Refresh',
+                onPressed: _fetchTeacherExams,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_loadingTeacherExams)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_teacherExams.isEmpty)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: Text('No exams recorded.')))
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _teacherExams.length,
+              itemBuilder: (ctx, idx) {
+                final exam = _teacherExams[idx];
+                final resultsReleased = exam['resultsReleased'] == true;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: resultsReleased ? Colors.green.shade50 : Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            resultsReleased ? Icons.emoji_events : Icons.lock_clock,
+                            color: resultsReleased ? Colors.green : Colors.amber.shade800,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(exam['title'] ?? 'Examination', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textMain)),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Text(
+                                    '${exam['courseCode'] ?? "CS"} • Total: ${exam['totalMarks'] ?? 100} Marks  •  ',
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: resultsReleased ? Colors.green.shade50 : Colors.amber.shade50,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: resultsReleased ? Colors.green : Colors.amber),
+                                    ),
+                                    child: Text(
+                                      resultsReleased ? 'RESULTS RELEASED' : 'WITHHELD / DRAFT',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: resultsReleased ? Colors.green.shade800 : Colors.amber.shade900,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          icon: Icon(resultsReleased ? Icons.lock : Icons.lock_open, size: 16),
+                          label: Text(resultsReleased ? 'Lock Scorecards' : 'Release Scorecards'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: resultsReleased ? Colors.orange.shade700 : Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: () => _toggleReleaseResults(exam),
                         ),
                       ],
                     ),

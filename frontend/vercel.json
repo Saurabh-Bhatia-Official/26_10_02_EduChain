@@ -1,9 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
-    // "deploymentEnabled": true
+    "deploymentEnabled": {
         "master": true,
       "*": false
+    }
   },
   "installCommand": "echo 'Skipping install step'",
   "buildCommand": "bash vercel-build.sh",

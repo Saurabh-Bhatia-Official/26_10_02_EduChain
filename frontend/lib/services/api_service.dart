@@ -752,6 +752,9 @@ class ApiService {
     return [];
   }
 
+  Future<List<Map<String, dynamic>>> getClassroomAssignments(String classroomId, {String? topic}) =>
+      getAssignments(classroomId, topic: topic);
+
   Future<Map<String, dynamic>> getAssignmentDetails(String id) async {
     final response = await request('/assignments/$id');
     return response as Map<String, dynamic>;

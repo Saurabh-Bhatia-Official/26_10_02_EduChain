@@ -103,11 +103,12 @@ class Navbar extends StatelessWidget {
                   isActive: nav.currentPage == 'home',
                   onTap: () => nav.navigateTo('home'),
                 ),
-                _NavLink(
-                  title: 'Classrooms',
-                  isActive: nav.currentPage == 'classroom-hub',
-                  onTap: () => nav.navigateTo('classroom-hub'),
-                ),
+                if (!auth.isAdmin && !auth.isInstitute && (auth.isTeacher || auth.isStudent))
+                  _NavLink(
+                    title: 'Classrooms',
+                    isActive: nav.currentPage == 'classroom-hub',
+                    onTap: () => nav.navigateTo('classroom-hub'),
+                  ),
                 _NavLink(
                   title: 'About',
                   isActive: false,
