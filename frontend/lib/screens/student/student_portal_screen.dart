@@ -483,25 +483,29 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'EduChain',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                        color: Color(0xFF00337F),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'EduChain',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          color: Color(0xFF00337F),
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Student Academic Desk',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textLight,
+                      Text(
+                        'Student Academic Desk',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textLight,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -641,9 +645,10 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
     AuthProvider auth,
     bool isDesktop,
   ) {
+    final isCompact = MediaQuery.of(context).size.width < 680;
     return Container(
       height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -660,12 +665,21 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 ),
                 const SizedBox(width: 8),
               ],
-              Text(
-                _getTabTitle(_activeTab),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textMain,
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isCompact
+                      ? MediaQuery.of(context).size.width * 0.37
+                      : double.infinity,
+                ),
+                child: Text(
+                  _getTabTitle(_activeTab),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
                 ),
               ),
             ],
@@ -673,38 +687,39 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
           Row(
             children: [
               const PortalNotificationBell(role: 'student'),
-              const SizedBox(width: 8),
-              // User Chip
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.bgPage,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.account_balance,
-                      size: 14,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      user?.instituteCode ?? 'INST-2025',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textMain,
+              if (!isCompact) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgPage,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.account_balance,
+                        size: 14,
+                        color: AppColors.primary,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Text(
+                        user?.instituteCode ?? 'INST-2025',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textMain,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
+              ],
+              const SizedBox(width: 4),
               IconButton(
                 icon: const Icon(
                   Icons.logout,
@@ -739,7 +754,7 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       case 'materials':
         return 'Course Materials & Lectures';
       case 'timetable':
-        return 'Weekly Schedule Grid';
+        return 'Weekly Timetable';
       case 'parents':
         return 'Parent & Guardian Portal';
       case 'exams':
@@ -834,10 +849,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
             ),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final welcome = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
@@ -847,6 +861,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   const SizedBox(height: 4),
                   Text(
                     user?.name ?? 'Rahul Sharma',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
@@ -859,8 +875,8 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     style: const TextStyle(fontSize: 13, color: Colors.white70),
                   ),
                 ],
-              ),
-              Container(
+              );
+              final termStatus = Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
@@ -868,6 +884,9 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.18),
+                  ),
                 ),
                 child: const Column(
                   children: [
@@ -889,8 +908,23 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                     ),
                   ],
                 ),
-              ),
-            ],
+              );
+
+              if (constraints.maxWidth < 560) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [welcome, const SizedBox(height: 16), termStatus],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: welcome),
+                  const SizedBox(width: 16),
+                  termStatus,
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 24),
@@ -901,151 +935,169 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
         const SizedBox(height: 24),
 
         // 4 KPI Cards
-        Row(
-          children: [
-            Expanded(
-              child: MetricCard(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final metrics = [
+              MetricCard(
                 title: 'Attendance',
                 value: '92.4%',
                 icon: Icons.check_circle_outline,
                 color: AppColors.accentGreen,
                 subtitle: 'Above 75% requirement',
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: MetricCard(
+              MetricCard(
                 title: 'Current CGPA',
                 value: '3.82 / 4.0',
                 icon: Icons.emoji_events_outlined,
                 color: AppColors.accentOrange,
                 subtitle: 'Top 5% of class',
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: MetricCard(
+              MetricCard(
                 title: 'Enrolled Courses',
                 value: '6 Subjects',
                 icon: Icons.menu_book,
                 color: AppColors.studentPrimary,
                 subtitle: '22 Total Credits',
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: MetricCard(
+              MetricCard(
                 title: 'Upcoming Exams',
                 value: '2 Tests',
                 icon: Icons.assignment_outlined,
                 color: AppColors.primary,
                 subtitle: 'Next: DBMS Mid-Term',
               ),
-            ),
-          ],
+            ];
+            final columns = constraints.maxWidth >= 1000
+                ? 4
+                : constraints.maxWidth >= 560
+                ? 2
+                : 1;
+            final cardWidth =
+                (constraints.maxWidth - (columns - 1) * 12) / columns;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: metrics
+                  .map((metric) => SizedBox(width: cardWidth, child: metric))
+                  .toList(),
+            );
+          },
         ),
         const SizedBox(height: 28),
 
         // Today's Lectures + Quick Links
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Lectures
-            Expanded(
-              flex: 7,
-              child: Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 820;
+            final availableWidth = wide
+                ? constraints.maxWidth - 16
+                : constraints.maxWidth;
+            final lectureWidth = wide
+                ? availableWidth * 7 / 12
+                : constraints.maxWidth;
+            final actionsWidth = wide
+                ? availableWidth - lectureWidth
+                : constraints.maxWidth;
+            return Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                // Lectures
+                SizedBox(
+                  width: lectureWidth,
+                  child: Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Today's Lectures",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildLectureItem(
+                          '10:00 AM - 11:30 AM',
+                          'Database Systems (CS-301)',
+                          'Hall 302 • Dr. Amit Sharma',
+                          'Scheduled',
+                        ),
+                        const Divider(color: AppColors.border),
+                        _buildLectureItem(
+                          '11:45 AM - 01:15 PM',
+                          'Data Structures & Algorithms',
+                          'Lab 2 • Prof. Rajesh Gupta',
+                          'In Progress',
+                        ),
+                        const Divider(color: AppColors.border),
+                        _buildLectureItem(
+                          '02:00 PM - 03:30 PM',
+                          'Computer Networks (CS-303)',
+                          'Hall 105 • Prof. Sunita Rao',
+                          'Upcoming',
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Today's Lectures",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                // Quick Actions
+                SizedBox(
+                  width: actionsWidth,
+                  child: Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
                     ),
-                    const SizedBox(height: 16),
-                    _buildLectureItem(
-                      '10:00 AM - 11:30 AM',
-                      'Database Systems (CS-301)',
-                      'Hall 302 • Dr. Amit Sharma',
-                      'Scheduled',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Quick Access',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildQuickAction(
+                          'Take Online Exam',
+                          Icons.quiz_outlined,
+                          () => setState(() => _activeTab = 'exams'),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildQuickAction(
+                          'View Grade Card',
+                          Icons.grade_outlined,
+                          () => setState(() => _activeTab = 'grades'),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildQuickAction(
+                          'Download Study Notes',
+                          Icons.download_outlined,
+                          () => setState(() => _activeTab = 'materials'),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildQuickAction(
+                          'Parent Meeting Request',
+                          Icons.connect_without_contact,
+                          () => setState(() => _activeTab = 'parents'),
+                        ),
+                      ],
                     ),
-                    const Divider(color: AppColors.border),
-                    _buildLectureItem(
-                      '11:45 AM - 01:15 PM',
-                      'Data Structures & Algorithms',
-                      'Lab 2 • Prof. Rajesh Gupta',
-                      'In Progress',
-                    ),
-                    const Divider(color: AppColors.border),
-                    _buildLectureItem(
-                      '02:00 PM - 03:30 PM',
-                      'Computer Networks (CS-303)',
-                      'Hall 105 • Prof. Sunita Rao',
-                      'Upcoming',
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 20),
-
-            // Quick Actions
-            Expanded(
-              flex: 5,
-              child: Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Quick Access',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildQuickAction(
-                      'Take Online Exam',
-                      Icons.quiz_outlined,
-                      () => setState(() => _activeTab = 'exams'),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildQuickAction(
-                      'View Grade Card',
-                      Icons.grade_outlined,
-                      () => setState(() => _activeTab = 'grades'),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildQuickAction(
-                      'Download Study Notes',
-                      Icons.download_outlined,
-                      () => setState(() => _activeTab = 'materials'),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildQuickAction(
-                      'Parent Meeting Request',
-                      Icons.connect_without_contact,
-                      () => setState(() => _activeTab = 'parents'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       ],
     );
@@ -1381,16 +1433,15 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final details = Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: AppColors.studentPrimary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.access_time,
@@ -1398,32 +1449,57 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
                   size: 18,
                 ),
               ),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: AppColors.textMain,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: AppColors.textMain,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$time • $subtitle',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textMuted,
+                    const SizedBox(height: 3),
+                    Text(
+                      '$time • $subtitle',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
-          ),
-          StatusBadge(label: status, status: status),
-        ],
+          );
+          final badge = StatusBadge(label: status, status: status);
+
+          if (constraints.maxWidth < 520) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                details,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: badge),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: details),
+              const SizedBox(width: 12),
+              badge,
+            ],
+          );
+        },
       ),
     );
   }
@@ -2984,46 +3060,397 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
 
   // 7. Timetable Tab
   Widget _buildTimetableTab() {
+    const days = [
+      _StudentTimetableDay('Mon', 'Monday', [
+        _StudentTimetableSession('09:00 AM', 'DBMS', 'H-302'),
+        _StudentTimetableSession('11:00 AM', 'DSA Lab', 'L-1', type: 'LAB'),
+        _StudentTimetableSession('02:00 PM', 'Web Technologies', 'H-102'),
+      ]),
+      _StudentTimetableDay('Tue', 'Tuesday', [
+        _StudentTimetableSession('10:00 AM', 'Operating Systems', 'H-105'),
+        _StudentTimetableSession(
+          '01:00 PM',
+          'Web Technologies Lab',
+          'L-3',
+          type: 'LAB',
+        ),
+        _StudentTimetableSession('03:00 PM', 'Mathematics', 'H-201'),
+      ]),
+      _StudentTimetableDay('Wed', 'Wednesday', [
+        _StudentTimetableSession('09:00 AM', 'Mathematics', 'H-201'),
+        _StudentTimetableSession('11:00 AM', 'DBMS Lab', 'L-2', type: 'LAB'),
+        _StudentTimetableSession(
+          '02:00 PM',
+          'Data Structures & Algorithms',
+          'H-302',
+        ),
+      ]),
+      _StudentTimetableDay('Thu', 'Thursday', [
+        _StudentTimetableSession(
+          '10:00 AM',
+          'Data Structures & Algorithms',
+          'H-302',
+        ),
+        _StudentTimetableSession(
+          '01:00 PM',
+          'Operating Systems Lab',
+          'L-1',
+          type: 'LAB',
+        ),
+        _StudentTimetableSession('03:00 PM', 'DBMS', 'H-302'),
+      ]),
+      _StudentTimetableDay('Fri', 'Friday', [
+        _StudentTimetableSession(
+          '09:00 AM',
+          'Workshop',
+          'Seminar Hall',
+          type: 'WORKSHOP',
+        ),
+        _StudentTimetableSession(
+          '02:00 PM',
+          'Faculty Mentoring',
+          null,
+          type: 'MENTORING',
+        ),
+      ]),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildStudentPageHeader(
+          eyebrow: 'ACADEMIC PLANNER',
+          title: 'Weekly timetable',
+          subtitle: 'BCA Semester 3 · Section A',
+          icon: Icons.calendar_view_week_outlined,
+          tag: '14 SESSIONS',
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your week at a glance',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Lectures, labs, workshops, and mentoring.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.studentPrimary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text(
+                      'MON — FRI',
+                      style: TextStyle(
+                        color: AppColors.studentPrimary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = constraints.maxWidth >= 1100
+                      ? 5
+                      : constraints.maxWidth >= 750
+                      ? 3
+                      : constraints.maxWidth >= 500
+                      ? 2
+                      : 1;
+                  final cardWidth =
+                      (constraints.maxWidth - (columns - 1) * 12) / columns;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: days
+                        .map(
+                          (day) => SizedBox(
+                            width: cardWidth,
+                            child: _buildTimetableDayCard(day),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStudentPageHeader({
+    required String eyebrow,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required String tag,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: const Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final iconTile = Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppColors.studentPrimary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: AppColors.studentPrimary, size: 23),
+          );
+          final titleBlock = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                eyebrow,
+                style: const TextStyle(
+                  color: AppColors.studentPrimary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          );
+          final tagPill = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.studentPrimary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.studentPrimary.withValues(alpha: 0.16),
+              ),
+            ),
+            child: Text(
+              tag,
+              style: const TextStyle(
+                color: AppColors.studentPrimary,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          );
+
+          if (constraints.maxWidth < 560) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    iconTile,
+                    const SizedBox(width: 12),
+                    Expanded(child: titleBlock),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                tagPill,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              iconTile,
+              const SizedBox(width: 16),
+              Expanded(child: titleBlock),
+              const SizedBox(width: 12),
+              tagPill,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTimetableDayCard(_StudentTimetableDay day) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bgPage,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Weekly Academic Timetable Matrix',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.studentPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  day.shortName,
+                  style: const TextStyle(
+                    color: AppColors.studentPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  day.name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                '${day.sessions.length}',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 8),
-          Text(
-            'Complete 5-day class matrix for BCA Semester 3 (Section A)',
-            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          const SizedBox(height: 10),
+          ...day.sessions.map(_buildTimetableSessionCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimetableSessionCard(_StudentTimetableSession session) {
+    final color = switch (session.type) {
+      'LAB' => AppColors.accentTeal,
+      'WORKSHOP' => AppColors.accentOrange,
+      'MENTORING' => AppColors.primary,
+      _ => AppColors.studentPrimary,
+    };
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.access_time_rounded, size: 13, color: color),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  session.time,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                session.type,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 24),
-          // Simple visual timetable grid
+          const SizedBox(height: 6),
           Text(
-            '• Monday: 09:00 DBMS (H-302) | 11:00 DSA Lab (L-1) | 02:00 Web Tech (H-102)',
+            session.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           ),
-          SizedBox(height: 10),
-          Text(
-            '• Tuesday: 10:00 OS (H-105) | 01:00 Web Tech Lab (L-3) | 03:00 Maths (H-201)',
-          ),
-          SizedBox(height: 10),
-          Text(
-            '• Wednesday: 09:00 Maths (H-201) | 11:00 DBMS Lab (L-2) | 02:00 DSA (H-302)',
-          ),
-          SizedBox(height: 10),
-          Text(
-            '• Thursday: 10:00 DSA (H-302) | 01:00 OS Lab (L-1) | 03:00 DBMS (H-302)',
-          ),
-          SizedBox(height: 10),
-          Text(
-            '• Friday: 09:00 Workshop (Seminar Hall) | 02:00 Faculty Mentoring',
-          ),
+          if (session.location != null) ...[
+            const SizedBox(height: 5),
+            Row(
+              children: [
+                const Icon(
+                  Icons.location_on_outlined,
+                  size: 12,
+                  color: AppColors.textLight,
+                ),
+                const SizedBox(width: 3),
+                Expanded(
+                  child: Text(
+                    session.location!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -4092,4 +4519,26 @@ class _StudentPortalScreenState extends State<StudentPortalScreen> {
       ),
     );
   }
+}
+
+class _StudentTimetableDay {
+  const _StudentTimetableDay(this.shortName, this.name, this.sessions);
+
+  final String shortName;
+  final String name;
+  final List<_StudentTimetableSession> sessions;
+}
+
+class _StudentTimetableSession {
+  const _StudentTimetableSession(
+    this.time,
+    this.title,
+    this.location, {
+    this.type = 'CLASS',
+  });
+
+  final String time;
+  final String title;
+  final String? location;
+  final String type;
 }

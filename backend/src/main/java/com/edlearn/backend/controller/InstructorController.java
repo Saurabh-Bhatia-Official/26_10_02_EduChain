@@ -4,6 +4,7 @@ import com.edlearn.backend.model.UserEntity;
 import com.edlearn.backend.repository.UserRepository;
 import com.edlearn.backend.service.PortalAccessService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -82,13 +83,14 @@ public class InstructorController {
                 || instructor.getName() == null || instructor.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instructor name and a valid email are required.");
         }
-        if (instructor.getPassword() == null || instructor.getPassword().length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 8 characters.");
+        String initialPassword = instructor.getPassword();
+        if (initialPassword == null || initialPassword.length() < 8
+                || java.util.Set.of("password123", "edlearn123").contains(initialPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set a non-default initial password of at least 8 characters.");
         }
-        if (instructor.getEmail() != null && !instructor.getEmail().isBlank()) {
-            if (userRepository.existsByEmailIgnoreCase(instructor.getEmail().trim())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + instructor.getEmail());
-            }
+        String email = instructor.getEmail().trim();
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + email);
         }
         if (instructor.getInstructorId() != null && !instructor.getInstructorId().isBlank()) {
             if (userRepository.existsByInstructorIdIgnoreCase(instructor.getInstructorId().trim())) {
@@ -98,9 +100,10 @@ public class InstructorController {
 
         instructor.setId(null);
         instructor.setRole("teacher");
+        instructor.setEmail(email);
         instructor.setInstituteCode(actor.getInstituteCode());
         instructor.setInstituteName(actor.getInstituteName());
-        instructor.setPassword(PASSWORD_ENCODER.encode(instructor.getPassword()));
+        instructor.setPassword(PASSWORD_ENCODER.encode(initialPassword));
         if (instructor.getUserId() == null || instructor.getUserId().isBlank()) {
             instructor.setUserId("ins_" + System.currentTimeMillis());
         }
@@ -146,7 +149,11 @@ public class InstructorController {
             instructor.setAbout("Passionate faculty member in " + instructor.getDepartment());
         }
 
-        return userRepository.save(instructor);
+        try {
+            return userRepository.save(instructor);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists.", ex);
+        }
     }
 
     @PutMapping("/{id}")

@@ -7,6 +7,7 @@ import com.edlearn.backend.model.InstituteEntity;
 import com.edlearn.backend.model.UserEntity;
 import com.edlearn.backend.repository.InstituteRepository;
 import com.edlearn.backend.repository.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -346,8 +347,10 @@ public class AuthService {
 
         try {
             student = userRepository.save(student);
+        } catch (DataIntegrityViolationException ex) {
+            return ApiResponse.error("An account with the supplied email or student ID already exists.");
         } catch (Exception ex) {
-            return ApiResponse.error("Failed to store student in database: " + ex.getMessage());
+            return ApiResponse.error("Failed to store student in the database.");
         }
 
         Map<String, Object> userMap = toUserMap(student);
@@ -429,8 +432,10 @@ public class AuthService {
 
         try {
             teacher = userRepository.save(teacher);
+        } catch (DataIntegrityViolationException ex) {
+            return ApiResponse.error("An account with the supplied email or instructor ID already exists.");
         } catch (Exception ex) {
-            return ApiResponse.error("Failed to store teacher in database: " + ex.getMessage());
+            return ApiResponse.error("Failed to store instructor in the database.");
         }
 
         return ApiResponse.error("Registration request submitted. An institute administrator must activate the account before sign-in.");
