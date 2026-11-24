@@ -17,5 +17,9 @@ public interface AssignmentSubmissionRepository extends JpaRepository<Assignment
 
     List<AssignmentSubmissionEntity> findByStudentIdOrderBySubmittedAtDesc(UUID studentId);
 
+    List<AssignmentSubmissionEntity> findByAssignmentIdIn(List<UUID> assignmentIds);
+
     long countByAssignmentIdAndStatus(UUID assignmentId, String status);
+
+    long countByStudentId(UUID studentId);
 }

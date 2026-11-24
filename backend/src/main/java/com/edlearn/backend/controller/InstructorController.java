@@ -1,6 +1,8 @@
 package com.edlearn.backend.controller;
 
+import com.edlearn.backend.model.InstructorProfileEntity;
 import com.edlearn.backend.model.UserEntity;
+import com.edlearn.backend.repository.InstructorProfileRepository;
 import com.edlearn.backend.repository.UserRepository;
 import com.edlearn.backend.service.PortalAccessService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,10 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/instructors")
@@ -22,10 +21,14 @@ public class InstructorController {
     private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
     private final UserRepository userRepository;
+    private final InstructorProfileRepository instructorProfileRepository;
     private final PortalAccessService accessService;
 
-    public InstructorController(UserRepository userRepository, PortalAccessService accessService) {
+    public InstructorController(UserRepository userRepository,
+                                InstructorProfileRepository instructorProfileRepository,
+                                PortalAccessService accessService) {
         this.userRepository = userRepository;
+        this.instructorProfileRepository = instructorProfileRepository;
         this.accessService = accessService;
     }
 
@@ -33,7 +36,7 @@ public class InstructorController {
         try {
             UUID uuid = UUID.fromString(id);
             Optional<UserEntity> byId = userRepository.findById(uuid);
-            if (byId.isPresent() && "teacher".equalsIgnoreCase(byId.get().getRole())) {
+            if (byId.isPresent() && isInstructorRole(byId.get().getRole())) {
                 return byId.get();
             }
         } catch (Exception ignored) {}
@@ -41,15 +44,27 @@ public class InstructorController {
         return userRepository.findByInstructorIdIgnoreCase(id)
                 .or(() -> userRepository.findByUserId(id))
                 .or(() -> userRepository.findByEmailIgnoreCase(id))
-                .filter(u -> "teacher".equalsIgnoreCase(u.getRole()))
+                .filter(u -> isInstructorRole(u.getRole()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instructor not found: " + id));
+    }
+
+    private boolean isInstructorRole(String role) {
+        return "teacher".equalsIgnoreCase(role) || "instructor".equalsIgnoreCase(role);
     }
 
     @GetMapping
     public List<UserEntity> getAllInstructors(HttpServletRequest request, @RequestParam(required = false) String search) {
-        UserEntity actor = accessService.require(request, "admin");
-        List<UserEntity> list = actor.getInstituteCode() == null ? List.of()
-                : userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "teacher");
+        UserEntity actor = accessService.require(request, "admin", "teacher", "instructor");
+        List<UserEntity> list;
+        if (actor.getInstituteCode() != null && !actor.getInstituteCode().isBlank()) {
+            list = userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "teacher");
+            if (list.isEmpty()) {
+                list = userRepository.findAll().stream().filter(u -> isInstructorRole(u.getRole())).toList();
+            }
+        } else {
+            list = userRepository.findAll().stream().filter(u -> isInstructorRole(u.getRole())).toList();
+        }
+
         if (search != null && !search.isBlank()) {
             String q = search.toLowerCase();
             return list.stream()
@@ -65,54 +80,61 @@ public class InstructorController {
 
     @GetMapping("/{id}")
     public UserEntity getInstructor(HttpServletRequest request, @PathVariable String id) {
-        UserEntity actor = accessService.require(request, "admin");
+        accessService.require(request, "admin", "teacher", "instructor");
+        return findInstructor(id);
+    }
+
+    @GetMapping("/{id}/profile")
+    public Map<String, Object> getInstructorProfile(HttpServletRequest request, @PathVariable String id) {
+        accessService.require(request, "admin", "teacher", "instructor");
         UserEntity instructor = findInstructor(id);
-        requireSameInstitute(actor, instructor);
-        return instructor;
+        Optional<InstructorProfileEntity> profileOpt = instructorProfileRepository.findByUserId(instructor.getId());
+
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("id", instructor.getId().toString());
+        map.put("name", instructor.getName());
+        map.put("email", instructor.getEmail());
+        map.put("phone", instructor.getPhone());
+        map.put("profileImage", instructor.getProfileImage());
+        map.put("subject", instructor.getDepartment());
+        map.put("expertise", profileOpt.map(InstructorProfileEntity::getExpertise).orElse(instructor.getDepartment()));
+        map.put("qualification", profileOpt.map(InstructorProfileEntity::getQualification).orElse(instructor.getQualification()));
+        map.put("experience", profileOpt.map(InstructorProfileEntity::getExperience).orElse(instructor.getExperience()));
+        map.put("bio", profileOpt.map(InstructorProfileEntity::getBio).orElse(instructor.getAbout()));
+        map.put("status", instructor.getStatus());
+        map.put("createdAt", instructor.getCreatedAt() != null ? instructor.getCreatedAt().toString() : null);
+        return map;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserEntity createInstructor(HttpServletRequest request, @RequestBody UserEntity instructor) {
         UserEntity actor = accessService.require(request, "admin");
-        if (actor.getInstituteCode() == null || actor.getInstituteCode().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your admin account is not linked to an institute.");
-        }
+
         if (instructor.getEmail() == null || instructor.getEmail().isBlank() || !instructor.getEmail().contains("@")
                 || instructor.getName() == null || instructor.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instructor name and a valid email are required.");
         }
-        if (instructor.getPassword() == null || instructor.getPassword().length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 8 characters.");
+        if (instructor.getPassword() == null || instructor.getPassword().length() < 6) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 6 characters.");
         }
-        if (instructor.getEmail() != null && !instructor.getEmail().isBlank()) {
-            if (userRepository.existsByEmailIgnoreCase(instructor.getEmail().trim())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + instructor.getEmail());
-            }
-        }
-        if (instructor.getInstructorId() != null && !instructor.getInstructorId().isBlank()) {
-            if (userRepository.existsByInstructorIdIgnoreCase(instructor.getInstructorId().trim())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Instructor ID already exists: " + instructor.getInstructorId());
-            }
+        if (userRepository.existsByEmailIgnoreCase(instructor.getEmail().trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with that email already exists: " + instructor.getEmail());
         }
 
         instructor.setId(null);
         instructor.setRole("teacher");
-        instructor.setInstituteCode(actor.getInstituteCode());
-        instructor.setInstituteName(actor.getInstituteName());
+        String instCode = actor.getInstituteCode() != null && !actor.getInstituteCode().isBlank() ? actor.getInstituteCode() : "INST-2025";
+        instructor.setInstituteCode(instCode);
+        instructor.setInstituteName(actor.getInstituteName() != null ? actor.getInstituteName() : "EduChain Campus");
         instructor.setPassword(PASSWORD_ENCODER.encode(instructor.getPassword()));
+
         if (instructor.getUserId() == null || instructor.getUserId().isBlank()) {
             instructor.setUserId("ins_" + System.currentTimeMillis());
         }
 
-        // Validate and safeguard Name
-        String name = instructor.getName();
-        if (name == null || name.isBlank()) {
-            name = instructor.getFullName();
-        }
-        if (name == null || name.isBlank()) {
-            name = "Faculty Member";
-        }
+        String name = instructor.getName() != null && !instructor.getName().isBlank() ? instructor.getName().trim() : instructor.getFullName();
+        if (name == null || name.isBlank()) name = "Instructor";
         instructor.setName(name.trim());
 
         if (instructor.getStatus() == null || instructor.getStatus().isBlank()) {
@@ -122,10 +144,10 @@ public class InstructorController {
             instructor.setDepartment("Computer Science");
         }
         if (instructor.getInstructorId() == null || instructor.getInstructorId().isBlank()) {
-            instructor.setInstructorId("INS-" + (1000 + new java.util.Random().nextInt(9000)));
+            instructor.setInstructorId("INS-" + (1000 + new Random().nextInt(9000)));
         }
         if (instructor.getDesignation() == null || instructor.getDesignation().isBlank()) {
-            instructor.setDesignation("Assistant Professor");
+            instructor.setDesignation("Instructor");
         }
         if (instructor.getQualification() == null || instructor.getQualification().isBlank()) {
             instructor.setQualification("Master's Degree");
@@ -143,17 +165,29 @@ public class InstructorController {
             instructor.setJoiningDate("2024-01-15");
         }
         if (instructor.getAbout() == null || instructor.getAbout().isBlank()) {
-            instructor.setAbout("Passionate faculty member in " + instructor.getDepartment());
+            instructor.setAbout("Passionate instructor in " + instructor.getDepartment());
         }
 
-        return userRepository.save(instructor);
+        UserEntity savedInstructor = userRepository.save(instructor);
+
+        // Save into instructor_profiles table
+        try {
+            InstructorProfileEntity profile = new InstructorProfileEntity();
+            profile.setUser(savedInstructor);
+            profile.setQualification(savedInstructor.getQualification());
+            profile.setExpertise(savedInstructor.getDepartment());
+            profile.setExperience(savedInstructor.getExperience());
+            profile.setBio(savedInstructor.getAbout());
+            instructorProfileRepository.save(profile);
+        } catch (Exception ignored) {}
+
+        return savedInstructor;
     }
 
     @PutMapping("/{id}")
     public UserEntity updateInstructor(HttpServletRequest request, @PathVariable String id, @RequestBody UserEntity updated) {
-        UserEntity actor = accessService.require(request, "admin");
+        accessService.require(request, "admin");
         UserEntity instructor = findInstructor(id);
-        requireSameInstitute(actor, instructor);
 
         if (updated.getName() != null && !updated.getName().isBlank()) {
             instructor.setName(updated.getName().trim());
@@ -168,30 +202,54 @@ public class InstructorController {
         if (updated.getExperience() != null && !updated.getExperience().isBlank()) instructor.setExperience(updated.getExperience().trim());
         if (updated.getPhone() != null && !updated.getPhone().isBlank()) instructor.setPhone(updated.getPhone().trim());
         if (updated.getAddress() != null && !updated.getAddress().isBlank()) instructor.setAddress(updated.getAddress().trim());
-        if (updated.getJoiningDate() != null && !updated.getJoiningDate().isBlank()) instructor.setJoiningDate(updated.getJoiningDate().trim());
+        if (updated.getProfileImage() != null && !updated.getProfileImage().isBlank()) instructor.setProfileImage(updated.getProfileImage().trim());
         if (updated.getAbout() != null && !updated.getAbout().isBlank()) instructor.setAbout(updated.getAbout().trim());
         if (updated.getStatus() != null && !updated.getStatus().isBlank()) instructor.setStatus(updated.getStatus().trim());
         if (updated.getPassword() != null && !updated.getPassword().isBlank()) {
-            if (updated.getPassword().length() < 8) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must contain at least 8 characters.");
+            if (updated.getPassword().length() < 6) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must contain at least 6 characters.");
             instructor.setPassword(PASSWORD_ENCODER.encode(updated.getPassword()));
         }
 
-        return userRepository.save(instructor);
+        UserEntity saved = userRepository.save(instructor);
+
+        // Update profile in instructor_profiles table
+        try {
+            InstructorProfileEntity profile = instructorProfileRepository.findByUserId(saved.getId())
+                    .orElseGet(() -> {
+                        InstructorProfileEntity p = new InstructorProfileEntity();
+                        p.setUser(saved);
+                        return p;
+                    });
+            profile.setQualification(saved.getQualification());
+            profile.setExpertise(saved.getDepartment());
+            profile.setExperience(saved.getExperience());
+            profile.setBio(saved.getAbout());
+            instructorProfileRepository.save(profile);
+        } catch (Exception ignored) {}
+
+        return saved;
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<Map<String, Object>> updateStatus(HttpServletRequest request, @PathVariable String id, @RequestBody Map<String, Object> body) {
+        accessService.require(request, "admin");
+        UserEntity instructor = findInstructor(id);
+        String status = (String) body.get("status");
+        if (status != null && !status.isBlank()) {
+            instructor.setStatus(status.trim());
+            userRepository.save(instructor);
+        }
+        return ResponseEntity.ok(Map.of("success", true, "id", id, "status", instructor.getStatus()));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> deleteInstructor(HttpServletRequest request, @PathVariable String id) {
-        UserEntity actor = accessService.require(request, "admin");
+        accessService.require(request, "admin");
         UserEntity instructor = findInstructor(id);
-        requireSameInstitute(actor, instructor);
+        try {
+            instructorProfileRepository.deleteByUserId(instructor.getId());
+        } catch (Exception ignored) {}
         userRepository.delete(instructor);
         return ResponseEntity.ok(Map.of("success", true, "message", "Instructor deleted successfully", "id", id));
-    }
-
-    private void requireSameInstitute(UserEntity actor, UserEntity target) {
-        if (actor.getInstituteCode() == null || target.getInstituteCode() == null
-                || !actor.getInstituteCode().equalsIgnoreCase(target.getInstituteCode())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Instructor not found.");
-        }
     }
 }

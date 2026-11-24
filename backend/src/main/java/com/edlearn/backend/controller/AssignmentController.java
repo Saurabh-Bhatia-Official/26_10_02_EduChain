@@ -25,49 +25,83 @@ public class AssignmentController {
         this.accessService = accessService;
     }
 
-    @PutMapping("/{id}")
-    public Map<String, Object> updateAssignment(HttpServletRequest request, @PathVariable UUID id, @RequestBody Map<String, Object> body) {
-        UserEntity user = accessService.require(request, "teacher", "admin");
-        return assignmentService.updateAssignment(user, id, body);
+    @GetMapping
+    public List<Map<String, Object>> getAssignments(HttpServletRequest request) {
+        UserEntity user = accessService.require(request, "admin", "teacher", "instructor", "student");
+        if ("student".equalsIgnoreCase(user.getRole())) {
+            return assignmentService.getStudentAssignments(user);
+        } else {
+            return assignmentService.getInstructorAssignments(user);
+        }
     }
 
-    @DeleteMapping("/{id}")
-    public Map<String, Object> deleteAssignment(HttpServletRequest request, @PathVariable UUID id) {
-        UserEntity user = accessService.require(request, "teacher", "admin");
-        assignmentService.deleteAssignment(user, id);
-        return Map.of("success", true);
+    @GetMapping("/my")
+    public List<Map<String, Object>> getMyAssignments(HttpServletRequest request) {
+        UserEntity student = accessService.require(request, "student");
+        return assignmentService.getStudentAssignments(student);
     }
 
-    @PostMapping("/attachments/upload")
-    public Map<String, Object> uploadAttachment(HttpServletRequest request,
-                                                @RequestParam UUID classroomId,
-                                                @RequestParam String purpose,
-                                                @RequestParam("file") MultipartFile file) {
-        UserEntity user = accessService.require(request, "teacher", "student", "admin");
-        return assignmentService.uploadAssignmentFile(user, classroomId, purpose, file);
+    @GetMapping("/instructor")
+    public List<Map<String, Object>> getInstructorAssignments(HttpServletRequest request) {
+        UserEntity instructor = accessService.require(request, "teacher", "instructor", "admin");
+        return assignmentService.getInstructorAssignments(instructor);
+    }
+
+    @GetMapping("/my-results")
+    public List<Map<String, Object>> getMyResults(HttpServletRequest request) {
+        UserEntity student = accessService.require(request, "student");
+        return assignmentService.getStudentResults(student);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> createAssignment(HttpServletRequest request,
-                                                @RequestParam UUID classroomId,
+                                                @RequestParam(required = false) UUID classroomId,
                                                 @RequestBody Map<String, Object> body) {
-        UserEntity user = accessService.require(request, "teacher", "admin");
+        UserEntity user = accessService.require(request, "teacher", "instructor", "admin");
         return assignmentService.createAssignment(user, classroomId, body);
+    }
+
+    @GetMapping("/{id}")
+    public Map<String, Object> getAssignmentDetails(HttpServletRequest request, @PathVariable UUID id) {
+        UserEntity user = accessService.require(request, "teacher", "instructor", "student", "admin");
+        return assignmentService.getAssignmentDetails(user, id);
+    }
+
+    @GetMapping("/{id}/submissions")
+    public List<Map<String, Object>> getAssignmentSubmissions(HttpServletRequest request, @PathVariable UUID id) {
+        UserEntity user = accessService.require(request, "teacher", "instructor", "admin");
+        return assignmentService.getAssignmentSubmissions(user, id);
+    }
+
+    @PutMapping("/{id}")
+    public Map<String, Object> updateAssignment(HttpServletRequest request, @PathVariable UUID id, @RequestBody Map<String, Object> body) {
+        UserEntity user = accessService.require(request, "teacher", "instructor", "admin");
+        return assignmentService.updateAssignment(user, id, body);
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> deleteAssignment(HttpServletRequest request, @PathVariable UUID id) {
+        UserEntity user = accessService.require(request, "teacher", "instructor", "admin");
+        assignmentService.deleteAssignment(user, id);
+        return Map.of("success", true, "message", "Assignment deleted successfully");
+    }
+
+    @PostMapping("/attachments/upload")
+    public Map<String, Object> uploadAttachment(HttpServletRequest request,
+                                                @RequestParam(required = false) UUID classroomId,
+                                                @RequestParam(defaultValue = "ASSIGNMENT") String purpose,
+                                                @RequestParam("file") MultipartFile file) {
+        UserEntity user = accessService.require(request, "teacher", "instructor", "student", "admin");
+        return assignmentService.uploadAssignmentFile(user, classroomId, purpose, file);
     }
 
     @GetMapping("/classroom/{classroomId}")
     public List<Map<String, Object>> getClassroomAssignments(HttpServletRequest request,
                                                              @PathVariable UUID classroomId,
                                                              @RequestParam(required = false) String topic) {
-        UserEntity user = accessService.require(request, "teacher", "student", "admin");
+        UserEntity user = accessService.require(request, "teacher", "instructor", "student", "admin");
         return assignmentService.getClassroomAssignments(user, classroomId, topic);
-    }
-
-    @GetMapping("/{id}")
-    public Map<String, Object> getAssignmentDetails(HttpServletRequest request, @PathVariable UUID id) {
-        UserEntity user = accessService.require(request, "teacher", "student", "admin");
-        return assignmentService.getAssignmentDetails(user, id);
     }
 
     @GetMapping("/to-do")
@@ -90,24 +124,32 @@ public class AssignmentController {
         return assignmentService.unsubmitAssignment(student, id);
     }
 
-    @DeleteMapping("/attachments/{attachmentId}")
-    public Map<String, Object> deleteAttachment(HttpServletRequest request, @PathVariable UUID attachmentId) {
-        UserEntity user = accessService.require(request, "student", "teacher", "admin");
-        assignmentService.deleteAttachment(user, attachmentId);
-        return Map.of("success", true, "message", "Attachment removed successfully.");
+    @PostMapping("/submissions/{submissionId}/evaluate")
+    public Map<String, Object> evaluateSubmission(HttpServletRequest request,
+                                                  @PathVariable UUID submissionId,
+                                                  @RequestBody Map<String, Object> body) {
+        UserEntity instructor = accessService.require(request, "teacher", "instructor", "admin");
+        return assignmentService.evaluateSubmission(instructor, submissionId, body);
     }
 
     @PostMapping("/submissions/{submissionId}/grade")
     public Map<String, Object> gradeSubmission(HttpServletRequest request,
                                                @PathVariable UUID submissionId,
                                                @RequestBody Map<String, Object> body) {
-        UserEntity teacher = accessService.require(request, "teacher", "admin");
-        return assignmentService.gradeSubmission(teacher, submissionId, body);
+        UserEntity instructor = accessService.require(request, "teacher", "instructor", "admin");
+        return assignmentService.gradeSubmission(instructor, submissionId, body);
     }
 
     @GetMapping("/classroom/{classroomId}/gradebook")
     public Map<String, Object> getClassGradebook(HttpServletRequest request, @PathVariable UUID classroomId) {
-        UserEntity teacher = accessService.require(request, "teacher", "admin");
-        return assignmentService.getClassGradebook(teacher, classroomId);
+        UserEntity user = accessService.require(request, "teacher", "instructor", "admin");
+        return assignmentService.getClassGradebook(user, classroomId);
+    }
+
+    @DeleteMapping("/attachments/{attachmentId}")
+    public Map<String, Object> deleteAttachment(HttpServletRequest request, @PathVariable UUID attachmentId) {
+        UserEntity user = accessService.require(request, "student", "teacher", "instructor", "admin");
+        assignmentService.deleteAttachment(user, attachmentId);
+        return Map.of("success", true, "message", "Attachment removed successfully.");
     }
 }

@@ -935,4 +935,148 @@ class ApiService {
     }
     return [];
   }
+
+  // Student Dashboard Stats
+  Future<Map<String, dynamic>> getStudentDashboardStats() async {
+    final res = await request('/dashboard/student');
+    return res as Map<String, dynamic>;
+  }
+
+  // Course, Batch & Enrollment Management
+  Future<List<Map<String, dynamic>>> getCourses() async {
+    final response = await request('/courses');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> createCourse(Map<String, dynamic> data) async {
+    final response = await request('/courses', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getBatches([String? courseId]) async {
+    final url = courseId != null ? '/courses/$courseId/batches' : '/batches';
+    final response = await request(url);
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> createBatch(Map<String, dynamic> data) async {
+    final response = await request('/batches', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> enrollStudent(Map<String, dynamic> data) async {
+    final response = await request('/enrollments', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getMyEnrollments() async {
+    final response = await request('/enrollments/my');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  // LMS Online Classes & Google Meet Integration
+  Future<List<Map<String, dynamic>>> getClasses() async {
+    final response = await request('/classes');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getUpcomingClasses() async {
+    final response = await request('/classes/upcoming');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getCompletedClasses() async {
+    final response = await request('/classes/history');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> createClass(Map<String, dynamic> data) async {
+    final response = await request('/classes', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateClass(String id, Map<String, dynamic> data) async {
+    final response = await request('/classes/$id', method: 'PUT', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<void> deleteClass(String id) async {
+    await request('/classes/$id', method: 'DELETE');
+  }
+
+  Future<Map<String, dynamic>> joinClass(String id) async {
+    final response = await request('/classes/$id/join', method: 'POST');
+    return response as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> generateMeetLink([Map<String, dynamic>? data]) async {
+    final response = await request('/classes/generate-meet', method: 'POST', body: data ?? {});
+    return response as Map<String, dynamic>;
+  }
+
+  // LMS Assignment Management Module
+  Future<List<Map<String, dynamic>>> getMyAssignments() async {
+    final response = await request('/assignments/my');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<List<Map<String, dynamic>>> getInstructorAssignments() async {
+    final response = await request('/assignments/instructor');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> createAssignmentModule(Map<String, dynamic> data) async {
+    final response = await request('/assignments', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getAssignmentSubmissions(String assignmentId) async {
+    final response = await request('/assignments/$assignmentId/submissions');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> evaluateSubmission(String submissionId, Map<String, dynamic> data) async {
+    final response = await request('/assignments/submissions/$submissionId/evaluate', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> getMyResults() async {
+    final response = await request('/assignments/my-results');
+    if (response is List) {
+      return response.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> submitAssignmentModule(String assignmentId, Map<String, dynamic> data) async {
+    final response = await request('/assignments/$assignmentId/submit', method: 'POST', body: data);
+    return response as Map<String, dynamic>;
+  }
 }

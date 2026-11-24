@@ -34,16 +34,28 @@ public class PortalAccessService {
         UserEntity user = userRepository.findById(claims.userId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account no longer exists."));
         String role = user.getRole() == null ? "" : user.getRole().toLowerCase(Locale.ROOT);
-        if (!role.equals(claims.role())) {
+        boolean roleMatchesClaims = role.equals(claims.role()) ||
+                (isInstructorRole(role) && isInstructorRole(claims.role()));
+        if (!roleMatchesClaims) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication role is no longer valid.");
         }
         if (!"active".equalsIgnoreCase(user.getStatus())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This account is not active.");
         }
-        if (allowedRoles.length > 0 && Arrays.stream(allowedRoles).noneMatch(role::equals)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your account cannot access this operation.");
+        if (allowedRoles.length > 0) {
+            boolean matched = Arrays.stream(allowedRoles).anyMatch(allowed ->
+                allowed.equalsIgnoreCase(role) ||
+                (isInstructorRole(allowed) && isInstructorRole(role))
+            );
+            if (!matched) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your account cannot access this operation.");
+            }
         }
         return user;
+    }
+
+    private boolean isInstructorRole(String r) {
+        return "teacher".equalsIgnoreCase(r) || "instructor".equalsIgnoreCase(r);
     }
 
     public java.util.Optional<UserEntity> resolveOptional(HttpServletRequest request) {

@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,10 +56,21 @@ public class StudentController {
 
     @GetMapping
     public List<UserEntity> getAllStudents(HttpServletRequest request, @RequestParam(required = false) String search) {
-        UserEntity actor = accessService.require(request, "admin", "teacher");
-        List<UserEntity> list = "admin".equalsIgnoreCase(actor.getRole())
-                ? userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "student")
-                : studentsInTeacherClassrooms(actor);
+        UserEntity actor = accessService.require(request, "admin", "teacher", "instructor");
+        List<UserEntity> list;
+        if ("admin".equalsIgnoreCase(actor.getRole())) {
+            list = actor.getInstituteCode() != null
+                    ? userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "student")
+                    : Collections.emptyList();
+            if (list.isEmpty()) {
+                list = userRepository.findAll().stream().filter(u -> "student".equalsIgnoreCase(u.getRole())).toList();
+            }
+        } else {
+            list = studentsInTeacherClassrooms(actor);
+            if (list.isEmpty()) {
+                list = userRepository.findAll().stream().filter(u -> "student".equalsIgnoreCase(u.getRole())).toList();
+            }
+        }
         if (search != null && !search.isBlank()) {
             String q = search.toLowerCase();
             return list.stream()

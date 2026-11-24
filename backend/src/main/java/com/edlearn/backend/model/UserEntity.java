@@ -21,11 +21,12 @@ public class UserEntity {
     @Column(nullable = false)
     private String email;
 
+    @JsonAlias({"password_hash", "passwordHash"})
     @Column(nullable = false)
     private String password;
 
     @Column(nullable = false)
-    private String role; // student, teacher, admin, institute
+    private String role; // student, teacher, instructor, admin, institute
 
     @JsonAlias({"fullName", "full_name", "userName", "studentName", "adminName", "teacherName"})
     @Column(nullable = false)
@@ -40,6 +41,7 @@ public class UserEntity {
     @JsonAlias({"phoneNumber", "phone_number", "contactNumber", "mobile"})
     private String phone;
 
+    @JsonAlias({"profile_image", "profileImage", "profilePic", "profilePicture", "avatar"})
     @Column(name = "avatar_url")
     private String avatarUrl;
 
@@ -141,6 +143,22 @@ public class UserEntity {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getPasswordHash() {
+        return password;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.password = passwordHash;
+    }
+
+    public String getProfileImage() {
+        return avatarUrl;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.avatarUrl = profileImage;
     }
 
     public String getRole() {

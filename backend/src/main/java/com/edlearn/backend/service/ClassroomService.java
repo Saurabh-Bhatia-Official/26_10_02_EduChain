@@ -168,7 +168,7 @@ public class ClassroomService {
             }
         }
 
-        String role = "teacher".equalsIgnoreCase(user.getRole()) ? "CO_TEACHER" : "STUDENT";
+        String role = ("teacher".equalsIgnoreCase(user.getRole()) || "instructor".equalsIgnoreCase(user.getRole())) ? "CO_TEACHER" : "STUDENT";
         String status = classroom.isRequiresApproval() && !"CO_TEACHER".equals(role) ? "PENDING_APPROVAL" : "ACTIVE";
 
         ClassroomMemberEntity member = existingOpt.orElse(new ClassroomMemberEntity());
