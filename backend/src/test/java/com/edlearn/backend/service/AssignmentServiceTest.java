@@ -2,7 +2,16 @@ package com.edlearn.backend.service;
 
 import com.edlearn.backend.model.*;
 import com.edlearn.backend.repository.*;
+import com.edlearn.backend.repository.BatchRepository;
+import com.edlearn.backend.repository.CourseRepository;
+import com.edlearn.backend.repository.EnrollmentRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -13,15 +22,47 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AssignmentServiceTest {
-    private final AssignmentRepository assignments = mock(AssignmentRepository.class);
-    private final AssignmentSubmissionRepository submissions = mock(AssignmentSubmissionRepository.class);
-    private final AssignmentAttachmentRepository attachments = mock(AssignmentAttachmentRepository.class);
-    private final GradeRepository grades = mock(GradeRepository.class);
-    private final ClassroomRepository classrooms = mock(ClassroomRepository.class);
-    private final ClassroomMemberRepository members = mock(ClassroomMemberRepository.class);
-    private final CloudinaryService cloudinary = mock(CloudinaryService.class);
-    private final AssignmentService service = new AssignmentService(assignments, submissions, attachments, grades, classrooms, members, cloudinary);
+    @Mock
+    private AssignmentRepository assignments;
+    @Mock
+    private AssignmentSubmissionRepository submissions;
+    @Mock
+    private AssignmentAttachmentRepository attachments;
+    @Mock
+    private GradeRepository grades;
+    @Mock
+    private ClassroomRepository classrooms;
+    @Mock
+    private ClassroomMemberRepository members;
+    @Mock
+    private CourseRepository courseRepository;
+    @Mock
+    private BatchRepository batchRepository;
+    @Mock
+    private EnrollmentRepository enrollmentRepository;
+    @Mock
+    private CloudinaryService cloudinary;
+
+    private AssignmentService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new AssignmentService(
+                assignments,
+                submissions,
+                attachments,
+                grades,
+                classrooms,
+                members,
+                courseRepository,
+                batchRepository,
+                enrollmentRepository,
+                cloudinary
+        );
+    }
 
     @Test
     void studentCannotReadAssignmentsFromAClassTheyDoNotBelongTo() {
