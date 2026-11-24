@@ -364,6 +364,9 @@ public class AssignmentService {
         AssignmentEntity assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found."));
 
+        if (assignment.getClassroom() != null) {
+            checkStudentAccess(student, assignment.getClassroom());
+        }
         if (!"PUBLISHED".equalsIgnoreCase(assignment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found.");
         }
@@ -379,8 +382,11 @@ public class AssignmentService {
         Optional<AssignmentSubmissionEntity> existingSubmission = submissionRepository.findByAssignmentIdAndStudentId(assignmentId, student.getId());
         if (existingSubmission.isPresent()) {
             AssignmentSubmissionEntity existing = existingSubmission.get();
-            if (!assignment.isAllowResubmission() && !"ASSIGNED".equalsIgnoreCase(existing.getStatus())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "This assignment has already been submitted and resubmission is disabled.");
+            if (!"ASSIGNED".equalsIgnoreCase(existing.getStatus())) {
+                if (!assignment.isAllowResubmission()) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "This assignment has already been submitted and resubmission is disabled.");
+                }
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "This assignment has already been submitted. Unsubmit it before making changes.");
             }
         }
 

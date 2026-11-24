@@ -20,8 +20,11 @@ class AssignmentServiceTest {
     private final GradeRepository grades = mock(GradeRepository.class);
     private final ClassroomRepository classrooms = mock(ClassroomRepository.class);
     private final ClassroomMemberRepository members = mock(ClassroomMemberRepository.class);
+    private final CourseRepository courses = mock(CourseRepository.class);
+    private final BatchRepository batches = mock(BatchRepository.class);
+    private final EnrollmentRepository enrollments = mock(EnrollmentRepository.class);
     private final CloudinaryService cloudinary = mock(CloudinaryService.class);
-    private final AssignmentService service = new AssignmentService(assignments, submissions, attachments, grades, classrooms, members, cloudinary);
+    private final AssignmentService service = new AssignmentService(assignments, submissions, attachments, grades, classrooms, members, courses, batches, enrollments, cloudinary);
 
     @Test
     void studentCannotReadAssignmentsFromAClassTheyDoNotBelongTo() {
