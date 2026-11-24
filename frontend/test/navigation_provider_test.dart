@@ -56,6 +56,19 @@ void main() {
       nav.navigateTo('admin-student-records');
       expect(nav.currentPage, 'admin-portal');
       expect(nav.currentTab, 'student-records');
+
+      nav.navigateTo('admin-announcements');
+      expect(nav.currentPage, 'admin-portal');
+      expect(nav.currentTab, 'announcements');
+
+      nav.navigateTo('teacher-leaves');
+      expect(nav.currentPage, 'teacher-portal');
+      expect(nav.currentTab, 'leaves');
+
+      nav.navigateTo('student-announcements', {'targetId': 'announcement-1'});
+      expect(nav.currentPage, 'student-portal');
+      expect(nav.currentTab, 'announcements');
+      expect(nav.pageParams['targetId'], 'announcement-1');
     });
   });
 }

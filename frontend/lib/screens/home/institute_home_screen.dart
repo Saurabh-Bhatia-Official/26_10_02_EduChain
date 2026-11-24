@@ -56,8 +56,9 @@ class _InstituteHomeScreenState extends State<InstituteHomeScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     final instituteName = user?.instituteName ?? 'Apex Institute of Technology';
-    final instituteCode = user?.instituteCode ?? 'INST-2025';
-    final verificationId = user?.verificationId ?? 'VRF-INST2025-2025';
+    final instituteCode = user?.instituteCode ?? 'Not assigned';
+    final verificationId = user?.verificationId ?? 'Pending review';
+    final isVerified = user?.isVerified == true;
     final accreditation = user?.accreditation ?? 'AICTE & UGC Recognized • Grade A+ NAAC Accredited';
 
     return Scaffold(
@@ -91,15 +92,15 @@ class _InstituteHomeScreenState extends State<InstituteHomeScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.successBg,
+                          color: isVerified ? AppColors.successBg : AppColors.warningBg,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                          border: Border.all(color: (isVerified ? AppColors.success : AppColors.warning).withValues(alpha: 0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.verified, size: 12, color: AppColors.success),
+                          Icon(Icons.verified, size: 12, color: isVerified ? AppColors.success : AppColors.warning),
                           SizedBox(width: 4),
-                          Text('Verified', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.success)),
+                          Text(isVerified ? 'Verified' : 'Pending review', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isVerified ? AppColors.success : AppColors.warning)),
                         ],
                       ),
                     ),

@@ -136,6 +136,7 @@ flutter test
 ## 🔗 Backend Connectivity
 
 The Flutter application connects to the Spring Boot backend REST API at:
-* Base URL: `http://localhost:5000/api` (or `http://10.0.2.2:5000/api` on Android emulator)
+* Local base URL: `http://localhost:5002/api` (or `http://10.0.2.2:5002/api` on Android emulator)
+* Override the URL with `--dart-define=API_BASE_URL=https://your-backend.example/api` when running or building. Set the same `API_BASE_URL` environment variable in Vercel so the web build targets the deployed backend instead of the visitor's localhost.
 * Supports full CRUD mutations (`GET`, `POST`, `PUT`, `DELETE`).
-* When running without the backend server active, the app automatically activates the exact same offline fallback data as React's `api.js`, guaranteeing 100% of all UI screens, forms, tabs, and user workflows can be fully demonstrated.
+* Announcements always use the authenticated backend API and are never replaced with offline mock data. When unavailable, the page displays the connection error and a retry action.

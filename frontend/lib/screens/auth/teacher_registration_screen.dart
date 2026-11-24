@@ -17,7 +17,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _codeController = TextEditingController(text: 'INST-2025');
+  final _codeController = TextEditingController();
   final _empIdController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -41,18 +41,6 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _handleDemoFill() {
-    setState(() {
-      _nameController.text = 'Dr. Sunita Rao';
-      _emailController.text = 'sunita.new@institute.com';
-      _codeController.text = 'INST-2025';
-      _empIdController.text = 'INS-${DateTime.now().millisecondsSinceEpoch % 1000}';
-      _selectedDept = 'Computer Science & IT';
-      _phoneController.text = '+91 98765 44332';
-      _passwordController.text = 'password123';
-    });
   }
 
   Future<void> _handleSubmit() async {
@@ -196,11 +184,6 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                   'Faculty Registration',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
                 ),
-                TextButton.icon(
-                  onPressed: _handleDemoFill,
-                  icon: const Icon(Icons.bolt, size: 15, color: AppColors.teacherPrimary),
-                  label: const Text('Demo Fill', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.teacherPrimary)),
-                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -277,7 +260,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                   onPressed: () => setState(() => _showPassword = !_showPassword),
                 ),
               ),
-              validator: (v) => v == null || v.length < 6 ? 'Min 6 characters' : null,
+              validator: (v) => v == null || v.length < 8 || v == 'password123' || v == 'edlearn123' ? 'Use a non-default password with at least 8 characters' : null,
             ),
             const SizedBox(height: 24),
 

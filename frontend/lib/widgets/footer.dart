@@ -115,7 +115,12 @@ class Footer extends StatelessWidget {
                               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textMain),
                             ),
                             const SizedBox(height: 12),
-                            _FooterLink(title: 'Home', onTap: () => nav.navigateTo('home')),
+                            _FooterLink(
+                              title: 'Home',
+                              onTap: () => onScrollToSection != null
+                                  ? onScrollToSection!('home')
+                                  : nav.navigateTo('home'),
+                            ),
                             _FooterLink(title: 'About Platform', onTap: () => onScrollToSection?.call('about')),
                             _FooterLink(title: 'Management Features', onTap: () => onScrollToSection?.call('features')),
                             _FooterLink(title: 'Contact Us', onTap: () => onScrollToSection?.call('contact')),
@@ -227,7 +232,12 @@ class Footer extends StatelessWidget {
                         spacing: 16,
                         runSpacing: 8,
                         children: [
-                          _FooterLink(title: 'Home', onTap: () => nav.navigateTo('home')),
+                          _FooterLink(
+                            title: 'Home',
+                            onTap: () => onScrollToSection != null
+                                ? onScrollToSection!('home')
+                                : nav.navigateTo('home'),
+                          ),
                           _FooterLink(title: 'Institute Login', onTap: () => nav.navigateTo('institute-login')),
                           _FooterLink(title: 'Register', onTap: () => nav.navigateTo('institute-register')),
                         ],
@@ -254,7 +264,9 @@ class Footer extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         InkWell(
-                          onTap: () => nav.navigateTo('home'),
+                          onTap: () => onScrollToSection != null
+                              ? onScrollToSection!('home')
+                              : nav.navigateTo('home'),
                           child: const Text('Home', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
                         ),
                         const SizedBox(width: 12),

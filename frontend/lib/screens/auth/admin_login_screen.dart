@@ -16,29 +16,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _codeController = TextEditingController(text: 'INST-2025');
   bool _rememberMe = false;
   bool _showPassword = false;
-  bool _autoFilled = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _codeController.dispose();
     super.dispose();
-  }
-
-  void _handleDemoFill() {
-    setState(() {
-      _emailController.text = 'amit.kumar@institute.com';
-      _passwordController.text = 'password123';
-      _codeController.text = 'INST-2025';
-      _autoFilled = true;
-    });
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _autoFilled = false);
-    });
   }
 
   Future<void> _handleSubmit() async {
@@ -51,7 +36,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       role: 'admin',
-      instituteCode: _codeController.text.trim(),
     );
 
     if (success && mounted) {
@@ -225,22 +209,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   'Admin Sign In',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
                 ),
-                TextButton.icon(
-                  onPressed: _handleDemoFill,
-                  icon: Icon(
-                    _autoFilled ? Icons.check : Icons.bolt,
-                    size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.adminPrimary,
-                  ),
-                  label: Text(
-                    _autoFilled ? 'Filled!' : 'Demo Fill',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.adminPrimary,
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -262,24 +230,13 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               const SizedBox(height: 16),
             ],
 
-            const Text('Institute Code', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _codeController,
-              decoration: const InputDecoration(
-                hintText: 'INST-2025',
-                prefixIcon: Icon(Icons.tag, size: 18),
-              ),
-            ),
-            const SizedBox(height: 16),
-
             const Text('Admin Email Address', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             const SizedBox(height: 6),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                hintText: 'amit.kumar@institute.com',
+                hintText: 'name@institute.edu',
                 prefixIcon: Icon(Icons.email_outlined, size: 18),
               ),
               validator: (v) => v == null || !v.contains('@') ? 'Valid admin email required' : null,

@@ -20,7 +20,6 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _showPassword = false;
-  bool _autoFilled = false;
 
   @override
   void dispose() {
@@ -28,18 +27,6 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _handleDemoFill() {
-    setState(() {
-      _codeController.text = 'INST-2025';
-      _emailController.text = 'admin@apex.edu';
-      _passwordController.text = 'password123';
-      _autoFilled = true;
-    });
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _autoFilled = false);
-    });
   }
 
   Future<void> _handleSubmit() async {
@@ -187,22 +174,6 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
                   'Sign In to Campus',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textMain),
                 ),
-                TextButton.icon(
-                  onPressed: _handleDemoFill,
-                  icon: Icon(
-                    _autoFilled ? Icons.check : Icons.bolt,
-                    size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
-                  ),
-                  label: Text(
-                    _autoFilled ? 'Filled!' : 'Demo Fill',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -242,7 +213,7 @@ class _InstituteLoginScreenState extends State<InstituteLoginScreen> {
             TextFormField(
               controller: _codeController,
               decoration: const InputDecoration(
-                hintText: 'e.g., INST-2025',
+                hintText: 'Enter your institute code',
                 prefixIcon: Icon(Icons.tag, size: 18),
               ),
               validator: (v) => v == null || v.trim().isEmpty ? 'Please enter institute code' : null,

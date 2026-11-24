@@ -26,6 +26,10 @@ public class CloudinaryService {
     }
 
     public StoredFileEntity uploadFile(MultipartFile file, String folder, String uploadedBy) throws IOException {
+        if (cloudinary.config.cloudName == null || cloudinary.config.cloudName.isBlank()) {
+            throw new IllegalStateException(
+                    "Configure Cloudinary credentials to enable file uploads.");
+        }
         String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
         String cleanFolder = (folder != null && !folder.isBlank()) ? folder.trim() : "edlearn/uploads";
 
@@ -71,8 +75,15 @@ public class CloudinaryService {
         Map<String, Object> info = new LinkedHashMap<>();
         info.put("provider", "Cloudinary Media Cloud");
         info.put("cloudName", cloudinary.config.cloudName);
-        info.put("status", "CONNECTED");
-        info.put("success", true);
+        try {
+            cloudinary.api().ping(ObjectUtils.emptyMap());
+            info.put("status", "CONNECTED");
+            info.put("success", true);
+        } catch (Exception e) {
+            info.put("status", "DISCONNECTED");
+            info.put("success", false);
+            info.put("error", e.getMessage());
+        }
         return info;
     }
 }

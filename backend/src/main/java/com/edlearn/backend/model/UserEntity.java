@@ -1,13 +1,16 @@
 package com.edlearn.backend.model;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_users_email", columnNames = "email")
+})
 public class UserEntity {
 
     @Id
@@ -20,11 +23,12 @@ public class UserEntity {
     @Column(nullable = false)
     private String email;
 
+    @JsonAlias({"password_hash", "passwordHash"})
     @Column(nullable = false)
     private String password;
 
     @Column(nullable = false)
-    private String role; // student, teacher, admin, institute
+    private String role; // student, teacher, instructor, admin, institute
 
     @JsonAlias({"fullName", "full_name", "userName", "studentName", "adminName", "teacherName"})
     @Column(nullable = false)
@@ -39,6 +43,7 @@ public class UserEntity {
     @JsonAlias({"phoneNumber", "phone_number", "contactNumber", "mobile"})
     private String phone;
 
+    @JsonAlias({"profile_image", "profileImage", "profilePic", "profilePicture", "avatar"})
     @Column(name = "avatar_url")
     private String avatarUrl;
 
@@ -85,6 +90,11 @@ public class UserEntity {
     @Column(name = "instructor_id")
     private String instructorId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_teacher_id")
+    @JsonIgnore
+    private UserEntity assignedTeacher;
+
     private String designation;
     private String department;
 
@@ -126,9 +136,10 @@ public class UserEntity {
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        this.email = email == null ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public String getPassword() {
         return password;
     }
@@ -137,8 +148,24 @@ public class UserEntity {
         this.password = password;
     }
 
+    public String getPasswordHash() {
+        return password;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.password = passwordHash;
+    }
+
+    public String getProfileImage() {
+        return avatarUrl;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.avatarUrl = profileImage;
+    }
+
     public String getRole() {
-        return role;
+        return role != null ? role.toLowerCase() : "";
     }
 
     public void setRole(String role) {
@@ -344,6 +371,14 @@ public class UserEntity {
 
     public void setInstructorId(String instructorId) {
         this.instructorId = instructorId;
+    }
+
+    public UserEntity getAssignedTeacher() {
+        return assignedTeacher;
+    }
+
+    public void setAssignedTeacher(UserEntity assignedTeacher) {
+        this.assignedTeacher = assignedTeacher;
     }
 
     public void setEmployeeId(String employeeId) {

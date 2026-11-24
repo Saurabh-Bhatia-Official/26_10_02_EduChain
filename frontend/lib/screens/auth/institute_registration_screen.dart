@@ -28,7 +28,6 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
   bool _agreeTerms = true;
   bool _showInstPassword = false;
   bool _showAdminPassword = false;
-  bool _autoFilled = false;
 
   final List<String> _instituteTypes = [
     'College',
@@ -50,25 +49,6 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
     _instPasswordController.dispose();
     _adminPasswordController.dispose();
     super.dispose();
-  }
-
-  void _handleDemoFill() {
-    setState(() {
-      _nameController.text = 'St. Xavier Institute of Technology';
-      _instituteType = 'College';
-      _emailController.text = 'info@stxavier.edu';
-      _phoneController.text = '+91 98765 11223';
-      _addressController.text = '420 University Avenue, Tech Campus';
-      _adminNameController.text = 'Dr. Robert Vance (Dean)';
-      _adminEmailController.text = 'admin@stxavier.edu';
-      _instPasswordController.text = 'InstPassword@2025';
-      _adminPasswordController.text = 'AdminPassword@2025';
-      _agreeTerms = true;
-      _autoFilled = true;
-    });
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _autoFilled = false);
-    });
   }
 
   Future<void> _handleSubmit() async {
@@ -323,22 +303,6 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                   'Campus Profile Setup',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.textMain),
                 ),
-                TextButton.icon(
-                  onPressed: _handleDemoFill,
-                  icon: Icon(
-                    _autoFilled ? Icons.check : Icons.bolt,
-                    size: 15,
-                    color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
-                  ),
-                  label: Text(
-                    _autoFilled ? 'Filled!' : 'Demo Fill',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: _autoFilled ? AppColors.accentGreen : AppColors.primary,
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -440,7 +404,7 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                         onPressed: () => setState(() => _showInstPassword = !_showInstPassword),
                       ),
                     ),
-                    validator: (v) => v == null || v.length < 6 ? 'Min 6 characters' : null,
+                    validator: (v) => v == null || v.length < 8 || v == 'password123' || v == 'edlearn123' ? 'Use a non-default password with at least 8 characters' : null,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -455,7 +419,7 @@ class _InstituteRegistrationScreenState extends State<InstituteRegistrationScree
                         onPressed: () => setState(() => _showAdminPassword = !_showAdminPassword),
                       ),
                     ),
-                    validator: (v) => v == null || v.length < 6 ? 'Min 6 characters' : null,
+                    validator: (v) => v == null || v.length < 8 || v == 'password123' || v == 'edlearn123' ? 'Use a non-default password with at least 8 characters' : null,
                   ),
                 ),
               ],

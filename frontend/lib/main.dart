@@ -7,8 +7,6 @@ import 'providers/navigation_provider.dart';
 import 'providers/student_provider.dart';
 import 'providers/instructor_provider.dart';
 
-import 'widgets/navbar.dart';
-
 import 'screens/home/home_screen.dart';
 import 'screens/home/institute_home_screen.dart';
 import 'screens/auth/institute_login_screen.dart';
@@ -24,6 +22,7 @@ import 'screens/student/student_portal_screen.dart';
 import 'screens/teacher/teacher_portal_screen.dart';
 import 'screens/admin/admin_portal_screen.dart';
 import 'screens/crud/students_crud_screen.dart';
+import 'screens/classroom/classroom_hub_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,17 +57,60 @@ class AppRootView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nav = Provider.of<NavigationProvider>(context);
+    final auth = Provider.of<AuthProvider>(context);
     final currentPage = nav.currentPage;
+
+    final portalRole = currentPage == 'student-portal'
+        ? 'student'
+        : currentPage == 'teacher-portal'
+        ? 'teacher'
+        : currentPage == 'admin-portal' || currentPage == 'students-crud'
+        ? 'admin'
+        : null;
+    if (portalRole != null) {
+      if (auth.isLoading) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      if (!auth.isAuthenticated) {
+        if (portalRole == 'student') return const StudentLoginScreen();
+        if (portalRole == 'teacher') return const TeacherLoginScreen();
+        return const AdminLoginScreen();
+      }
+      if (auth.currentUser?.role != portalRole) {
+        final actualRole = auth.currentUser?.role;
+        if (actualRole == 'student' ||
+            actualRole == 'teacher' ||
+            actualRole == 'admin') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            nav.navigateTo('$actualRole-dashboard');
+          });
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => nav.navigateTo('home'),
+          );
+        }
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+    }
 
     // Direct Portal Views (Fullscreen with their own navigation and sidebars)
     if (currentPage == 'student-portal') {
-      return StudentPortalScreen(initialTab: nav.currentTab ?? 'dashboard');
+      return StudentPortalScreen(
+        initialTab: nav.currentTab ?? 'dashboard',
+        initialTargetId: nav.pageParams['targetId']?.toString(),
+      );
     }
     if (currentPage == 'teacher-portal') {
-      return TeacherPortalScreen(initialTab: nav.currentTab ?? 'dashboard');
+      return TeacherPortalScreen(
+        initialTab: nav.currentTab ?? 'dashboard',
+        initialTargetId: nav.pageParams['targetId']?.toString(),
+      );
     }
     if (currentPage == 'admin-portal') {
-      return AdminPortalScreen(initialTab: nav.currentTab ?? 'dashboard');
+      return AdminPortalScreen(
+        initialTab: nav.currentTab ?? 'dashboard',
+        initialTargetId: nav.pageParams['targetId']?.toString(),
+      );
     }
     if (currentPage == 'institute-home') {
       return const InstituteHomeScreen();
@@ -105,15 +147,12 @@ class AppRootView extends StatelessWidget {
     if (currentPage == 'students-crud') {
       return const StudentsCrudScreen();
     }
+    if (currentPage == 'classroom-hub') {
+      final role = auth.currentUser?.role ?? 'student';
+      return ClassroomHubScreen(userRole: role);
+    }
 
     // Default: Public Home Page with Navbar and Footer
-    return const Scaffold(
-      body: Column(
-        children: [
-          Navbar(),
-          Expanded(child: HomeScreen()),
-        ],
-      ),
-    );
+    return const Scaffold(body: HomeScreen());
   }
 }
