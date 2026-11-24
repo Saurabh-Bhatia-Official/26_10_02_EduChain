@@ -61,7 +61,7 @@ public class AssignmentEntity {
     private boolean allowLateSubmissions = true;
 
     @Column(name = "allow_resubmission")
-    private boolean allowResubmission = true;
+    private boolean allowResubmission = false;
 
     @Column(name = "allowed_file_types")
     private String allowedFileTypes = "PDF, DOC, DOCX, JPG, PNG";
