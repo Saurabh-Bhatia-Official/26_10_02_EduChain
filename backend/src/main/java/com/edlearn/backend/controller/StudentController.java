@@ -7,6 +7,7 @@ import com.edlearn.backend.repository.ClassroomMemberRepository;
 import com.edlearn.backend.repository.UserRepository;
 import com.edlearn.backend.service.PortalAccessService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.LinkedHashMap;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -112,10 +114,10 @@ public class StudentController {
         }
         student.setInstituteCode(actor.getInstituteCode());
         student.setInstituteName(actor.getInstituteName());
-        return createStudent(student);
+        return persistStudent(student);
     }
 
-    public UserEntity createStudent(UserEntity student) {
+    private UserEntity persistStudent(UserEntity student) {
         if (student.getEmail() == null || student.getEmail().isBlank() || !student.getEmail().contains("@")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A valid student email is required.");
         }
@@ -123,10 +125,9 @@ public class StudentController {
                 || student.getClassName() == null || student.getClassName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student name, roll number, and class are required.");
         }
-        if (student.getEmail() != null && !student.getEmail().isBlank()) {
-            if (userRepository.existsByEmailIgnoreCase(student.getEmail().trim())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + student.getEmail());
-            }
+        String email = student.getEmail().trim();
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists: " + email);
         }
         if (student.getRollNumber() != null && !student.getRollNumber().isBlank()) {
             if (userRepository.existsByRollNumberIgnoreCase(student.getRollNumber().trim())) {
@@ -150,14 +151,13 @@ public class StudentController {
         }
         student.setName(name.trim());
 
-        if (student.getPassword() == null || student.getPassword().isBlank()) {
-            student.setPassword(PASSWORD_ENCODER.encode("Student@123"));
-        } else if (!student.getPassword().startsWith("$2a$") && !student.getPassword().startsWith("$2b$")) {
-            if (student.getPassword().length() < 8) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 8 characters.");
-            }
-            student.setPassword(PASSWORD_ENCODER.encode(student.getPassword()));
+        String initialPassword = student.getPassword();
+        if (initialPassword == null || initialPassword.length() < 8
+                || Set.of("password123", "edlearn123").contains(initialPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set a non-default initial password of at least 8 characters.");
         }
+        student.setEmail(email);
+        student.setPassword(PASSWORD_ENCODER.encode(initialPassword));
 
         if (student.getStatus() == null || student.getStatus().isBlank()) {
             student.setStatus("Active");
@@ -208,7 +208,11 @@ public class StudentController {
             student.setInstituteName("Default Institute");
         }
 
-        return userRepository.save(student);
+        try {
+            return userRepository.save(student);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists.", ex);
+        }
     }
 
     @PutMapping("/{id}")

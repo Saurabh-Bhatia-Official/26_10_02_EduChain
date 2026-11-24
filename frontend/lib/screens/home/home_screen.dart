@@ -953,22 +953,23 @@ class _HomeScreenState extends State<HomeScreen> {
       {
         'title': 'Email Us',
         'desc': 'Send us your questions or inquiries anytime.',
-        'detail': 'support@yourinstituteportal.com',
+        'detail': 'info@complexinnovators.co.in',
         'icon': Icons.email_outlined,
         'action': () =>
-            launchUrl(Uri.parse('mailto:support@yourinstituteportal.com')),
+            launchUrl(Uri.parse('mailto:info@complexinnovators.co.in')),
       },
       {
         'title': 'Call Us',
         'desc': 'Contact our support team for direct assistance.',
-        'detail': '+91 00000 00000',
+        'detail': '+91 7821053978',
         'icon': Icons.phone_outlined,
-        'action': () => launchUrl(Uri.parse('tel:+910000000000')),
+        'action': () => launchUrl(Uri.parse('tel:+917821053978')),
       },
       {
-        'title': 'Our Campus Office',
-        'desc': 'EduChain Support Office',
-        'detail': 'Tech City Campus, Innovation Tower, Suite 400',
+        'title': 'Office Address',
+        'desc': 'Complex Innovators',
+        'detail':
+            'Siddhivinayak Manor, Behind Hotel Center Plaza, Akola, Maharashtra, India',
         'icon': Icons.location_on_outlined,
         'action': null,
       },
