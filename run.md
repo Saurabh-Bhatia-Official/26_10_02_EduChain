@@ -1,6 +1,8 @@
-# 🚀 LMS Run & Execution Commands
+# 🚀 EduChain — Run & Execution Commands
 
-Quick reference commands to setup, run, and build both the Spring Boot backend and the React frontend.
+**One Platform, Endless Possibilities**
+
+Quick reference commands to setup, run, and build both the Spring Boot backend and the Flutter multiplatform frontend.
 
 ---
 
@@ -138,10 +140,11 @@ flutter test
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/edlearndb` | PostgreSQL JDBC database connection URL |
 | `DATABASE_URL` | `jdbc:postgresql://localhost:5432/edlearndb` | Alternative PostgreSQL database connection URL |
 | `DB_USERNAME` | `postgres` | Database username |
-| `DB_PASSWORD` | `postgres` | Database password |
+| `DATABASE_USERNAME` / `SPRING_DATASOURCE_USERNAME` | `postgres` | Database username |
+| `DATABASE_PASSWORD` / `SPRING_DATASOURCE_PASSWORD` / `DB_PASSWORD` | *(empty)* | Set to your local PostgreSQL password if required |
 | `JWT_SECRET` | *(256-bit Hex Key)* | Authentication JWT signing secret |
 | `JWT_EXPIRATION_MS` | `86400000` | JWT token validity (24 hours) |
-| `CLOUDINARY_CLOUD_NAME` | `dltpal1gr` | Cloudinary storage account name |
+| Cloudinary credentials | *(not required for local startup)* | Required only when uploading files |
 | `CLOUDINARY_API_KEY` | *(Key)* | Cloudinary API Key |
 | `CLOUDINARY_API_SECRET` | *(Secret)* | Cloudinary API Secret |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:3000` | Allowed frontend client origins |
@@ -157,11 +160,10 @@ flutter test
 ## 5️⃣ How Configuration Is Activated
 
 ### ⚡ Automatic In-App Activation
-1. **Backend (`ManagementApplication.java`)**:
-   - Automatically reads `.env` from `backend/.env` or project root upon startup.
+1. **Backend (`EdLearnBackendApplication.java`)**:
+   - Automatically reads `.env` from the backend working directory and its parent.
    - Sets Java system properties (`System.setProperty`) for Spring Boot configuration.
-   - Automatically formats `DATABASE_URL` to standard JDBC format (`jdbc:postgresql://...`).
-   - Logs: `>>> [LMS-BACKEND] 🚀 Activated X variables from .env file`.
+   - Converts PostgreSQL URL schemes to JDBC format and applies SSL to remote database URLs.
 
 2. **Frontend (`frontend/lib/constants/api_constants.dart`)**:
    - Centralized API endpoints connected to the Spring Boot REST endpoints.

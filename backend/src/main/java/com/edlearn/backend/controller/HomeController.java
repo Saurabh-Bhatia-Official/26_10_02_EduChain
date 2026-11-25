@@ -1,12 +1,19 @@
 package com.edlearn.backend.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 
 @RestController
 public class HomeController {
+    private final String frontendUrl;
+
+    public HomeController(@Value("${edlearn.frontend.url:http://localhost:8080}") String frontendUrl) {
+        this.frontendUrl = frontendUrl;
+    }
 
     @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> home() {
@@ -16,7 +23,7 @@ public class HomeController {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>EdLearn Backend API</title>
+                <title>EduChain Backend API</title>
                 <style>
                     body {
                         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -105,12 +112,13 @@ public class HomeController {
             <body>
                 <div class="card">
                     <div class="badge">&#9679; Spring Boot API & Neon PostgreSQL Online</div>
-                    <h1>EdLearn Backend API</h1>
+                    <h1>EduChain Backend API</h1>
+                    <p style="font-weight: 600; color: #38bdf8; margin-bottom: 8px;">One Platform, Endless Possibilities</p>
                     <p>
-                        The backend REST API server is actively connected to your <strong>Neon PostgreSQL Cloud Console</strong> and <strong>Cloudinary Media Cloud</strong>.
+                        The EduChain backend REST API server is actively connected to your <strong>Neon PostgreSQL Cloud Database</strong> and <strong>Cloudinary Media Cloud</strong>.
                     </p>
-                    <a href="http://localhost:5173" class="frontend-btn">
-                        Open React Frontend App (Port 5173) &rarr;
+                    <a href="__FRONTEND_URL__" class="frontend-btn">
+                        Open EduChain Flutter Web App &rarr;
                     </a>
                     <div class="links">
                         <a href="/api/db/health" target="_blank">Database Health Status</a>
@@ -121,7 +129,7 @@ public class HomeController {
                 </div>
             </body>
             </html>
-            """;
+            """.replace("__FRONTEND_URL__", HtmlUtils.htmlEscape(frontendUrl));
         return ResponseEntity.ok(html);
     }
 }

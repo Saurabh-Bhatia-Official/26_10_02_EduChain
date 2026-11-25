@@ -15,8 +15,6 @@ env/
 # Database 
 /backend/data/
 /backend/*.db
-*.mv.db
-*.trace.db
 
 # Maven & Java Build Outputs
 **/target/
@@ -39,6 +37,7 @@ replay_pid*
 **/node_modules/
 **/dist/
 **/build/
+**/.flutter-sdk/
 **/.dart_tool/
 **/.flutter-plugins
 **/.flutter-plugins-dependencies
