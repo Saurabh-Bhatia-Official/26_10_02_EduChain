@@ -33,7 +33,6 @@ env:
 
 jobs:
 
-
   # =========================================================================
   # 2. Version Resolution
   # =========================================================================
@@ -529,5 +528,5 @@ jobs:
         run: |
           gh release create "$TAG" \
             release-dist/* \
-            --title "EduChain Frontend Release ${TAG}"
 
+            --title "EduChain Frontend Release ${TAG}"
