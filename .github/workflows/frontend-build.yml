@@ -524,5 +524,5 @@ jobs:
         run: |
           gh release create "$TAG" \
             release-dist/* \
-
-            --title "EduChain Frontend Release ${TAG}"
+            --title "EduChain Frontend Release ${TAG}" \
+            --clobber || gh release upload "$TAG" release-dist/* --clobber
