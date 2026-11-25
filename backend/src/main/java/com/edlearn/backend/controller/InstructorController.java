@@ -116,13 +116,6 @@ public class InstructorController {
                 || instructor.getName() == null || instructor.getName().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instructor name and a valid email are required.");
         }
-<<<<<<< HEAD
-        if (instructor.getPassword() == null || instructor.getPassword().length() < 6) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Set an initial password of at least 6 characters.");
-        }
-        if (userRepository.existsByEmailIgnoreCase(instructor.getEmail().trim())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with that email already exists: " + instructor.getEmail());
-=======
         String initialPassword = instructor.getPassword();
         if (initialPassword == null || initialPassword.length() < 8
                 || java.util.Set.of("password123", "edlearn123").contains(initialPassword)) {
@@ -136,23 +129,15 @@ public class InstructorController {
             if (userRepository.existsByInstructorIdIgnoreCase(instructor.getInstructorId().trim())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Instructor ID already exists: " + instructor.getInstructorId());
             }
->>>>>>> 63ebd2c8b0a1bc509d02762ea9f928ca7645be4f
         }
 
         instructor.setId(null);
         instructor.setRole("teacher");
-<<<<<<< HEAD
+        instructor.setEmail(email);
         String instCode = actor.getInstituteCode() != null && !actor.getInstituteCode().isBlank() ? actor.getInstituteCode() : "INST-2025";
         instructor.setInstituteCode(instCode);
         instructor.setInstituteName(actor.getInstituteName() != null ? actor.getInstituteName() : "EduChain Campus");
-        instructor.setPassword(PASSWORD_ENCODER.encode(instructor.getPassword()));
-
-=======
-        instructor.setEmail(email);
-        instructor.setInstituteCode(actor.getInstituteCode());
-        instructor.setInstituteName(actor.getInstituteName());
         instructor.setPassword(PASSWORD_ENCODER.encode(initialPassword));
->>>>>>> 63ebd2c8b0a1bc509d02762ea9f928ca7645be4f
         if (instructor.getUserId() == null || instructor.getUserId().isBlank()) {
             instructor.setUserId("ins_" + System.currentTimeMillis());
         }
@@ -192,8 +177,12 @@ public class InstructorController {
             instructor.setAbout("Passionate instructor in " + instructor.getDepartment());
         }
 
-<<<<<<< HEAD
-        UserEntity savedInstructor = userRepository.save(instructor);
+        UserEntity savedInstructor;
+        try {
+            savedInstructor = userRepository.save(instructor);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists.", ex);
+        }
 
         // Save into instructor_profiles table
         try {
@@ -207,13 +196,6 @@ public class InstructorController {
         } catch (Exception ignored) {}
 
         return savedInstructor;
-=======
-        try {
-            return userRepository.save(instructor);
-        } catch (DataIntegrityViolationException ex) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists.", ex);
-        }
->>>>>>> 63ebd2c8b0a1bc509d02762ea9f928ca7645be4f
     }
 
     @PutMapping("/{id}")

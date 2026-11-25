@@ -148,6 +148,7 @@ public class UserEntity {
         this.password = password;
     }
 
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     public String getPasswordHash() {
         return password;
     }
