@@ -12,7 +12,6 @@ on:
       - '.github/workflows/backend-deploy.yml'
   pull_request:
     branches:
-      - main
       - master
     paths:
       - 'backend/**'

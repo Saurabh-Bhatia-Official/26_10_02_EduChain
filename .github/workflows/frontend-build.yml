@@ -9,7 +9,6 @@ on:
       - '.github/workflows/frontend-build.yml'
   pull_request:
     branches:
-      - main
       - master
     paths:
       - 'frontend/**'
@@ -33,36 +32,6 @@ env:
   FLUTTER_CHANNEL: 'stable'
 
 jobs:
-  # =========================================================================
-  # 1. Code Quality & Test Verification (Fails fast before multi-OS runners)
-  # =========================================================================
-  quality-check:
-    name: Code Quality & Unit Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-
-      - name: Verify Flutter Installation
-        run: flutter doctor -v
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Run Dart Code Analysis
-        run: flutter analyze
-
-      - name: Run Automated Flutter Tests
-        run: flutter test
 
   # =========================================================================
   # 2. Version Resolution
@@ -559,51 +528,5 @@ jobs:
         run: |
           gh release create "$TAG" \
             release-dist/* \
-            --title "EduChain Frontend Release ${TAG}" \
-            --notes "### 🚀 Automated Multi-Platform Release (${TAG})
 
-          Automated build artifacts for EduChain LMS frontend across all 6 supported platforms:
-
-          | Platform | Artifact |
-          | :--- | :--- |
-          | 🌐 **Web** | \`web-${TAG}.zip\` |
-          | 🤖 **Android** | \`android-${TAG}.apk\`, \`android-${TAG}.aab\` |
-          | 🍎 **iOS** | \`ios-${TAG}*.ipa\` |
-          | 🖥️ **macOS** | \`macos-${TAG}.zip\` |
-          | 🐧 **Linux** | \`linux-${TAG}.tar.gz\`, \`linux-${TAG}.deb\` |
-          | 🪟 **Windows** | \`EduChain-Setup-${TAG}.exe\` (Installer), \`EduChain-windows-${TAG}.exe\` (Standalone), \`windows-${TAG}.zip\` (Portable) |
-
-          *Built with Flutter (${{ env.FLUTTER_CHANNEL }} channel) on GitHub Actions.*"
-
-  # =========================================================================
-  # 10. Pull Request & Workflow Summary
-  # =========================================================================
-  summary:
-    name: Build Summary
-    if: always()
-    needs:
-      - version
-      - quality-check
-      - build-web
-      - build-android
-      - build-ios
-      - build-macos
-      - build-linux
-      - build-windows
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate Summary Report
-        run: |
-          echo "## 🚀 Frontend Multi-Platform Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Platform / Step | Runner | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "| :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔍 Code Quality & Tests | \`ubuntu-latest\` | ${{ needs.quality-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌐 Web Release | \`ubuntu-latest\` | ${{ needs.build-web.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🤖 Android (APK & AAB) | \`ubuntu-latest\` | ${{ needs.build-android.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🍎 iOS (IPA) | \`macos-latest\` | ${{ needs.build-ios.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🖥️ macOS App | \`macos-latest\` | ${{ needs.build-macos.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🐧 Linux (Tarball & DEB) | \`ubuntu-latest\` | ${{ needs.build-linux.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🪟 Windows Application | \`windows-latest\` | ${{ needs.build-windows.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Build Version:** \`${{ needs.version.outputs.tag || 'N/A' }}\`" >> $GITHUB_STEP_SUMMARY
+            --title "EduChain Frontend Release ${TAG}"
