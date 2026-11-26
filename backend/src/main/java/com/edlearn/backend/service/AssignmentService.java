@@ -271,33 +271,63 @@ public class AssignmentService {
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getStudentAssignments(UserEntity student) {
+        if (student == null || student.getId() == null) return Collections.emptyList();
+
         List<EnrollmentEntity> enrollments = enrollmentRepository.findByStudentId(student.getId());
-        List<UUID> batchIds = enrollments.stream().map(EnrollmentEntity::getBatch).filter(Objects::nonNull).map(BatchEntity::getId).toList();
-        List<UUID> courseIds = enrollments.stream().map(e -> e.getCourse().getId()).toList();
+        List<UUID> batchIds = (enrollments != null) ? enrollments.stream()
+                .map(EnrollmentEntity::getBatch)
+                .filter(Objects::nonNull)
+                .map(BatchEntity::getId)
+                .filter(Objects::nonNull)
+                .toList() : Collections.emptyList();
+
+        List<UUID> courseIds = (enrollments != null) ? enrollments.stream()
+                .map(EnrollmentEntity::getCourse)
+                .filter(Objects::nonNull)
+                .map(CourseEntity::getId)
+                .filter(Objects::nonNull)
+                .toList() : Collections.emptyList();
 
         Set<UUID> seen = new HashSet<>();
         List<AssignmentEntity> result = new ArrayList<>();
 
         if (!batchIds.isEmpty()) {
-            for (AssignmentEntity a : assignmentRepository.findPublishedByBatchIdIn(batchIds)) {
-                if (seen.add(a.getId())) result.add(a);
-            }
+            try {
+                for (AssignmentEntity a : assignmentRepository.findPublishedByBatchIdIn(batchIds)) {
+                    if (a != null && a.getId() != null && seen.add(a.getId())) result.add(a);
+                }
+            } catch (Exception ignored) {}
         }
         if (!courseIds.isEmpty()) {
-            for (AssignmentEntity a : assignmentRepository.findPublishedByCourseIdIn(courseIds)) {
-                if (seen.add(a.getId())) result.add(a);
-            }
+            try {
+                for (AssignmentEntity a : assignmentRepository.findPublishedByCourseIdIn(courseIds)) {
+                    if (a != null && a.getId() != null && seen.add(a.getId())) result.add(a);
+                }
+            } catch (Exception ignored) {}
         }
 
         // Also include classroom assignments for enrolled classrooms
-        List<ClassroomMemberEntity> memberships = memberRepository.findByUserIdAndStatus(student.getId(), "ACTIVE");
-        for (ClassroomMemberEntity m : memberships) {
-            for (AssignmentEntity a : assignmentRepository.findByClassroomIdAndStatusOrderByDueDateAsc(m.getClassroom().getId(), "PUBLISHED")) {
-                if (seen.add(a.getId())) result.add(a);
+        try {
+            List<ClassroomMemberEntity> memberships = memberRepository.findByUserIdAndStatus(student.getId(), "ACTIVE");
+            if (memberships != null) {
+                for (ClassroomMemberEntity m : memberships) {
+                    if (m != null && m.getClassroom() != null && m.getClassroom().getId() != null) {
+                        List<AssignmentEntity> classAssignments = assignmentRepository.findByClassroomIdAndStatusOrderByDueDateAsc(m.getClassroom().getId(), "PUBLISHED");
+                        if (classAssignments != null) {
+                            for (AssignmentEntity a : classAssignments) {
+                                if (a != null && a.getId() != null && seen.add(a.getId())) result.add(a);
+                            }
+                        }
+                    }
+                }
             }
-        }
+        } catch (Exception ignored) {}
 
-        return result.stream().map(a -> formatAssignment(a, student)).collect(Collectors.toList());
+        return result.stream()
+                .filter(Objects::nonNull)
+                .map(a -> formatAssignment(a, student))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -489,23 +519,43 @@ public class AssignmentService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getStudentResults(UserEntity student) {
+        if (student == null || student.getId() == null) return Collections.emptyList();
+
         List<AssignmentSubmissionEntity> submissions = submissionRepository.findByStudentIdOrderBySubmittedAtDesc(student.getId());
         List<Map<String, Object>> results = new ArrayList<>();
+        if (submissions == null) return results;
 
         for (AssignmentSubmissionEntity s : submissions) {
-            if ("Evaluated".equalsIgnoreCase(s.getStatus()) || s.getMarksObtained() != null || "GRADED".equalsIgnoreCase(s.getStatus()) || "RETURNED".equalsIgnoreCase(s.getStatus())) {
+            if (s == null) continue;
+            String status = s.getStatus() != null ? s.getStatus() : "";
+            if ("Evaluated".equalsIgnoreCase(status) || s.getMarksObtained() != null || "GRADED".equalsIgnoreCase(status) || "RETURNED".equalsIgnoreCase(status)) {
                 Map<String, Object> r = new LinkedHashMap<>();
-                r.put("submissionId", s.getId().toString());
-                r.put("assignmentId", s.getAssignment().getId().toString());
-                r.put("assignmentTitle", s.getAssignment().getTitle());
-                r.put("courseName", s.getAssignment().getCourse() != null ? s.getAssignment().getCourse().getCourseName() : (s.getAssignment().getClassroom() != null ? s.getAssignment().getClassroom().getName() : "General"));
-                r.put("totalMarks", s.getAssignment().getMaximumMarks());
-                r.put("maximumMarks", s.getAssignment().getMaximumMarks());
+                r.put("submissionId", s.getId() != null ? s.getId().toString() : "");
+
+                AssignmentEntity a = s.getAssignment();
+                r.put("assignmentId", a != null && a.getId() != null ? a.getId().toString() : "");
+                r.put("assignmentTitle", a != null && a.getTitle() != null ? a.getTitle() : "Assignment");
+
+                String courseName = "General";
+                if (a != null && a.getCourse() != null && a.getCourse().getCourseName() != null) {
+                    courseName = a.getCourse().getCourseName();
+                } else if (a != null && a.getClassroom() != null && a.getClassroom().getName() != null) {
+                    courseName = a.getClassroom().getName();
+                }
+                r.put("courseName", courseName);
+
+                Integer maxMarks = a != null && a.getMaximumMarks() != null ? a.getMaximumMarks() : (a != null ? a.getPointsPossible() : 100);
+                r.put("totalMarks", maxMarks);
+                r.put("maximumMarks", maxMarks);
                 r.put("marksObtained", s.getMarksObtained());
                 r.put("score", s.getMarksObtained());
-                r.put("instructorFeedback", s.getInstructorFeedback());
-                r.put("feedback", s.getInstructorFeedback());
-                r.put("evaluationDate", s.getEvaluatedAt() != null ? s.getEvaluatedAt().toString() : s.getUpdatedAt().toString());
+                r.put("instructorFeedback", s.getInstructorFeedback() != null ? s.getInstructorFeedback() : "");
+                r.put("feedback", s.getInstructorFeedback() != null ? s.getInstructorFeedback() : "");
+
+                String evalDate = s.getEvaluatedAt() != null ? s.getEvaluatedAt().toString()
+                        : (s.getUpdatedAt() != null ? s.getUpdatedAt().toString()
+                        : (s.getSubmittedAt() != null ? s.getSubmittedAt().toString() : ""));
+                r.put("evaluationDate", evalDate);
                 r.put("evaluatedFileUrl", s.getEvaluatedFileUrl());
                 r.put("submissionFileUrl", s.getSubmissionFileUrl());
                 results.add(r);

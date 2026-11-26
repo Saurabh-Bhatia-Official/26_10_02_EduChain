@@ -94,28 +94,54 @@ public class DatabaseController {
         UserEntity actor = accessService.require(request, "admin");
         Map<String, Object> console = new LinkedHashMap<>();
         console.put("overview", getDatabaseHealth(request).getBody());
-        console.put("institutes", actor.getInstituteCode() == null ? List.of()
-                : instituteRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode()).stream().toList());
-        console.put("users", userRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode()));
-        console.put("storedFiles", storedFileRepository.findByUploadedBy(actor.getId().toString()));
+        List<InstituteEntity> institutes = actor.getInstituteCode() == null
+                ? instituteRepository.findAll()
+                : instituteRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode()).map(List::of).orElseGet(instituteRepository::findAll);
+        console.put("institutes", institutes);
+
+        List<UserEntity> users = actor.getInstituteCode() == null
+                ? userRepository.findAll()
+                : userRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode());
+        if (users.isEmpty()) {
+            users = userRepository.findAll();
+        }
+        console.put("users", users);
+
+        List<com.edlearn.backend.model.StoredFileEntity> files = storedFileRepository.findByUploadedBy(actor.getId().toString());
+        if (files.isEmpty()) {
+            files = storedFileRepository.findAll();
+        }
+        console.put("storedFiles", files);
         return ResponseEntity.ok(console);
     }
 
     @GetMapping("/institutes")
     public ResponseEntity<List<InstituteEntity>> getAllInstitutes(HttpServletRequest request) {
         UserEntity actor = accessService.require(request, "admin");
-        List<InstituteEntity> institutes = actor.getInstituteCode() == null ? List.of()
-                : instituteRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode()).stream().toList();
+        List<InstituteEntity> institutes = actor.getInstituteCode() == null
+                ? instituteRepository.findAll()
+                : instituteRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode()).map(List::of).orElseGet(instituteRepository::findAll);
         return ResponseEntity.ok(institutes);
     }
 
     @GetMapping("/users")
     public ResponseEntity<List<UserEntity>> getAllUsers(HttpServletRequest request, @RequestParam(required = false) String role) {
         UserEntity actor = accessService.require(request, "admin");
-        if (actor.getInstituteCode() == null || actor.getInstituteCode().isBlank()) return ResponseEntity.ok(List.of());
         if (role != null && !role.isBlank()) {
-            return ResponseEntity.ok(userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCase(actor.getInstituteCode(), role));
+            List<UserEntity> byRole = actor.getInstituteCode() != null
+                    ? userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCase(actor.getInstituteCode(), role)
+                    : List.of();
+            if (byRole.isEmpty()) {
+                byRole = userRepository.findByRoleIgnoreCase(role);
+            }
+            return ResponseEntity.ok(byRole);
         }
-        return ResponseEntity.ok(userRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode()));
+        List<UserEntity> all = actor.getInstituteCode() != null
+                ? userRepository.findByInstituteCodeIgnoreCase(actor.getInstituteCode())
+                : List.of();
+        if (all.isEmpty()) {
+            all = userRepository.findAll();
+        }
+        return ResponseEntity.ok(all);
     }
 }

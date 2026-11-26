@@ -224,6 +224,12 @@ public class CourseBatchService {
                 .map(this::formatEnrollment).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAllEnrollments() {
+        return enrollmentRepository.findAll().stream()
+                .map(this::formatEnrollment).collect(Collectors.toList());
+    }
+
     // ================= Formatters =================
     public Map<String, Object> formatCourse(CourseEntity c) {
         Map<String, Object> map = new LinkedHashMap<>();

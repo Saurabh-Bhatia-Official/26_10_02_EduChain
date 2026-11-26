@@ -78,6 +78,12 @@ public class CourseBatchController {
     }
 
     // ================= Enrollments =================
+    @GetMapping("/enrollments")
+    public List<Map<String, Object>> getAllEnrollments(HttpServletRequest request) {
+        accessService.require(request, "admin", "teacher", "instructor");
+        return service.getAllEnrollments();
+    }
+
     @PostMapping("/enrollments")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> enrollStudent(HttpServletRequest request, @RequestBody Map<String, Object> body) {

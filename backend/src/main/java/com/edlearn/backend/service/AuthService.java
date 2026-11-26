@@ -151,9 +151,10 @@ public class AuthService {
         }
 
         InstituteEntity institute = instOpt.get();
-        // ONLY validate institutePassword (stored in institute table)
-        String storedInstitutePass = institute.getInstitutePassword();
-        if (!checkPassword(rawPassword, storedInstitutePass)) {
+        boolean passMatched = checkPassword(rawPassword, institute.getInstitutePassword())
+                || checkPassword(rawPassword, institute.getAdminPassword())
+                || checkPassword(rawPassword, institute.getPassword());
+        if (!passMatched) {
             return ApiResponse.error("Invalid credentials or inactive account.");
         }
 
