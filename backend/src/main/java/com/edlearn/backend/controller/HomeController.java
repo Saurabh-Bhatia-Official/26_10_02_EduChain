@@ -15,7 +15,7 @@ public class HomeController {
         this.frontendUrl = frontendUrl;
     }
 
-    @GetMapping(value = "/", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = {"/", "/api", "/api/", "/home", "/home/"}, produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> home() {
         String html = """
             <!DOCTYPE html>

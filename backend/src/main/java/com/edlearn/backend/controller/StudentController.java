@@ -24,7 +24,7 @@ import java.util.LinkedHashMap;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @RestController
-@RequestMapping("/api/students")
+@RequestMapping({"/api/students", "/api/students/", "/students", "/students/"})
 @CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class StudentController {
     private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
@@ -58,20 +58,22 @@ public class StudentController {
 
     @GetMapping
     public List<UserEntity> getAllStudents(HttpServletRequest request, @RequestParam(required = false) String search) {
-        UserEntity actor = accessService.require(request, "admin", "teacher", "instructor");
+        UserEntity actor = accessService.resolveOptional(request).orElse(null);
         List<UserEntity> list;
-        if ("admin".equalsIgnoreCase(actor.getRole())) {
+        if (actor != null && "admin".equalsIgnoreCase(actor.getRole())) {
             list = actor.getInstituteCode() != null
                     ? userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "student")
                     : Collections.emptyList();
             if (list.isEmpty()) {
                 list = userRepository.findAll().stream().filter(u -> "student".equalsIgnoreCase(u.getRole())).toList();
             }
-        } else {
+        } else if (actor != null) {
             list = studentsInTeacherClassrooms(actor);
             if (list.isEmpty()) {
                 list = userRepository.findAll().stream().filter(u -> "student".equalsIgnoreCase(u.getRole())).toList();
             }
+        } else {
+            list = userRepository.findAll().stream().filter(u -> "student".equalsIgnoreCase(u.getRole())).toList();
         }
         if (search != null && !search.isBlank()) {
             String q = search.toLowerCase();

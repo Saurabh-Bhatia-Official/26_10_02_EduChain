@@ -16,7 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/instructors")
+@RequestMapping({"/api/instructors", "/api/instructors/", "/instructors", "/instructors/"})
 @CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class InstructorController {
     private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
@@ -55,9 +55,9 @@ public class InstructorController {
 
     @GetMapping
     public List<UserEntity> getAllInstructors(HttpServletRequest request, @RequestParam(required = false) String search) {
-        UserEntity actor = accessService.require(request, "admin", "teacher", "instructor");
+        UserEntity actor = accessService.resolveOptional(request).orElse(null);
         List<UserEntity> list;
-        if (actor.getInstituteCode() != null && !actor.getInstituteCode().isBlank()) {
+        if (actor != null && actor.getInstituteCode() != null && !actor.getInstituteCode().isBlank()) {
             list = userRepository.findByInstituteCodeIgnoreCaseAndRoleIgnoreCaseOrderByCreatedAtDesc(actor.getInstituteCode(), "teacher");
             if (list.isEmpty()) {
                 list = userRepository.findAll().stream().filter(u -> isInstructorRole(u.getRole())).toList();
