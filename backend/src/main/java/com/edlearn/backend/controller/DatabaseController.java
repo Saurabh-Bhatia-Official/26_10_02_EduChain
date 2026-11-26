@@ -42,7 +42,7 @@ public class DatabaseController {
 
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> getDatabaseHealth(HttpServletRequest request) {
-        UserEntity actor = accessService.require(request, "admin");
+        Optional<UserEntity> actorOpt = accessService.resolveOptional(request);
         Map<String, Object> health = new LinkedHashMap<>();
         try {
             String dbProduct = "Unknown";
@@ -69,9 +69,16 @@ public class DatabaseController {
             health.put("databaseUser", currentUser);
             health.put("databaseVersion", dbVersion);
             health.put("jdbcUrl", url);
-            health.put("instituteCount", actor.getInstituteCode() == null ? 0 : 1);
-            health.put("userCount", userRepository.countByInstituteCodeIgnoreCase(actor.getInstituteCode()));
-            health.put("storedFilesCount", storedFileRepository.findByUploadedBy(actor.getId().toString()).size());
+            if (actorOpt.isPresent() && "admin".equalsIgnoreCase(actorOpt.get().getRole())) {
+                UserEntity actor = actorOpt.get();
+                health.put("instituteCount", actor.getInstituteCode() == null ? 0 : 1);
+                health.put("userCount", userRepository.countByInstituteCodeIgnoreCase(actor.getInstituteCode()));
+                health.put("storedFilesCount", storedFileRepository.findByUploadedBy(actor.getId().toString()).size());
+            } else {
+                health.put("instituteCount", instituteRepository.count());
+                health.put("userCount", userRepository.count());
+                health.put("storedFilesCount", storedFileRepository.count());
+            }
             health.put("cloudinary", cloudinaryService.testConnection());
             health.put("status", "CONNECTED");
             return ResponseEntity.ok(health);

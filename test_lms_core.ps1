@@ -1,4 +1,21 @@
-$baseUrl = "http://localhost:5002/api"
+﻿param(
+    [string]$Env = "local",
+    [string]$BaseUrl = ""
+)
+
+$LocalApiUrl = "http://localhost:5002/api"
+$ProdApiUrl  = "https://two6-10-02-educhain.onrender.com/api"
+
+if (-not $BaseUrl) {
+    if ($env:EDLEARN_API_URL) {
+        $BaseUrl = $env:EDLEARN_API_URL
+    } elseif ($Env -eq "prod" -or $Env -eq "production" -or $env:USE_PROD_API -eq "true") {
+        $BaseUrl = $ProdApiUrl
+    } else {
+        $BaseUrl = $LocalApiUrl
+    }
+}
+$baseUrl = $BaseUrl.TrimEnd('/')
 
 Write-Host "=== TEST 1: Admin Login ===" -ForegroundColor Cyan
 # Find or login admin

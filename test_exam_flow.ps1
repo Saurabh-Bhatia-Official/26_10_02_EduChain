@@ -1,4 +1,21 @@
-$baseUrl = "http://localhost:5000/api"
+ï»¿param(
+    [string]$Env = "local",
+    [string]$BaseUrl = ""
+)
+
+$LocalApiUrl = "http://localhost:5000/api"
+$ProdApiUrl  = "https://two6-10-02-educhain.onrender.com/api"
+
+if (-not $BaseUrl) {
+    if ($env:EDLEARN_API_URL) {
+        $BaseUrl = $env:EDLEARN_API_URL
+    } elseif ($Env -eq "prod" -or $Env -eq "production" -or $env:USE_PROD_API -eq "true") {
+        $BaseUrl = $ProdApiUrl
+    } else {
+        $BaseUrl = $LocalApiUrl
+    }
+}
+$baseUrl = $BaseUrl.TrimEnd('/')
 
 # 1. Login Teacher
 $teacherLoginBody = @{
@@ -51,16 +68,16 @@ $examBody = @{
 
 $createdExam = Invoke-RestMethod -Uri "$baseUrl/portal/exams" -Method Post -Headers $teacherHeaders -ContentType "application/json" -Body $examBody
 $examId = $createdExam.id
-Write-Host "Exam Created by Teacher: $($createdExam.title) ($examId) • Duration: $($createdExam.durationMinutes)m"
+Write-Host "Exam Created by Teacher: $($createdExam.title) ($examId) ï¿½ Duration: $($createdExam.durationMinutes)m"
 
 # 4. Student Fetches Available Exams
 $studentExams = Invoke-RestMethod -Uri "$baseUrl/portal/exams" -Method Get -Headers $studentHeaders
 $target = $studentExams | Where-Object { $_.id -eq $examId }
-Write-Host "Student Discovered Exam: $($target.title) • Attempt Status: $($target.attemptStatus)"
+Write-Host "Student Discovered Exam: $($target.title) ï¿½ Attempt Status: $($target.attemptStatus)"
 
 # 5. Student Starts Exam Attempt
 $attempt = Invoke-RestMethod -Uri "$baseUrl/portal/exams/$examId/start" -Method Post -Headers $studentHeaders
-Write-Host "Student Started Attempt ID: $($attempt.attemptId) • Remaining Seconds: $($attempt.remainingSeconds)"
+Write-Host "Student Started Attempt ID: $($attempt.attemptId) ï¿½ Remaining Seconds: $($attempt.remainingSeconds)"
 
 # 6. Student Saves Answers
 $ans1 = @{ questionId = "1"; answer = "Stack" } | ConvertTo-Json
@@ -77,7 +94,7 @@ Write-Host "Student Submitted Exam: $($submitRes.message)"
 # 8. Teacher Views Attempts Roster
 $attemptsList = Invoke-RestMethod -Uri "$baseUrl/portal/exams/$examId/attempts" -Method Get -Headers $teacherHeaders
 $sub = $attemptsList | Where-Object { $_.studentName -eq "Rahul Sharma" }
-Write-Host "Teacher Evaluation Roster: Student: $($sub.studentName) • Score: $($sub.obtainedMarks)/$($sub.totalMarks) pts • Status: $($sub.status)"
+Write-Host "Teacher Evaluation Roster: Student: $($sub.studentName) ï¿½ Score: $($sub.obtainedMarks)/$($sub.totalMarks) pts ï¿½ Status: $($sub.status)"
 
 # 9. Teacher Releases Results
 $releaseRes = Invoke-RestMethod -Uri "$baseUrl/portal/exams/$examId/release-results" -Method Put -Headers $teacherHeaders -ContentType "application/json" -Body '{"release": true}'
@@ -85,6 +102,6 @@ Write-Host "Teacher Action: $($releaseRes.message)"
 
 # 10. Student Views Published Scorecard
 $publishedAttempt = Invoke-RestMethod -Uri "$baseUrl/portal/exams/$examId/attempt" -Method Get -Headers $studentHeaders
-Write-Host "Student Scorecard: Title: $($publishedAttempt.title) • Score: $($publishedAttempt.obtainedMarks)/$($publishedAttempt.totalMarks) ($($publishedAttempt.percentage)%) • Results Released: $($publishedAttempt.resultsReleased)"
+Write-Host "Student Scorecard: Title: $($publishedAttempt.title) ï¿½ Score: $($publishedAttempt.obtainedMarks)/$($publishedAttempt.totalMarks) ($($publishedAttempt.percentage)%) ï¿½ Results Released: $($publishedAttempt.resultsReleased)"
 
 Write-Host "`n>>> ALL 10 ONLINE EXAMINATION & EVALUATION TESTS PASSED PERFECTLY! <<<" -ForegroundColor Green

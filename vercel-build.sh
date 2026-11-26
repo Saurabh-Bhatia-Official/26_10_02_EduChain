@@ -48,11 +48,10 @@ echo "Running flutter pub get..."
 flutter pub get
 
 echo "Running flutter build web --release..."
-if [ -n "${API_BASE_URL:-}" ]; then
-  flutter build web --release --base-href "/" --dart-define="API_BASE_URL=$API_BASE_URL"
-else
-  flutter build web --release --base-href "/"
-fi
+PROD_API_URL="https://two6-10-02-educhain.onrender.com/api"
+TARGET_API_URL="${API_BASE_URL:-$PROD_API_URL}"
+echo "Configuring Web Build with API Base URL: $TARGET_API_URL"
+flutter build web --release --base-href "/" --dart-define="API_BASE_URL=$TARGET_API_URL" --dart-define="APP_ENV=production"
 
 # 5. Ensure output directory is populated for Vercel
 # If build took place in frontend/, copy to root build/web as well
