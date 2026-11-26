@@ -97,9 +97,15 @@ if ($adminAuthRaw) {
     try { $adminToken = ($adminAuthRaw | ConvertFrom-Json).token } catch {}
 }
 
+# Direct Admin Login (/api/admin/login)
+Test-Api -Category "Auth" -Name "Direct Admin Login" -Method "POST" -Endpoint "/api/admin/login" -Body $adminLoginJson
+
+# Institute Login (/api/auth/institute/login & /api/institutes/login)
 $instLoginJson = @{ instituteCode = "INST-2025"; password = "edlearn123" } | ConvertTo-Json
 $instAuthRaw = Test-Api -Category "Auth" -Name "Institute Login" -Method "POST" -Endpoint "/api/auth/institute/login" -Body $instLoginJson
+Test-Api -Category "Auth" -Name "Direct Institute Login" -Method "POST" -Endpoint "/api/institutes/login" -Body $instLoginJson
 
+# Role Login: Teacher & Student
 $teacherLoginJson = @{ email = "amit.sharma@institute.com"; password = "password123"; role = "teacher" } | ConvertTo-Json
 $teacherAuthRaw = Test-Api -Category "Auth" -Name "Teacher Login" -Method "POST" -Endpoint "/api/auth/login" -Body $teacherLoginJson
 $teacherToken = ""
@@ -122,7 +128,7 @@ $studentHeaders = @{ Authorization = "Bearer $studentToken" }
 $forgotJson = @{ email = "rahul@institute.com"; role = "student" } | ConvertTo-Json
 Test-Api -Category "Auth" -Name "Forgot Password" -Method "POST" -Endpoint "/api/auth/forgot-password" -Body $forgotJson
 
-# --- 3. DATABASE ADMIN & CONSOLE ---
+# --- 3. DATABASE ADMIN & DIAGNOSTICS ---
 Test-Api -Category "Database" -Name "Database Console" -Method "GET" -Endpoint "/api/db/console" -Headers $adminHeaders
 Test-Api -Category "Database" -Name "Database Institutes" -Method "GET" -Endpoint "/api/db/institutes" -Headers $adminHeaders
 Test-Api -Category "Database" -Name "Database Users" -Method "GET" -Endpoint "/api/db/users" -Headers $adminHeaders
@@ -144,34 +150,61 @@ Test-Api -Category "Instructors" -Name "Search Instructors" -Method "GET" -Endpo
 # --- 7. COURSES & BATCHES APIS ---
 Test-Api -Category "Courses" -Name "List Courses" -Method "GET" -Endpoint "/api/courses" -Headers $adminHeaders
 Test-Api -Category "Courses" -Name "List Batches" -Method "GET" -Endpoint "/api/batches" -Headers $adminHeaders
-Test-Api -Category "Courses" -Name "List Enrollments" -Method "GET" -Endpoint "/api/enrollments" -Headers $adminHeaders
+Test-Api -Category "Courses" -Name "List My Enrollments (Student)" -Method "GET" -Endpoint "/api/enrollments/my" -Headers $studentHeaders
 
 # --- 8. CLASSROOMS APIS ---
 $classroomsRaw = Test-Api -Category "Classrooms" -Name "List Classrooms" -Method "GET" -Endpoint "/api/classrooms" -Headers $teacherHeaders
 Test-Api -Category "Classrooms" -Name "List Public Classrooms" -Method "GET" -Endpoint "/api/public/classrooms"
 
+$targetClassroomId = ""
+if ($classroomsRaw) {
+    try {
+        $parsedClassrooms = $classroomsRaw | ConvertFrom-Json
+        if ($parsedClassrooms.Count -gt 0) { $targetClassroomId = $parsedClassrooms[0].id }
+    } catch {}
+}
+if ($targetClassroomId) {
+    Test-Api -Category "Classrooms" -Name "Classroom Comments" -Method "GET" -Endpoint "/api/classrooms/$targetClassroomId/comments" -Headers $teacherHeaders
+}
+
 # --- 9. ASSIGNMENTS APIS ---
 Test-Api -Category "Assignments" -Name "List Assignments (Admin)" -Method "GET" -Endpoint "/api/assignments" -Headers $adminHeaders
-Test-Api -Category "Assignments" -Name "List My Assignments (Student)" -Method "GET" -Endpoint "/api/assignments/my" -Headers $studentHeaders
-Test-Api -Category "Assignments" -Name "List My Results (Student)" -Method "GET" -Endpoint "/api/assignments/my-results" -Headers $studentHeaders
 
-# --- 10. EXAMS APIS ---
+# --- 10. EXAMINATIONS & QUESTION BANK APIS ---
 Test-Api -Category "Exams" -Name "List Exams (Student)" -Method "GET" -Endpoint "/api/portal/exams" -Headers $studentHeaders
 Test-Api -Category "Exams" -Name "List Exams (Teacher)" -Method "GET" -Endpoint "/api/portal/exams" -Headers $teacherHeaders
+$questionsRaw = Test-Api -Category "Exams" -Name "Exam Questions Bank" -Method "GET" -Endpoint "/api/exam-questions" -Headers $teacherHeaders
+
+$targetQId = ""
+if ($questionsRaw) {
+    try {
+        $parsedQ = $questionsRaw | ConvertFrom-Json
+        if ($parsedQ.Count -gt 0) { $targetQId = $parsedQ[0].id }
+    } catch {}
+}
+if ($targetQId) {
+    Test-Api -Category "Exams" -Name "Question Versions" -Method "GET" -Endpoint "/api/exam-questions/$targetQId/versions" -Headers $teacherHeaders
+}
 
 # --- 11. CLASSES & SCHEDULE ---
 Test-Api -Category "Classes" -Name "List Classes" -Method "GET" -Endpoint "/api/classes" -Headers $studentHeaders
 Test-Api -Category "Classes" -Name "Upcoming Classes" -Method "GET" -Endpoint "/api/classes/upcoming" -Headers $studentHeaders
+Test-Api -Category "Classes" -Name "Class History" -Method "GET" -Endpoint "/api/classes/history" -Headers $studentHeaders
 
 # --- 12. LIVE CLASSES (GOOGLE MEET) ---
 Test-Api -Category "LiveClasses" -Name "Upcoming Live Classes" -Method "GET" -Endpoint "/api/live-classes/upcoming" -Headers $studentHeaders
 
-# --- 13. PORTAL MODULES (ANNOUNCEMENTS, LEAVES, NOTIFICATIONS) ---
+# --- 13. PORTAL MODULES (ANNOUNCEMENTS, LEAVES, NOTIFICATIONS, ADMIN) ---
 Test-Api -Category "Portal" -Name "Announcements List" -Method "GET" -Endpoint "/api/portal/announcements" -Headers $studentHeaders
 Test-Api -Category "Portal" -Name "Leaves List (Admin)" -Method "GET" -Endpoint "/api/portal/leaves" -Headers $adminHeaders
 Test-Api -Category "Portal" -Name "Leaves List (Teacher)" -Method "GET" -Endpoint "/api/portal/leaves" -Headers $teacherHeaders
 Test-Api -Category "Portal" -Name "Notifications List" -Method "GET" -Endpoint "/api/portal/notifications" -Headers $studentHeaders
 Test-Api -Category "Portal" -Name "Unread Notifications Count" -Method "GET" -Endpoint "/api/portal/notifications/unread-count" -Headers $studentHeaders
+Test-Api -Category "Portal" -Name "Admin Assignment Options" -Method "GET" -Endpoint "/api/portal/admin/assignment-options" -Headers $adminHeaders
+
+# --- 14. FILE STORAGE APIS ---
+Test-Api -Category "Files" -Name "Storage Info (Cloudinary Status)" -Method "GET" -Endpoint "/api/files/info" -Headers $adminHeaders
+Test-Api -Category "Files" -Name "List Stored Files" -Method "GET" -Endpoint "/api/files/list" -Headers $adminHeaders
 
 Write-Host "`n=================================================================" -ForegroundColor Cyan
 Write-Host "                      AUDIT SUMMARY RESULTS                      " -ForegroundColor Cyan

@@ -18,17 +18,17 @@ public class RoleDirectLoginController {
         this.authService = authService;
     }
 
-    @PostMapping(value = "/api/institutes/login", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    @PostMapping(value = {"/api/institutes/login", "/api/institute/login"}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
     public ResponseEntity<ApiResponse> instituteLoginDirect(@RequestBody LoginRequest req) {
         return ResponseEntity.ok(authService.loginInstitute(req));
     }
 
-    @PostMapping(value = "/api/institutes/register", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    @PostMapping(value = {"/api/institutes/register", "/api/institutes", "/api/institute/register"}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
     public ResponseEntity<ApiResponse> instituteRegisterDirect(@RequestBody InstituteRegisterRequest req) {
         return ResponseEntity.ok(authService.registerInstitute(req));
     }
 
-    @PostMapping(value = "/api/admin/login", consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    @PostMapping(value = {"/api/admin/login", "/api/admin"}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
     public ResponseEntity<ApiResponse> adminLoginDirect(@RequestBody LoginRequest req) {
         return ResponseEntity.ok(authService.loginAdmin(req));
     }

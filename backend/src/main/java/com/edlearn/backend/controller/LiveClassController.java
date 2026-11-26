@@ -55,7 +55,7 @@ public class LiveClassController {
         return liveClassService.getClassroomLiveClasses(user, classroomId);
     }
 
-    @GetMapping("/upcoming")
+    @GetMapping(value = {"", "/upcoming"})
     public List<Map<String, Object>> getUpcomingForUser(HttpServletRequest request) {
         UserEntity user = accessService.require(request, "teacher", "student", "admin");
         return liveClassService.getUpcomingForUser(user);

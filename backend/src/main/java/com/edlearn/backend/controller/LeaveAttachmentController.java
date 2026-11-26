@@ -16,7 +16,7 @@ import java.util.Locale;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/portal/leave-attachments")
+@RequestMapping({"/api/portal/leave-attachments", "/api/portal/leaves/attachments"})
 @CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class LeaveAttachmentController {
     private static final long MAX_FILE_SIZE = 10L * 1024 * 1024;

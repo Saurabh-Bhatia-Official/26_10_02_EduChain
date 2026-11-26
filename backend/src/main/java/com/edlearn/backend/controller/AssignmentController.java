@@ -87,7 +87,7 @@ public class AssignmentController {
         return Map.of("success", true, "message", "Assignment deleted successfully");
     }
 
-    @PostMapping("/attachments/upload")
+    @PostMapping(value = {"/attachments/upload", "/attachments"})
     public Map<String, Object> uploadAttachment(HttpServletRequest request,
                                                 @RequestParam(required = false) UUID classroomId,
                                                 @RequestParam(defaultValue = "ASSIGNMENT") String purpose,
