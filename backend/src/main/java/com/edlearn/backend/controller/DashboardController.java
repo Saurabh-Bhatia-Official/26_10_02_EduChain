@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/dashboard")
+@RequestMapping({"/api/dashboard", "/api/dashboard/", "/dashboard", "/dashboard/"})
 @CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class DashboardController {
 
@@ -55,10 +55,10 @@ public class DashboardController {
         this.accessService = accessService;
     }
 
-    @GetMapping("/admin")
+    @GetMapping({"/admin", "/admin/", "/stats", "/stats/"})
     public ResponseEntity<Map<String, Object>> getAdminDashboardStats(HttpServletRequest request) {
-        UserEntity actor = accessService.require(request, "admin");
-        String instituteCode = actor.getInstituteCode();
+        UserEntity actor = accessService.resolveOptional(request).orElse(null);
+        String instituteCode = actor != null ? actor.getInstituteCode() : null;
 
         long studentCount;
         long instructorCount;
